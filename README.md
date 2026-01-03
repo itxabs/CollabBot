@@ -1,0 +1,27 @@
+# collab_bot
+
+A new Flutter project.
+
+## Getting Started
+
+This project is a starting point for a Flutter application.
+
+A few resources to get you started if this is your first Flutter project:
+
+- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
+- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+
+For help getting started with Flutter development, view the
+[online documentation](https://docs.flutter.dev/), which offers tutorials,
+samples, guidance on mobile development, and a full API reference.
+
+
+These are naming convention used in the Project.
+
+Folders: snake_case (lowercase)
+Files: snake_case (lowercase)
+Variables: camelCase
+Methods / Functions: camelCase (verb-based)
+Classes: PascalCase
+Constants: UPPER_SNAKE_CASE
+Booleans: is/has/can + camelCase
