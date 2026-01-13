@@ -1,10 +1,14 @@
-import 'package:collab_bot/screens/login.dart';
-import 'package:collab_bot/screens/signUp.dart';
+import 'package:collab_bot/screens/auth/forget_pass_screen.dart';
+import 'package:collab_bot/screens/auth/login_screen.dart';
+import 'package:collab_bot/screens/main_navigation.dart';
+import 'package:collab_bot/screens/onboarding/onboarding_screen.dart';
+import 'package:collab_bot/screens/auth/signup_screen.dart';
+import 'package:collab_bot/screens/splash/splash_screen.dart';
 import 'package:collab_bot/view_models/auth_view_model.dart';
+import 'package:collab_bot/view_models/user_view_model.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,16 +24,23 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => AuthViewModel(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthViewModel()),
+        ChangeNotifierProvider(create: (_) => UserViewModel()),
+      ],
       child: MaterialApp(
-        title: 'Flutter Demo',
+        debugShowCheckedModeBanner: false,
+        title: 'Collab Bot',
         theme: ThemeData(primarySwatch: Colors.blue),
-        initialRoute: '/signup',
+        initialRoute: '/',
         routes: {
+          '/': (context) => SplashScreen(),
+          '/onboarding': (context) => OnboardingScreen(),
           '/signup': (context) => SignupScreen(),
           '/login': (context) => LoginScreen(),
-          // '/home': (context) => HomeScreen(), 
+          '/forget-pass': (context) => ForgetPass(),
+          '/main-navigation': (context) => MainNavigation(),
         },
       ),
     );
