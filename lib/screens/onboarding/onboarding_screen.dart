@@ -1,152 +1,139 @@
-import 'package:collab_bot/screens/auth/signup_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:smooth_page_indicator/smooth_page_indicator.dart';
+import '../../core/constants/colors.dart';
+import '../../core/constants/text_styles.dart';
+import '../../view_model/onboarding_view_model.dart';
 
-class OnboardingScreen extends StatefulWidget {
+class OnboardingScreen extends StatelessWidget {
   const OnboardingScreen({super.key});
 
   @override
-  State<OnboardingScreen> createState() => _OnboardingScreenState();
-}
-
-class _OnboardingScreenState extends State<OnboardingScreen> {
-  final PageController _pageController = PageController();
-  int _currentPage = 0;
-
-  final List<Map<String, String>> _pages = [
-    {
-      "image": "assets/images/collab_bot_logo.png",
-      "title": "Verify Your Skills with CollabBot AI",
-      "subtitle": "AI-powered verification for real skills",
-    },
-    {
-      "image": "assets/images/collab_bot_logo.png",
-      "title": "Connect with Trusted Teams",
-      "subtitle": "Work with verified professionals",
-    },
-    {
-      "image": "assets/images/collab_bot_logo.png",
-      "title": "Collaborate with Confidence",
-      "subtitle": "Secure and transparent collaboration",
-    },
-  ];
-
-  void _goToSignup() {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => SignupScreen()),
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) => OnboardingViewModel(),
+      child: const _OnboardingContent(),
     );
   }
+}
+
+class _OnboardingContent extends StatelessWidget {
+  const _OnboardingContent();
 
   @override
   Widget build(BuildContext context) {
+    final viewModel = Provider.of<OnboardingViewModel>(context);
+    final size = MediaQuery.of(context).size;
+
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFF9095A1), Color(0xFF171A1F)],
-          ),
-        ),
-        child: SafeArea(
-          child: Stack(
-            children: [
-              /// PageView
-              PageView.builder(
-                controller: _pageController,
-                itemCount: _pages.length,
-                onPageChanged: (index) {
-                  setState(() => _currentPage = index);
-                },
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Skip Button
+            Align(
+              alignment: Alignment.topRight,
+              child: TextButton(
+                onPressed: () => viewModel.skip(context),
+                child: Text(
+                  'Skip',
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+            
+            // PageView
+            Expanded(
+              child: PageView.builder(
+                controller: viewModel.pageController,
+                onPageChanged: viewModel.onPageChanged,
+                itemCount: viewModel.items.length,
                 itemBuilder: (context, index) {
-                  return Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Image.asset(
-                        _pages[index]["image"]!,
-                        width: 140,
-                        height: 140,
-                      ),
-                      const SizedBox(height: 30),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 24),
-                        child: Text(
-                          _pages[index]["title"]!,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                  final item = viewModel.items[index];
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // Icon Container
+                        Container(
+                          width: size.width * 0.8,
+                          height: size.width * 0.8,
+                          decoration: BoxDecoration(
+                            color: item.color.withOpacity(0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            item.icon,
+                            size: 100,
+                            color: item.color,
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 12),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 32),
-                        child: Text(
-                          _pages[index]["subtitle"]!,
+                        const SizedBox(height: 48),
+                        Text(
+                          item.title,
+                          style: AppTextStyles.h2,
                           textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            color: Colors.white70,
-                          ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 16),
+                        Text(
+                          item.description,
+                          style: AppTextStyles.bodyLarge.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
                   );
                 },
               ),
-
-              /// Bottom Buttons
-              Positioned(
-                bottom: 30,
-                left: 20,
-                right: 20,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    /// Skip
-                    TextButton(
-                      onPressed: _goToSignup,
-                      child: const Text(
-                        "Skip",
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 16,
-                        ),
-                      ),
+            ),
+            
+            // Bottom Section: Indicator & Button
+            Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                children: [
+                  SmoothPageIndicator(
+                    controller: viewModel.pageController,
+                    count: viewModel.items.length,
+                    effect: ExpandingDotsEffect(
+                      activeDotColor: AppColors.primary,
+                      dotColor: AppColors.primary.withOpacity(0.2),
+                      dotHeight: 8,
+                      dotWidth: 8,
+                      expansionFactor: 4,
                     ),
-
-                    /// Continue / Next
-                    ElevatedButton(
+                  ),
+                  const SizedBox(height: 32),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: ElevatedButton(
+                      onPressed: () => viewModel.nextPage(context),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: Colors.black,
+                        backgroundColor: AppColors.primary,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
+                          borderRadius: BorderRadius.circular(16),
                         ),
+                        elevation: 0,
                       ),
-                      onPressed: () {
-                        if (_currentPage == _pages.length - 1) {
-                          _goToSignup();
-                        } else {
-                          _pageController.nextPage(
-                            duration: const Duration(milliseconds: 300),
-                            curve: Curves.easeInOut,
-                          );
-                        }
-                      },
                       child: Text(
-                        _currentPage == _pages.length - 1
-                            ? "Continue"
-                            : "Next",
+                        viewModel.currentIndex == viewModel.items.length - 1
+                            ? 'Get Started'
+                            : 'Next',
+                        style: AppTextStyles.button,
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

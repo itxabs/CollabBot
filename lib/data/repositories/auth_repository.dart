@@ -1,67 +1,94 @@
-// import '../services/supabase_services.dart';
+import '../services/auth_service.dart';
 
-// class AuthRepository {
-//   final SupabaseService _service = SupabaseService();
+abstract class AuthRepository {
+  Future<void> signUp({
+    required String email,
+    required String password,
+    required String fullName,
+    required String role,
+  });
 
-//   Future<bool> signUpUser(String email, String password) async {
-//     try {
-//       final response = await _service.signUp(email, password);
-//       if (response.user != null) {
-//         return true; // Signup success
-//       } else {
-//         return false; // Something went wrong
-//       }
-//     } catch (e) {
-//       throw Exception(e.toString());
-//     }
-//   }
+  Future<void> signIn({
+    required String email,
+    required String password,
+  });
 
-//   Future<bool> loginUser(String email, String password) async {
-//     try {
-//       final response = await _service.login(email, password);
-//       return response.user != null;
-//     } catch (e) {
-//       print("Login Exception: $e");
-//       return false;
-//     }
-//   }
+  Future<void> resetPasswordForEmail(String email);
 
-//   Future<void> forgetPassword(String email) {
-//     return _service.sendResetPasswordEmail(email);
-//   }
-// }
+  Future<void> verifyOTP({
+    required String email,
+    required String token,
+  });
 
-import '../services/supabase_services.dart';
-import '../models/user_model.dart';
+  Future<void> updatePassword(String newPassword);
+}
 
-class AuthRepository {
-  final SupabaseService _service = SupabaseService();
+class AuthRepositoryImpl implements AuthRepository {
+  final AuthService _authService;
 
-  Future<bool> signUpUser(String email, String password) async {
+  AuthRepositoryImpl(this._authService);
+
+  @override
+  Future<void> signUp({
+    required String email,
+    required String password,
+    required String fullName,
+    required String role,
+  }) async {
     try {
-      final response = await _service.signUp(email, password);
-      return response.user != null;
+      await _authService.signUp(
+        email: email,
+        password: password,
+        fullName: fullName,
+        role: role,
+      );
     } catch (e) {
-      throw Exception(e.toString());
+      rethrow;
     }
   }
 
-  /// ✅ Login and return UserModel
-  Future<UserModel?> loginUser(String email, String password) async {
+  @override
+  Future<void> signIn({
+    required String email,
+    required String password,
+  }) async {
     try {
-      final response = await _service.login(email, password);
-
-      if (response.user == null) return null;
-
-      // Fetch the user data from 'users' table
-      return await _service.getUserById(response.user!.id);
+      await _authService.signIn(
+        email: email,
+        password: password,
+      );
     } catch (e) {
-      print("Login Exception: $e");
-      return null;
+      rethrow;
     }
   }
 
-  Future<void> forgetPassword(String email) {
-    return _service.sendResetPasswordEmail(email);
+  @override
+  Future<void> resetPasswordForEmail(String email) async {
+    try {
+      await _authService.resetPasswordForEmail(email);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  @override
+  Future<void> verifyOTP({
+    required String email,
+    required String token,
+  }) async {
+    try {
+      await _authService.verifyOTP(email: email, token: token);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  @override
+  Future<void> updatePassword(String newPassword) async {
+    try {
+      await _authService.updatePassword(newPassword);
+    } catch (e) {
+      rethrow;
+    }
   }
 }

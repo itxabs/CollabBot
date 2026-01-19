@@ -38,6 +38,7 @@ dependencies:
   provider: ^6.1.5+1
   get_storage: ^2.1.1
   smooth_page_indicator: ^2.0.1
+  google_fonts: ^7.0.2
 
 dev_dependencies:
   flutter_best_practices_lints: ^0.2.0

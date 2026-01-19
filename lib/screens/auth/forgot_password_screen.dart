@@ -1,33 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/colors.dart';
-import '../../core/constants/routes.dart';
 import '../../core/constants/text_styles.dart';
 import '../../core/widgets/custom_text_field.dart';
 import '../../core/widgets/primary_button.dart';
-import '../../view_model/forget_pass_view_model.dart';
-import 'otp_screen.dart';
+import '../../view_model/forgot_view_model.dart';
+import '../../core/constants/routes.dart';
 
-class ForgetPassScreen extends StatelessWidget {
-  const ForgetPassScreen({super.key});
+class ForgotPasswordScreen extends StatelessWidget {
+  const ForgotPasswordScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Decision: Use ChangeNotifierProvider here. 
-    // Sub-screens will use ChangeNotifierProvider.value when pushed.
     return ChangeNotifierProvider(
-      create: (_) => ForgetPassViewModel(),
-      child: const _ForgetPassContent(),
+      create: (_) => ForgotViewModel(),
+      child: const _ForgotContent(),
     );
   }
 }
 
-class _ForgetPassContent extends StatelessWidget {
-  const _ForgetPassContent();
+class _ForgotContent extends StatelessWidget {
+  const _ForgotContent();
 
   @override
   Widget build(BuildContext context) {
-    final viewModel = Provider.of<ForgetPassViewModel>(context);
+    final viewModel = Provider.of<ForgotViewModel>(context);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -43,7 +40,7 @@ class _ForgetPassContent extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(24.0),
           child: Form(
-            key: viewModel.emailFormKey,
+            key: viewModel.formKey,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -54,7 +51,7 @@ class _ForgetPassContent extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Enter your email to receive a reset code',
+                  'Enter your email to receive a reset link',
                   style: AppTextStyles.bodyLarge.copyWith(color: AppColors.textSecondary),
                   textAlign: TextAlign.center,
                 ),
@@ -74,31 +71,12 @@ class _ForgetPassContent extends StatelessWidget {
                   },
                 ),
                 
-                if (viewModel.errorMessage != null) ...[
-                 const SizedBox(height: 16),
-                 Text(viewModel.errorMessage!, style: const TextStyle(color: Colors.red), textAlign: TextAlign.center),
-                ],
-
                 const SizedBox(height: 32),
 
                 PrimaryButton(
-                  text: 'Send OTP',
+                  text: 'Send Reset Link',
                   isLoading: viewModel.isLoading,
-                  onPressed: () async {
-                    await viewModel.sendOtp(context);
-                    if (viewModel.currentStep == ForgotPasswordStep.otpInput && context.mounted) {
-                       // Navigate to OTP Screen, passing the ViewModel via provider value
-                       Navigator.push(
-                         context,
-                         MaterialPageRoute(
-                           builder: (_) => ChangeNotifierProvider.value(
-                             value: viewModel,
-                             child: const OtpScreen(),
-                           ),
-                         ),
-                       );
-                    }
-                  },
+                  onPressed: () => viewModel.sendResetLink(context),
                 ),
               ],
             ),

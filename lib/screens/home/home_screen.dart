@@ -1,214 +1,183 @@
-import 'package:collab_bot/view_models/auth_view_model.dart';
-import 'package:collab_bot/view_models/user_view_model.dart';
-import 'package:collab_bot/widgets/event_card.dart';
-import 'package:collab_bot/widgets/quick_action.dart';
-import 'package:collab_bot/widgets/stat_item.dart';
-import 'package:collab_bot/widgets/suggestion_card.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../core/constants/colors.dart';
+import '../../core/constants/text_styles.dart';
+import '../../view_model/home_view_model.dart';
+import '../../core/widgets/primary_button.dart'; // Reuse button if needed, or create cards
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) => HomeViewModel(),
+      child: const _HomeContent(),
+    );
+  }
 }
 
-class _HomeScreenState extends State<HomeScreen> {
-  @override
-  void initState() {
-    super.initState();
-
-    // Load current user after the first frame
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final authVM = context.read<AuthViewModel>();
-      final userVM = context.read<UserViewModel>();
-      final userId = authVM.currentUser?.userId;
-
-      if (userId != null) {
-        userVM.loadUser(userId);
-      }
-    });
-  }
+class _HomeContent extends StatelessWidget {
+  const _HomeContent();
 
   @override
   Widget build(BuildContext context) {
-    final userVM = context.watch<UserViewModel>();
+    final viewModel = Provider.of<HomeViewModel>(context);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F6FA),
-      appBar: AppBar(
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              "Welcome back 👋",
-              style: TextStyle(fontSize: 14, color: Colors.grey),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              userVM.isLoading
-                  ? "Loading..."
-                  : userVM.currentUser?.name ?? "User",
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.black,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          const Icon(Icons.notifications_none, color: Colors.black),
-          const SizedBox(width: 12),
-          CircleAvatar(
-            radius: 18,
-            backgroundColor: const Color(0xFF28A745),
-            child: Text(
-              userVM.currentUser != null
-                  ? userVM.currentUser!.name.substring(0, 2).toUpperCase()
-                  : "NA",
-              style: const TextStyle(color: Colors.white),
-            ),
-          ),
-          const SizedBox(width: 12),
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            /// Points Card
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF9095A1), Color(0xFF171A1F)],
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  Text(
-                    "Your Points",
-                    style: TextStyle(color: Colors.white70),
-                  ),
-                  SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        "1,250",
-                        style: TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                      Chip(
-                        backgroundColor: Color(0xFF28A745),
-                        label: Text(
-                          "+120 this week",
-                          style: TextStyle(color: Colors.white),
-                        ),
-                      ),
+                      Text('Hello, Abdul!', style: AppTextStyles.h2),
+                      Text('Ready to learn today?', style: AppTextStyles.bodyMedium),
                     ],
                   ),
-                  SizedBox(height: 20),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      StatItem(title: "Rank", value: "#12"),
-                      StatItem(title: "Connections", value: "28"),
-                      StatItem(title: "Verified Skills", value: "5"),
-                    ],
+                  CircleAvatar(
+                    radius: 24,
+                    backgroundColor: AppColors.primary.withOpacity(0.1),
+                    child: const Icon(Icons.person, color: AppColors.primary),
                   ),
                 ],
               ),
-            ),
+              const SizedBox(height: 24),
 
-            const SizedBox(height: 24),
-
-            /// Quick Actions
-            const Text(
-              "Quick Actions",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: const [
-                QuickAction(icon: Icons.people, label: "Find Match"),
-                QuickAction(icon: Icons.smart_toy, label: "CollabAI"),
-                QuickAction(icon: Icons.emoji_events, label: "Leaderboard"),
-                QuickAction(icon: Icons.event, label: "Events"),
-              ],
-            ),
-
-            const SizedBox(height: 24),
-
-            /// Suggested Users
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: const [
-                Text(
-                  "Suggested for You",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                Text("See all →", style: TextStyle(color: Color(0xFF28A745))),
-              ],
-            ),
-            const SizedBox(height: 16),
-            const SuggestionCard(
-              initials: "AK",
-              name: "Ahmed Khan",
-              role: "Senior Flutter Dev",
-              skills: ["Flutter", "Firebase"],
-            ),
-            const SuggestionCard(
-              initials: "SM",
-              name: "Sara Malik",
-              role: "Alumni UX Designer",
-              skills: ["UI/UX", "Figma", "Testing"],
-            ),
-            const SuggestionCard(
-              initials: "AH",
-              name: "Ali Hassan",
-              role: "Senior ML Engineer",
-              skills: ["Python", "TensorFlow"],
-            ),
-
-            const SizedBox(height: 24),
-
-            /// Events
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: const [
-                Text(
-                  "Upcoming Events",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                InkWell(
-                  child: Text(
-                    "See all →",
-                    style: TextStyle(color: Color(0xFF28A745)),
+              // Points Card
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [AppColors.primary, Color(0xFF6366F1)], // Indigo to Purple
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
+                  borderRadius: BorderRadius.circular(20),
                 ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('My Points', style: AppTextStyles.bodyMedium.copyWith(color: Colors.white70)),
+                    const SizedBox(height: 8),
+                    Text(
+                      '${viewModel.points}', 
+                      style: AppTextStyles.h1.copyWith(color: Colors.white, fontSize: 36),
+                    ),
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        'Top 5% of Learners',
+                        style: AppTextStyles.bodyMedium.copyWith(color: Colors.white, fontSize: 12),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 32),
+
+              // Quick Actions
+              Text('Quick Actions', style: AppTextStyles.h3),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _buildQuickAction(Icons.search, 'Find Match', Colors.blue),
+                  _buildQuickAction(Icons.auto_awesome, 'CollabAI', Colors.orange),
+                  _buildQuickAction(Icons.leaderboard, 'Rankings', Colors.purple),
+                  _buildQuickAction(Icons.event, 'Events', Colors.green),
+                ],
+              ),
+              const SizedBox(height: 32),
+
+              // Suggested Mentors
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Suggested for You', style: AppTextStyles.h3),
+                  Text('See All', style: AppTextStyles.link),
+                ],
+              ),
+              const SizedBox(height: 16),
+              
+              if (viewModel.isLoading)
+                const Center(child: CircularProgressIndicator())
+              else
+                ListView.separated(
+                  physics: const NeverScrollableScrollPhysics(),
+                  shrinkWrap: true,
+                  itemCount: viewModel.suggestedMentors.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 16),
+                  itemBuilder: (context, index) {
+                    final mentor = viewModel.suggestedMentors[index];
+                    return _buildMentorCard(mentor);
+                  },
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuickAction(IconData icon, String label, Color color) {
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Icon(icon, color: color, size: 28),
+        ),
+        const SizedBox(height: 8),
+        Text(label, style: AppTextStyles.bodyMedium.copyWith(fontSize: 12, fontWeight: FontWeight.w600)),
+      ],
+    );
+  }
+
+  Widget _buildMentorCard(Mentor mentor) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 24,
+            backgroundColor: AppColors.background,
+            child: Text(mentor.name[0], style: AppTextStyles.h3.copyWith(fontSize: 18)),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(mentor.name, style: AppTextStyles.bodyLarge.copyWith(fontWeight: FontWeight.w600)),
+                Text('${mentor.role} at ${mentor.company}', style: AppTextStyles.bodyMedium),
               ],
             ),
-            const SizedBox(height: 16),
-            const EventCard(title: "Flutter Workshop", date: "Jan 15 • 3:00 PM"),
-            const EventCard(
-              title: "AI in Education Seminar",
-              date: "Jan 18 • 2:00 PM",
-            ),
-          ],
-        ),
+          ),
+          Icon(Icons.chevron_right, color: AppColors.textSecondary),
+        ],
       ),
     );
   }

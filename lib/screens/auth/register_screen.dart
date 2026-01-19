@@ -5,32 +5,37 @@ import '../../core/constants/routes.dart';
 import '../../core/constants/text_styles.dart';
 import '../../core/widgets/custom_text_field.dart';
 import '../../core/widgets/primary_button.dart';
-import '../../view_model/login_view_model.dart';
+import '../../view_model/register_view_model.dart';
 
-class LoginScreen extends StatelessWidget {
-  const LoginScreen({super.key});
+class RegisterScreen extends StatelessWidget {
+  const RegisterScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (_) => LoginViewModel(),
-      child: const _LoginContent(),
+      create: (_) => RegisterViewModel(),
+      child: const _RegisterContent(),
     );
   }
 }
 
-class _LoginContent extends StatelessWidget {
-  const _LoginContent();
+class _RegisterContent extends StatelessWidget {
+  const _RegisterContent();
 
   @override
   Widget build(BuildContext context) {
-    final viewModel = Provider.of<LoginViewModel>(context);
-
-    // Show error via snackbar logic is handled in ViewModel, OR we can listen to updates here if needed.
-    // Given ViewModel handles it via context, we focus on binding inputs here.
+    final viewModel = Provider.of<RegisterViewModel>(context);
 
     return Scaffold(
       backgroundColor: AppColors.background,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
@@ -39,20 +44,33 @@ class _LoginContent extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const SizedBox(height: 48),
                 // Heading
                 Text(
-                  'Welcome Back',
+                  'Create Account',
                   style: AppTextStyles.h1,
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Sign in to continue your journey',
+                  'Join the community of learners',
                   style: AppTextStyles.bodyLarge.copyWith(color: AppColors.textSecondary),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 48),
+                const SizedBox(height: 32),
+
+                // Name
+                Text('Full Name', style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600)),
+                const SizedBox(height: 8),
+                CustomTextField(
+                  controller: viewModel.nameController,
+                  hintText: 'Enter your full name',
+                  prefixIcon: const Icon(Icons.person_outline, color: AppColors.textSecondary),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) return 'Please enter your name';
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 24),
 
                 // Email
                 Text('Email Address', style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600)),
@@ -63,12 +81,8 @@ class _LoginContent extends StatelessWidget {
                   keyboardType: TextInputType.emailAddress,
                   prefixIcon: const Icon(Icons.email_outlined, color: AppColors.textSecondary),
                   validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your email';
-                    }
-                    if (!value.contains('@')) {
-                      return 'Please enter a valid email';
-                    }
+                    if (value == null || value.isEmpty) return 'Please enter your email';
+                    if (!value.contains('@')) return 'Please enter a valid email';
                     return null;
                   },
                 ),
@@ -79,7 +93,7 @@ class _LoginContent extends StatelessWidget {
                 const SizedBox(height: 8),
                 CustomTextField(
                   controller: viewModel.passwordController,
-                  hintText: 'Enter your password',
+                  hintText: 'Create a password',
                   obscureText: viewModel.obscurePassword,
                   prefixIcon: const Icon(Icons.lock_outline, color: AppColors.textSecondary),
                   suffixIcon: IconButton(
@@ -90,66 +104,52 @@ class _LoginContent extends StatelessWidget {
                     onPressed: viewModel.togglePasswordVisibility,
                   ),
                   validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your password';
-                    }
-                    if (value.length < 6) {
-                      return 'Password must be at least 6 characters';
-                    }
+                    if (value == null || value.isEmpty) return 'Please enter a password';
+                    if (value.length < 6) return 'Password must be at least 6 characters';
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 24),
+
+                // Confirm Password
+                Text('Confirm Password', style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600)),
+                const SizedBox(height: 8),
+                CustomTextField(
+                  controller: viewModel.confirmPasswordController,
+                  hintText: 'Confirm your password',
+                  obscureText: viewModel.obscurePassword,
+                  prefixIcon: const Icon(Icons.lock_outline, color: AppColors.textSecondary),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) return 'Please confirm your password';
+                    if (value != viewModel.passwordController.text) return 'Passwords do not match';
                     return null;
                   },
                 ),
                 
-                // Forgot Password
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: () {
-                      Navigator.pushNamed(context, AppRoutes.forgotPassword);
-                    },
-                    child: Text(
-                      'Forgot Password?',
-                      style: AppTextStyles.bodyMedium.copyWith(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
                 const SizedBox(height: 32),
 
-                // Login Button
+                // Register Button
                 PrimaryButton(
-                  text: 'Sign In',
+                  text: 'Sign Up',
                   isLoading: viewModel.isLoading,
-                  onPressed: viewModel.isLoading ? () {} : () => viewModel.login(context), // Disable if loading
+                  onPressed: () => viewModel.register(context),
                 ),
-                
-                if (viewModel.errorMessage != null && !viewModel.isLoading) ...[
-                  const SizedBox(height: 16),
-                  Text(
-                    viewModel.errorMessage!,
-                    style: AppTextStyles.bodyMedium.copyWith(color: Colors.red),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-                
                 const SizedBox(height: 24),
 
-                // Register Link
+                // Login Link
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      "Don't have an account? ",
+                      "Already have an account? ",
                       style: AppTextStyles.bodyMedium,
                     ),
                     GestureDetector(
                       onTap: () {
-                        Navigator.pushNamed(context, AppRoutes.register);
+                        Navigator.pop(context);
                       },
                       child: Text(
-                        'Sign Up',
+                        'Sign In',
                         style: AppTextStyles.link,
                       ),
                     ),

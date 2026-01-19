@@ -1,6 +1,8 @@
-import 'dart:async';
-import 'package:collab_bot/screens/onboarding/onboarding_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../core/constants/colors.dart';
+import '../../core/constants/text_styles.dart';
+import '../../view_model/splash_view_model.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -13,43 +15,58 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-
-    Timer(Duration(seconds: 2), () {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => OnboardingScreen()),
-      );
+    // Start initialization logic via ViewModel
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _navigate();
     });
+  }
+
+  void _navigate() async {
+    final viewModel = Provider.of<SplashViewModel>(context, listen: false);
+    final route = await viewModel.init();
+    if (mounted) {
+      Navigator.pushReplacementNamed(context, route);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFF9095A1), Color(0xFF171A1F)],
-          ),
-        ),
+      backgroundColor: AppColors.primary,
+      body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Image.asset(
-              'assets/images/collab_bot_logo.png',
-              width: 120,
-              height: 120,
-            ),
-            Text(
-              'Connect. Verify. Collaborate.',
-              style: TextStyle(
+            // Logo placeholder
+            Container(
+              width: 100,
+              height: 100,
+              decoration: BoxDecoration(
                 color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 20,
+                borderRadius: BorderRadius.circular(24),
               ),
+              child: const Center(
+                child: Icon(
+                  Icons.auto_awesome, 
+                  color: AppColors.primary,
+                  size: 50,
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'CollabBot',
+              style: AppTextStyles.h1.copyWith(color: Colors.white),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Connect. Learn. Grow.',
+              style: AppTextStyles.bodyLarge.copyWith(color: Colors.white70),
+            ),
+            const SizedBox(height: 48),
+            // Loading Indicator
+            const CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
             ),
           ],
         ),
