@@ -28,7 +28,8 @@ class _EventsContent extends StatelessWidget {
     final viewModel = Provider.of<EventsViewModel>(context);
     final authViewModel = Provider.of<AuthViewModel>(context);
     final userRole = authViewModel.currentUser?.role.toLowerCase() ?? 'junior';
-    final canCreate = userRole == 'senior' || userRole == 'alumni';
+    final canCreate = userRole == 'senior' || userRole == 'alumni' || userRole == 'scnior' || userRole == 'almunai';
+
 
     return Scaffold(
       backgroundColor: AppColors.background,
