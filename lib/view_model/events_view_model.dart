@@ -1,45 +1,57 @@
 import 'package:flutter/material.dart';
-
-class Event {
-  final String title;
-  final String date;
-  final String location;
-  final String imageUrl;
-  final bool isSaved;
-
-  Event({
-    required this.title,
-    required this.date,
-    required this.location,
-    required this.imageUrl,
-    this.isSaved = false,
-  });
-}
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../data/models/event_model.dart';
 
 class EventsViewModel extends ChangeNotifier {
-  List<Event> _upcomingEvents = [];
-  List<Event> get upcomingEvents => _upcomingEvents;
+  final _supabase = Supabase.instance.client;
+
+  List<EventModel> _upcomingEvents = [];
+  List<EventModel> get upcomingEvents => _upcomingEvents;
 
   bool _isLoading = false;
   bool get isLoading => _isLoading;
 
   EventsViewModel() {
-    _loadEvents();
+    loadEvents();
   }
 
-  Future<void> _loadEvents() async {
+  Future<void> loadEvents() async {
     _isLoading = true;
     notifyListeners();
 
-    await Future.delayed(const Duration(seconds: 1));
-
-    _upcomingEvents = [
-      Event(title: 'Flutter Forward 2026', date: 'Jan 25, 2026', location: 'Virtual', imageUrl: ''),
-      Event(title: 'Dart Meetup', date: 'Feb 10, 2026', location: 'San Francisco', imageUrl: ''),
-      Event(title: 'AI in Design', date: 'Feb 15, 2026', location: 'London', imageUrl: ''),
-    ];
+    try {
+      final response = await _supabase
+          .from('events')
+          .select('*, users(full_name)')
+          .order('event_date', ascending: true);
+      
+      _upcomingEvents = (response as List)
+          .map((json) => EventModel.fromJson(json))
+          .toList();
+    } catch (e) {
+      print('Error loading events: $e');
+    }
 
     _isLoading = false;
     notifyListeners();
   }
+
+  Future<bool> createEvent(EventModel event) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      await _supabase.from('events').insert(event.toJson());
+      await loadEvents(); // Refresh list
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      print('Error creating event: $e');
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
 }
+

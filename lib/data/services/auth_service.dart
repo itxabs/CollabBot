@@ -44,6 +44,16 @@ class AuthService {
     );
   }
 
+  Future<Map<String, dynamic>?> getUserProfile(String userId) async {
+    final response = await _supabase
+        .from('users')
+        .select()
+        .eq('id', userId)
+        .maybeSingle();
+    return response;
+  }
+
+
   Future<void> resetPasswordForEmail(String email) async {
     await _supabase.auth.resetPasswordForEmail(email);
   }
