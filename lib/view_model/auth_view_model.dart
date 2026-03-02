@@ -22,30 +22,27 @@ class AuthViewModel extends ChangeNotifier {
 
   Future<void> initializeCurrentUser() async {
     final session = Supabase.instance.client.auth.currentSession;
-    if (session != null) {
-      await fetchUserProfile(session.user.id);
+    if (session == null) {
+       currentUser = null;
+       notifyListeners();
+       return;
     }
+    await fetchUserProfile(session.user.id);
   }
+
 
   Future<void> fetchUserProfile(String userId) async {
     try {
       final userData = await _repository.getUserProfile(userId);
       if (userData != null) {
-        currentUser = UserModel(
-          userId: userData['id'],
-          userEmail: userData['email'],
-          name: userData['full_name'],
-          role: userData['role'],
-          rating: (userData['rating'] ?? 0.0).toDouble(),
-          dob: userData['dob'] != null ? DateTime.parse(userData['dob']) : DateTime.now(),
-          createdAt: DateTime.parse(userData['created_at']),
-        );
+        currentUser = UserModel.fromMap(userData);
       }
     } catch (e) {
-      print('Error fetching user profile: $e');
+      debugPrint('Error fetching user profile: $e');
     }
     notifyListeners();
   }
+
 
   Future<void> signUp({
     required String email,
@@ -121,5 +118,13 @@ class AuthViewModel extends ChangeNotifier {
     isLoading = false;
     notifyListeners();
   }
+
+  Future<void> logout() async {
+    await Supabase.instance.client.auth.signOut();
+    currentUser = null;
+    notifyListeners();
+  }
 }
+
+
 

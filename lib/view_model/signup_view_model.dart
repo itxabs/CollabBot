@@ -3,6 +3,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../data/repositories/auth_repository.dart';
 import '../data/services/auth_service.dart';
 import '../core/constants/routes.dart';
+import 'package:provider/provider.dart';
+import 'auth_view_model.dart';
+
 
 class SignupViewModel extends ChangeNotifier {
   final AuthRepository _authRepository;
@@ -85,20 +88,37 @@ class SignupViewModel extends ChangeNotifier {
 
       // Success
       if (context.mounted) {
-         _isLoading = false;
-        notifyListeners();
-        // Go to Login
-        Navigator.pushReplacementNamed(context, AppRoutes.login);
+        _isLoading = false;
+        notifyListeners(); // Notify first
+        
+        final authVM = Provider.of<AuthViewModel>(context, listen: false);
+        await authVM.initializeCurrentUser();
+
+        // Redirect decisively to Home
+        Navigator.of(context).pushNamedAndRemoveUntil(AppRoutes.home, (route) => false);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Account created! Please login.')),
+          const SnackBar(content: Text('Account Created! Welcome to Home.')),
         );
       }
+
     } catch (e) {
-      _isLoading = false;
-      _errorMessage = e.toString().replaceAll('Exception: ', '');
-      notifyListeners();
+      if (context.mounted) {
+        final alreadyExists = e.toString().contains('user_already_exists');
+        _isLoading = false;
+        _errorMessage = alreadyExists ? 'Welcome back! Profile Updated.' : e.toString().replaceAll('Exception: ', '');
+        
+        notifyListeners(); 
+
+        if (alreadyExists) {
+          // Even if they exist, navigate them to Home now that we updated their role
+          Navigator.of(context).pushNamedAndRemoveUntil(AppRoutes.home, (route) => false);
+        }
+      }
     }
   }
+
+
+
 
   @override
   void dispose() {

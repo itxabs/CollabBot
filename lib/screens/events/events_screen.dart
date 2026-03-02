@@ -27,14 +27,30 @@ class _EventsContent extends StatelessWidget {
   Widget build(BuildContext context) {
     final viewModel = Provider.of<EventsViewModel>(context);
     final authViewModel = Provider.of<AuthViewModel>(context);
-    final userRole = authViewModel.currentUser?.role.toLowerCase() ?? 'junior';
-    final canCreate = userRole == 'senior' || userRole == 'alumni' || userRole == 'scnior' || userRole == 'almunai';
-
+    
+    // Get role, default to empty if null (this helps diagnose if currentUser is null)
+    final String userRole = authViewModel.currentUser?.role.trim().toLowerCase() ?? 'not_loaded';
+    
+    // Explicitly hide for junior, otherwise check for allowed roles
+    final bool canCreate = userRole != 'junior' && 
+                          userRole != 'not_loaded' &&
+                          (userRole == 'senior' || 
+                           userRole == 'alumni' || 
+                           userRole == 'scnior' || 
+                           userRole == 'almunai' || 
+                           userRole == 'almunaii');
 
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text('Events', style: AppTextStyles.h2),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Events', style: AppTextStyles.h2),
+            Text('Role: ${authViewModel.currentUser?.role ?? "Loading..."}', 
+                 style: const TextStyle(fontSize: 10, color: Colors.grey)),
+          ],
+        ),
         backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: false,
@@ -56,6 +72,7 @@ class _EventsContent extends StatelessWidget {
             ),
         ],
       ),
+
       body: Column(
         children: [
           // Search Bar
@@ -257,17 +274,24 @@ class _EventsContent extends StatelessWidget {
                       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill all required fields')));
                       return;
                     }
+                    String formatTime(TimeOfDay time) {
+                      final h = time.hour.toString().padLeft(2, '0');
+                      final m = time.minute.toString().padLeft(2, '0');
+                      return '$h:$m:00';
+                    }
+
                     final event = EventModel(
                       title: titleController.text,
                       category: categoryController.text,
                       description: descController.text,
                       venue: venueController.text,
                       date: selectedDate,
-                      startTime: startTime.format(context),
-                      endTime: endTime.format(context),
+                      startTime: formatTime(startTime),
+                      endTime: formatTime(endTime),
                       creatorId: authViewModel.currentUser?.userId ?? '',
                       creatorName: authViewModel.currentUser?.name,
                     );
+
                     final success = await viewModel.createEvent(event);
                     if (success && context.mounted) {
                       Navigator.pop(context);

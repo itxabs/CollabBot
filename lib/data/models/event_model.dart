@@ -27,16 +27,27 @@ class EventModel {
 
   /// JSON → Dart
   factory EventModel.fromJson(Map<String, dynamic> json) {
+    String rawDesc = json['description'] ?? '';
+    String cat = 'Workshop'; // Default
+    String desc = rawDesc;
+
+    // Workaround: Try to extract category from [Category] prefix in description
+    if (rawDesc.startsWith('[') && rawDesc.contains(']')) {
+      final endBracket = rawDesc.indexOf(']');
+      cat = rawDesc.substring(1, endBracket);
+      desc = rawDesc.substring(endBracket + 1).trim();
+    }
+
     return EventModel(
       eventId: json['id'] as String?,
       title: json['title'] as String,
       status: json['status_id']?.toString(),
       date: json['event_date'] != null ? DateTime.parse(json['event_date']) : DateTime.now(),
-      category: json['category'] ?? (json['event_type'] ?? 'General'),
+      category: cat,
       startTime: json['start_time'] ?? '',
       endTime: json['end_time'] ?? '',
       venue: json['venue'] ?? '',
-      description: json['description'] ?? '',
+      description: desc,
       creatorId: json['creator_id'] as String,
       creatorName: json['users']?['full_name'] as String?,
     );
@@ -47,15 +58,17 @@ class EventModel {
     return {
       if (eventId != null) 'id': eventId,
       'title': title,
-      'status_id': status != null ? int.tryParse(status!) ?? 1 : 1, // Default status 1
+      'status_id': status != null ? int.tryParse(status!) ?? 1 : 1, // Default to 1
       'event_date': date.toIso8601String().split('T')[0],
-      'category': category,
       'start_time': startTime,
       'end_time': endTime,
       'venue': venue,
-      'description': description,
+      'description': '[$category] $description',
       'creator_id': creatorId,
     };
   }
 }
+
+
+
 
