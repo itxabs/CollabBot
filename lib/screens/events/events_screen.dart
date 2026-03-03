@@ -212,7 +212,7 @@ class _EventsContent extends StatelessWidget {
                 const SizedBox(height: 12),
                 _buildFieldLabel('Category'),
                 DropdownButtonFormField<String>(
-                  value: categoryController.text,
+                  initialValue: categoryController.text,
                   items: ['Workshop', 'Seminar', 'Career', 'Social'].map((val) => DropdownMenuItem(value: val, child: Text(val))).toList(),
                   onChanged: (val) => setState(() => categoryController.text = val!),
                   decoration: _inputDecoration(''),

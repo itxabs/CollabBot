@@ -94,6 +94,7 @@ class SignupViewModel extends ChangeNotifier {
         final authVM = Provider.of<AuthViewModel>(context, listen: false);
         await authVM.initializeCurrentUser();
 
+        if (!context.mounted) return;
         // Redirect decisively to Home
         Navigator.of(context).pushNamedAndRemoveUntil(AppRoutes.home, (route) => false);
         ScaffoldMessenger.of(context).showSnackBar(

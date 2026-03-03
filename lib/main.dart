@@ -36,7 +36,7 @@ class MyApp extends StatelessWidget {
 
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
-        title: 'Collab Bot',
+        title: 'CollabBot',
         theme: ThemeData(
           useMaterial3: true,
           primarySwatch: Colors.indigo, // Fallback

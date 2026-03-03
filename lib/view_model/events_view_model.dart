@@ -29,7 +29,7 @@ class EventsViewModel extends ChangeNotifier {
           .map((json) => EventModel.fromJson(json))
           .toList();
     } catch (e) {
-      print('Error loading events: $e');
+      debugPrint('Error loading events: $e');
     }
 
     _isLoading = false;
@@ -47,7 +47,7 @@ class EventsViewModel extends ChangeNotifier {
       notifyListeners();
       return true;
     } catch (e) {
-      print('Error creating event: $e');
+      debugPrint('Error creating event: $e');
       _isLoading = false;
       notifyListeners();
       return false;
