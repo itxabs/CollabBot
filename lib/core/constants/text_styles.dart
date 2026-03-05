@@ -41,6 +41,12 @@ class AppTextStyles {
         color: Colors.white,
       );
       
+  static TextStyle get bodySmall => GoogleFonts.plusJakartaSans(
+        fontSize: 12,
+        fontWeight: FontWeight.w400,
+        color: AppColors.textSecondary,
+      );
+
   static TextStyle get link => GoogleFonts.plusJakartaSans(
         fontSize: 14,
         fontWeight: FontWeight.w600,

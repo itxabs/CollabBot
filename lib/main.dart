@@ -13,8 +13,11 @@ import 'screens/auth/forget_pass_screen.dart';
 import 'screens/auth/signup_screen.dart';
 import 'screens/main_navigation.dart';
 
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: ".env");
   // Keep existing Supabase config
   await Supabase.initialize(
     url: 'https://hgpcisbeepambgudfncr.supabase.co',
