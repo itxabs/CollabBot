@@ -3,6 +3,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/constants/routes.dart';
 import '../data/repositories/auth_repository.dart';
 import '../data/services/auth_service.dart';
+import '../view_model/auth_view_model.dart';
+import 'package:provider/provider.dart';
 
 class LoginViewModel extends ChangeNotifier {
   // Dependency Injection (Using direct for now as per project context)
@@ -41,6 +43,12 @@ class LoginViewModel extends ChangeNotifier {
         password: passwordController.text,
       );
 
+      // Refresh global Auth state before navigating
+      if (context.mounted) {
+        final authVM = Provider.of<AuthViewModel>(context, listen: false);
+        await authVM.initializeCurrentUser();
+      }
+
       // Success Logic
       _isLoading = false;
       notifyListeners();
@@ -57,6 +65,7 @@ class LoginViewModel extends ChangeNotifier {
       _isLoading = false;
       _errorMessage = e.toString().replaceAll('Exception: ', '').replaceAll('AuthException: ', '');
       notifyListeners();
+
       
       if (context.mounted) {
          ScaffoldMessenger.of(context).showSnackBar(

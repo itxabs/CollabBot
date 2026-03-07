@@ -63,7 +63,7 @@ class _OnboardingContent extends StatelessWidget {
                           width: size.width * 0.8,
                           height: size.width * 0.8,
                           decoration: BoxDecoration(
-                            color: item.color.withOpacity(0.1),
+                            color: item.color.withValues(alpha: 0.1),
                             shape: BoxShape.circle,
                           ),
                           child: Icon(
@@ -103,7 +103,7 @@ class _OnboardingContent extends StatelessWidget {
                     count: viewModel.items.length,
                     effect: ExpandingDotsEffect(
                       activeDotColor: AppColors.primary,
-                      dotColor: AppColors.primary.withOpacity(0.2),
+                      dotColor: AppColors.primary.withValues(alpha: 0.2),
                       dotHeight: 8,
                       dotWidth: 8,
                       expansionFactor: 4,

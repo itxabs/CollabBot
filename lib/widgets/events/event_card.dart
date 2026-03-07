@@ -39,7 +39,7 @@ class EventCard extends StatelessWidget {
                 top: Radius.circular(16),
               ),
               gradient: LinearGradient(
-                colors: [tagColor.withOpacity(0.2), tagColor.withOpacity(0.05)],
+                colors: [tagColor.withValues(alpha: 0.2), tagColor.withValues(alpha: 0.05)],
               ),
             ),
             child: Padding(
@@ -48,7 +48,7 @@ class EventCard extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Chip(
-                    backgroundColor: tagColor.withOpacity(0.15),
+                    backgroundColor: tagColor.withValues(alpha: 0.15),
                     label: Text(tag, style: TextStyle(color: tagColor)),
                   ),
                   const Icon(Icons.bookmark_border),
@@ -95,19 +95,33 @@ class EventCard extends StatelessWidget {
                         attendees,
                         style: const TextStyle(color: Colors.black54),
                       ),
-                      ElevatedButton(
-                        onPressed: () {},
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF28A745),
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
+                      Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.share_outlined, color: Colors.grey),
+                            onPressed: () {
+                              // Mock share functionality
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Sharing to LinkedIn...')),
+                              );
+                            },
                           ),
-                        ),
-                        child: const Text("Register"),
+                          ElevatedButton(
+                            onPressed: () {},
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF6366F1), // Primary color from design
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                            ),
+                            child: const Text("Register"),
+                          ),
+                        ],
                       ),
                     ],
                   ),
+
                 ],
               ),
             ),

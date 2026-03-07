@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/text_styles.dart';
 import '../../view_model/home_view_model.dart';
-import '../../core/widgets/primary_button.dart'; // Reuse button if needed, or create cards
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -45,7 +44,7 @@ class _HomeContent extends StatelessWidget {
                   ),
                   CircleAvatar(
                     radius: 24,
-                    backgroundColor: AppColors.primary.withOpacity(0.1),
+                    backgroundColor: AppColors.primary.withValues(alpha: 0.1),
                     child: const Icon(Icons.person, color: AppColors.primary),
                   ),
                 ],
@@ -77,7 +76,7 @@ class _HomeContent extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
+                        color: Colors.white.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
@@ -121,7 +120,7 @@ class _HomeContent extends StatelessWidget {
                   physics: const NeverScrollableScrollPhysics(),
                   shrinkWrap: true,
                   itemCount: viewModel.suggestedMentors.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 16),
+                  separatorBuilder: (_, _) => const SizedBox(height: 16),
                   itemBuilder: (context, index) {
                     final mentor = viewModel.suggestedMentors[index];
                     return _buildMentorCard(mentor);
@@ -140,7 +139,7 @@ class _HomeContent extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
+            color: color.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(16),
           ),
           child: Icon(icon, color: color, size: 28),

@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/text_styles.dart';
 import '../../view_model/events_view_model.dart';
-import '../../core/constants/routes.dart';
+import '../../view_model/auth_view_model.dart';
+import '../../data/models/event_model.dart';
+import '../../widgets/events/event_card.dart';
 
 class EventsScreen extends StatelessWidget {
   const EventsScreen({super.key});
@@ -23,22 +26,75 @@ class _EventsContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final viewModel = Provider.of<EventsViewModel>(context);
+    final authViewModel = Provider.of<AuthViewModel>(context);
+    
+    // Get role, default to empty if null (this helps diagnose if currentUser is null)
+    final String userRole = authViewModel.currentUser?.role.trim().toLowerCase() ?? 'not_loaded';
+    
+    // Explicitly hide for junior, otherwise check for allowed roles
+    final bool canCreate = userRole != 'junior' && 
+                          userRole != 'not_loaded' &&
+                          (userRole == 'senior' || 
+                           userRole == 'alumni' || 
+                           userRole == 'scnior' || 
+                           userRole == 'almunai' || 
+                           userRole == 'almunaii');
 
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text('Events', style: AppTextStyles.h2),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Events', style: AppTextStyles.h2),
+            Text('Role: ${authViewModel.currentUser?.role ?? "Loading..."}', 
+                 style: const TextStyle(fontSize: 10, color: Colors.grey)),
+          ],
+        ),
         backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: false,
-        automaticallyImplyLeading: false, 
+        automaticallyImplyLeading: false,
+        actions: [
+          if (canCreate)
+            Padding(
+              padding: const EdgeInsets.only(right: 16.0),
+              child: ElevatedButton.icon(
+                onPressed: () => _showCreateEventDialog(context, viewModel, authViewModel),
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text('Create'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                ),
+              ),
+            ),
+        ],
       ),
+
       body: Column(
         children: [
-          // Custom Tab Bar Placeholder
+          // Search Bar
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: TextField(
+              decoration: InputDecoration(
+                hintText: 'Search events...',
+                prefixIcon: const Icon(Icons.search, color: AppColors.textSecondary),
+                filled: true,
+                fillColor: Colors.grey[100],
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+          ),
+          
+          // Tabs
           Container(
-            color: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
             child: Row(
               children: [
                 _buildTab('Upcoming', true),
@@ -53,19 +109,48 @@ class _EventsContent extends StatelessWidget {
           Expanded(
             child: viewModel.isLoading
                 ? const Center(child: CircularProgressIndicator())
-                : ListView.separated(
-                    padding: const EdgeInsets.all(24),
-                    itemCount: viewModel.upcomingEvents.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 16),
-                    itemBuilder: (context, index) {
-                      final event = viewModel.upcomingEvents[index];
-                      return _buildEventCard(event);
-                    },
-                  ),
+                : viewModel.upcomingEvents.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.event_note, size: 64, color: Colors.grey[300]),
+                            const SizedBox(height: 16),
+                            Text('No events found', style: AppTextStyles.bodyLarge),
+                          ],
+                        ),
+                      )
+                    : ListView.separated(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: viewModel.upcomingEvents.length,
+                        separatorBuilder: (_, _) => const SizedBox(height: 12),
+                        itemBuilder: (context, index) {
+                          final event = viewModel.upcomingEvents[index];
+                          return EventCard(
+                            tag: event.category,
+                            tagColor: _getCategoryColor(event.category),
+                            title: event.title,
+                            description: event.description,
+                            date: DateFormat('MMM d, yyyy').format(event.date),
+                            time: '${event.startTime} - ${event.endTime}',
+                            location: event.venue,
+                            attendees: '0/50 attending', // Placeholder for now
+                          );
+                        },
+                      ),
           ),
         ],
       ),
     );
+  }
+
+  Color _getCategoryColor(String category) {
+    switch (category.toLowerCase()) {
+      case 'workshop': return Colors.blue;
+      case 'seminar': return Colors.orange;
+      case 'career': return Colors.green;
+      default: return AppColors.primary;
+    }
   }
 
   Widget _buildTab(String text, bool isSelected) {
@@ -88,63 +173,170 @@ class _EventsContent extends StatelessWidget {
     );
   }
 
-  Widget _buildEventCard(Event event) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+  void _showCreateEventDialog(BuildContext context, EventsViewModel viewModel, AuthViewModel authViewModel) {
+    final titleController = TextEditingController();
+    final descController = TextEditingController();
+    final venueController = TextEditingController();
+    final categoryController = TextEditingController(text: 'Workshop');
+    DateTime selectedDate = DateTime.now();
+    TimeOfDay startTime = TimeOfDay.now();
+    TimeOfDay endTime = TimeOfDay.now();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+            left: 20,
+            right: 20,
+            top: 20,
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Image Placeholder
-          Container(
-            height: 150,
-            decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.1),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-            ),
-            child: Center(
-              child: Icon(Icons.event_available, size: 48, color: AppColors.primary.withOpacity(0.5)),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
+          child: SingleChildScrollView(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      event.date,
-                      style: AppTextStyles.bodyMedium.copyWith(color: AppColors.secondary, fontWeight: FontWeight.w600),
-                    ),
-                    const Icon(Icons.bookmark_border, color: AppColors.textSecondary),
+                    Text('Create New Event', style: AppTextStyles.h3),
+                    IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close)),
                   ],
                 ),
-                const SizedBox(height: 8),
-                Text(event.title, style: AppTextStyles.h3),
-                const SizedBox(height: 4),
+                const SizedBox(height: 16),
+                _buildFieldLabel('Event Title'),
+                TextField(controller: titleController, decoration: _inputDecoration('Enter title')),
+                const SizedBox(height: 12),
+                _buildFieldLabel('Category'),
+                DropdownButtonFormField<String>(
+                  initialValue: categoryController.text,
+                  items: ['Workshop', 'Seminar', 'Career', 'Social'].map((val) => DropdownMenuItem(value: val, child: Text(val))).toList(),
+                  onChanged: (val) => setState(() => categoryController.text = val!),
+                  decoration: _inputDecoration(''),
+                ),
+                const SizedBox(height: 12),
+                _buildFieldLabel('Venue'),
+                TextField(controller: venueController, decoration: _inputDecoration('Enter venue')),
+                const SizedBox(height: 12),
                 Row(
                   children: [
-                    const Icon(Icons.location_on_outlined, size: 16, color: AppColors.textSecondary),
-                    const SizedBox(width: 4),
-                    Text(event.location, style: AppTextStyles.bodyMedium),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildFieldLabel('Date'),
+                          InkWell(
+                            onTap: () async {
+                              final picked = await showDatePicker(context: context, initialDate: selectedDate, firstDate: DateTime.now(), lastDate: DateTime(2030));
+                              if (picked != null) setState(() => selectedDate = picked);
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: _boxDecoration(),
+                              child: Text(DateFormat('yyyy-MM-dd').format(selectedDate)),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildFieldLabel('Start Time'),
+                          InkWell(
+                            onTap: () async {
+                              final picked = await showTimePicker(context: context, initialTime: startTime);
+                              if (picked != null) setState(() => startTime = picked);
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: _boxDecoration(),
+                              child: Text(startTime.format(context)),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
+                const SizedBox(height: 12),
+                _buildFieldLabel('Description'),
+                TextField(controller: descController, maxLines: 3, decoration: _inputDecoration('Enter description')),
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: () async {
+                    if (titleController.text.isEmpty || venueController.text.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill all required fields')));
+                      return;
+                    }
+                    String formatTime(TimeOfDay time) {
+                      final h = time.hour.toString().padLeft(2, '0');
+                      final m = time.minute.toString().padLeft(2, '0');
+                      return '$h:$m:00';
+                    }
+
+                    final event = EventModel(
+                      title: titleController.text,
+                      category: categoryController.text,
+                      description: descController.text,
+                      venue: venueController.text,
+                      date: selectedDate,
+                      startTime: formatTime(startTime),
+                      endTime: formatTime(endTime),
+                      creatorId: authViewModel.currentUser?.userId ?? '',
+                      creatorName: authViewModel.currentUser?.name,
+                    );
+
+                    final success = await viewModel.createEvent(event);
+                    if (success && context.mounted) {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Event created successfully!')));
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: const Text('Post Event'),
+                ),
+                const SizedBox(height: 24),
               ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
+
+  Widget _buildFieldLabel(String label) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Text(label, style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600)),
+    );
+  }
+
+  InputDecoration _inputDecoration(String hint) {
+    return InputDecoration(
+      hintText: hint,
+      isDense: true,
+      contentPadding: const EdgeInsets.all(12),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.border)),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.border)),
+    );
+  }
+
+  BoxDecoration _boxDecoration() {
+    return BoxDecoration(
+      border: Border.all(color: AppColors.border),
+      borderRadius: BorderRadius.circular(12),
+    );
+  }
 }
+

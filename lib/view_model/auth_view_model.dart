@@ -1,10 +1,13 @@
 import 'package:collab_bot/data/models/user_model.dart';
-
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../data/repositories/auth_repository.dart';
+import '../data/services/auth_service.dart';
 import 'package:flutter/material.dart';
 
 class AuthViewModel extends ChangeNotifier {
-  final AuthRepository _repository = AuthRepository();
+  final AuthRepository _repository = AuthRepositoryImpl(
+    AuthService(Supabase.instance.client),
+  );
 
   bool isLoading = false;
   String? successMessage;
@@ -13,17 +16,51 @@ class AuthViewModel extends ChangeNotifier {
   // ✅ Add current user
   UserModel? currentUser;
 
-  Future<void> signUp(String email, String password) async {
+  AuthViewModel() {
+    initializeCurrentUser();
+  }
+
+  Future<void> initializeCurrentUser() async {
+    final session = Supabase.instance.client.auth.currentSession;
+    if (session == null) {
+       currentUser = null;
+       notifyListeners();
+       return;
+    }
+    await fetchUserProfile(session.user.id);
+  }
+
+
+  Future<void> fetchUserProfile(String userId) async {
+    try {
+      final userData = await _repository.getUserProfile(userId);
+      if (userData != null) {
+        currentUser = UserModel.fromMap(userData);
+      }
+    } catch (e) {
+      debugPrint('Error fetching user profile: $e');
+    }
+    notifyListeners();
+  }
+
+
+  Future<void> signUp({
+    required String email,
+    required String password,
+    required String fullName,
+    required String role,
+  }) async {
     isLoading = true;
     notifyListeners();
 
     try {
-      bool success = await _repository.signUpUser(email, password);
-      if (!success) {
-        errorMessage = "Signup failed!";
-      } else {
-        errorMessage = null; // No error
-      }
+      await _repository.signUp(
+        email: email,
+        password: password,
+        fullName: fullName,
+        role: role,
+      );
+      errorMessage = null;
     } catch (e) {
       errorMessage = e.toString();
     } finally {
@@ -32,52 +69,31 @@ class AuthViewModel extends ChangeNotifier {
     }
   }
 
-  // Future<void> login(String email, String password) async {
-  //   isLoading = true;
-  //   notifyListeners();
-
-  //   try {
-  //     // ✅ Repository should return the UserModel on success
-  //     final user = await _repository.loginUser(email, password);
-
-  //     if (user == null) {
-  //       errorMessage = "Login failed. Check credentials.";
-  //       currentUser = null;
-  //     } else {
-  //       currentUser = user; // Save logged-in user
-  //       errorMessage = null;
-  //     }
-  //   } catch (e) {
-  //     errorMessage = e.toString();
-  //     currentUser = null;
-  //   } finally {
-  //     isLoading = false;
-  //     notifyListeners();
-  //   }
-  // }
-
-Future<void> login(String email, String password) async {
-  isLoading = true;
-  notifyListeners();
-
-  try {
-    final user = await _repository.loginUser(email, password);
-
-    if (user == null) {
-      errorMessage = "Login failed. Check credentials.";
-      currentUser = null;
-    } else {
-      currentUser = user; // ✅ Type matches UserModel?
-      errorMessage = null;
-    }
-  } catch (e) {
-    errorMessage = e.toString();
-    currentUser = null;
-  } finally {
-    isLoading = false;
+  Future<void> login(String email, String password) async {
+    isLoading = true;
     notifyListeners();
+
+    try {
+      await _repository.signIn(
+        email: email,
+        password: password,
+      );
+      
+      final session = Supabase.instance.client.auth.currentSession;
+      if (session != null) {
+        await fetchUserProfile(session.user.id);
+      }
+      
+      errorMessage = null;
+    } catch (e) {
+      errorMessage = e.toString();
+      currentUser = null;
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
   }
-}
+
 
   Future<void> forgetPassword(String email) async {
     if (email.isEmpty) {
@@ -93,7 +109,7 @@ Future<void> login(String email, String password) async {
     notifyListeners();
 
     try {
-      await _repository.forgetPassword(email);
+      await _repository.resetPasswordForEmail(email);
       successMessage = "If this email exists, a reset link was sent.";
     } catch (e) {
       errorMessage = "Something went wrong. Try again.";
@@ -102,5 +118,13 @@ Future<void> login(String email, String password) async {
     isLoading = false;
     notifyListeners();
   }
+
+  Future<void> logout() async {
+    await Supabase.instance.client.auth.signOut();
+    currentUser = null;
+    notifyListeners();
+  }
 }
+
+
 
