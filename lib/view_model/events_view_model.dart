@@ -1,57 +1,45 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import '../data/models/event_model.dart';
+
+class Event {
+  final String title;
+  final String date;
+  final String location;
+  final String imageUrl;
+  final bool isSaved;
+
+  Event({
+    required this.title,
+    required this.date,
+    required this.location,
+    required this.imageUrl,
+    this.isSaved = false,
+  });
+}
 
 class EventsViewModel extends ChangeNotifier {
-  final _supabase = Supabase.instance.client;
-
-  List<EventModel> _upcomingEvents = [];
-  List<EventModel> get upcomingEvents => _upcomingEvents;
+  List<Event> _upcomingEvents = [];
+  List<Event> get upcomingEvents => _upcomingEvents;
 
   bool _isLoading = false;
   bool get isLoading => _isLoading;
 
   EventsViewModel() {
-    loadEvents();
+    _loadEvents();
   }
 
-  Future<void> loadEvents() async {
+  Future<void> _loadEvents() async {
     _isLoading = true;
     notifyListeners();
 
-    try {
-      final response = await _supabase
-          .from('events')
-          .select('*, users(full_name)')
-          .order('event_date', ascending: true);
-      
-      _upcomingEvents = (response as List)
-          .map((json) => EventModel.fromJson(json))
-          .toList();
-    } catch (e) {
-      debugPrint('Error loading events: $e');
-    }
+    await Future.delayed(const Duration(seconds: 1));
+
+    _upcomingEvents = [
+      Event(title: 'Flutter Forward 2026', date: 'Jan 25, 2026', location: 'Virtual', imageUrl: ''),
+      Event(title: 'Dart Meetup', date: 'Feb 10, 2026', location: 'San Francisco', imageUrl: ''),
+      Event(title: 'AI in Design', date: 'Feb 15, 2026', location: 'London', imageUrl: ''),
+    ];
 
     _isLoading = false;
     notifyListeners();
   }
-
-  Future<bool> createEvent(EventModel event) async {
-    _isLoading = true;
-    notifyListeners();
-
-    try {
-      await _supabase.from('events').insert(event.toJson());
-      await loadEvents(); // Refresh list
-      _isLoading = false;
-      notifyListeners();
-      return true;
-    } catch (e) {
-      debugPrint('Error creating event: $e');
-      _isLoading = false;
-      notifyListeners();
-      return false;
-    }
-  }
 }
-

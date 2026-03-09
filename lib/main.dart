@@ -6,12 +6,12 @@ import 'view_model/splash_view_model.dart';
 import 'screens/splash/splash_screen.dart';
 import 'screens/onboarding/onboarding_screen.dart';
 import 'screens/auth/login_screen.dart';
+import 'screens/auth/register_screen.dart';
+import 'screens/auth/forgot_password_screen.dart';
 import 'screens/auth/otp_screen.dart';
 import 'screens/auth/forget_pass_screen.dart';
 import 'screens/auth/signup_screen.dart';
-import 'view_model/auth_view_model.dart';
 import 'screens/main_navigation.dart';
-
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -31,12 +31,11 @@ class MyApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => SplashViewModel()),
-        ChangeNotifierProvider(create: (_) => AuthViewModel()),
+        // Add global providers here (Auth, User) when ready
       ],
-
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
-        title: 'CollabBot',
+        title: 'Collab Bot',
         theme: ThemeData(
           useMaterial3: true,
           primarySwatch: Colors.indigo, // Fallback

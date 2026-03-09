@@ -10,7 +10,7 @@ class Mentor {
 }
 
 class HomeViewModel extends ChangeNotifier {
-  final int _points = 1250;
+  int _points = 1250;
   int get points => _points;
 
   bool _isLoading = false;

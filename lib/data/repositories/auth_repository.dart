@@ -21,8 +21,6 @@ abstract class AuthRepository {
   });
 
   Future<void> updatePassword(String newPassword);
-
-  Future<Map<String, dynamic>?> getUserProfile(String userId);
 }
 
 class AuthRepositoryImpl implements AuthRepository {
@@ -89,14 +87,6 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<void> updatePassword(String newPassword) async {
     try {
       await _authService.updatePassword(newPassword);
-    } catch (e) {
-      rethrow;
-    }
-  }
-  @override
-  Future<Map<String, dynamic>?> getUserProfile(String userId) async {
-    try {
-      return await _authService.getUserProfile(userId);
     } catch (e) {
       rethrow;
     }

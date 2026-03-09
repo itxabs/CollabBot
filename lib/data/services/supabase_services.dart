@@ -81,6 +81,6 @@ class SupabaseService {
         .maybeSingle();
 
     if (data == null) return null;
-    return UserModel.fromMap(data);
+    return UserModel.fromMap(data as Map<String, dynamic>);
   }
 }
