@@ -89,16 +89,12 @@ class SignupViewModel extends ChangeNotifier {
       // Success
       if (context.mounted) {
         _isLoading = false;
-        notifyListeners(); // Notify first
-        
-        final authVM = Provider.of<AuthViewModel>(context, listen: false);
-        await authVM.initializeCurrentUser();
+        notifyListeners(); 
 
-        if (!context.mounted) return;
-        // Redirect decisively to Home
-        Navigator.of(context).pushNamedAndRemoveUntil(AppRoutes.home, (route) => false);
+        // decisive to Login page to Login for home 
+        Navigator.of(context).pushNamedAndRemoveUntil(AppRoutes.login, (route) => false);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Account Created! Welcome to Home.')),
+          const SnackBar(content: Text('Account Created! Please login to continue.')),
         );
       }
 
@@ -111,8 +107,8 @@ class SignupViewModel extends ChangeNotifier {
         notifyListeners(); 
 
         if (alreadyExists) {
-          // Even if they exist, navigate them to Home now that we updated their role
-          Navigator.of(context).pushNamedAndRemoveUntil(AppRoutes.home, (route) => false);
+          // Even if they exist, navigate them to Login for Home 
+          Navigator.of(context).pushNamedAndRemoveUntil(AppRoutes.login, (route) => false);
         }
       }
     }

@@ -10,6 +10,9 @@ class EventModel {
   final String description;
   final String creatorId;
   final String? creatorName;
+  final String? imageUrl;
+  final int totalSeats;
+  final int enrolledCount;
 
   EventModel({
     this.eventId,
@@ -23,6 +26,9 @@ class EventModel {
     required this.description,
     required this.creatorId,
     this.creatorName,
+    this.imageUrl,
+    this.totalSeats = 0,
+    this.enrolledCount = 0,
   });
 
   /// JSON → Dart
@@ -50,6 +56,9 @@ class EventModel {
       description: desc,
       creatorId: json['creator_id'] as String,
       creatorName: json['users']?['full_name'] as String?,
+      imageUrl: json['image_url'] as String?,
+      totalSeats: json['total_seats'] ?? 0,
+      enrolledCount: json['enrolled_count'] ?? 0,
     );
   }
 
@@ -58,13 +67,16 @@ class EventModel {
     return {
       if (eventId != null) 'id': eventId,
       'title': title,
-      'status_id': status != null ? int.tryParse(status!) ?? 1 : 1, // Default to 1
+      'status_id': status != null ? int.tryParse(status!) ?? 1 : 1, // Default to 1 (Pending)
       'event_date': date.toIso8601String().split('T')[0],
       'start_time': startTime,
       'end_time': endTime,
       'venue': venue,
       'description': '[$category] $description',
       'creator_id': creatorId,
+      'image_url': imageUrl,
+      'total_seats': totalSeats,
+      'enrolled_count': enrolledCount,
     };
   }
 }

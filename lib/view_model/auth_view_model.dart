@@ -60,6 +60,13 @@ class AuthViewModel extends ChangeNotifier {
         fullName: fullName,
         role: role,
       );
+      
+      // Fetch profile immediately after signup so currentUser is not null
+      final session = Supabase.instance.client.auth.currentSession;
+      if (session != null) {
+        await fetchUserProfile(session.user.id);
+      }
+      
       errorMessage = null;
     } catch (e) {
       errorMessage = e.toString();
