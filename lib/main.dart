@@ -6,8 +6,6 @@ import 'view_model/splash_view_model.dart';
 import 'screens/splash/splash_screen.dart';
 import 'screens/onboarding/onboarding_screen.dart';
 import 'screens/auth/login_screen.dart';
-import 'screens/auth/register_screen.dart';
-import 'screens/auth/forgot_password_screen.dart';
 import 'screens/auth/otp_screen.dart';
 import 'screens/auth/forget_pass_screen.dart';
 import 'screens/auth/signup_screen.dart';

@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/text_styles.dart';
 import '../../view_model/events_view_model.dart';
-import '../../core/constants/routes.dart';
 
 class EventsScreen extends StatelessWidget {
   const EventsScreen({super.key});

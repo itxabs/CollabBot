@@ -15,7 +15,7 @@ class UserService {
 
       if (response == null) return null;
 
-      return UserModel.fromMap(response as Map<String, dynamic>);
+      return UserModel.fromMap(response);
     } catch (e) {
       throw Exception("Failed to fetch user: $e");
     }

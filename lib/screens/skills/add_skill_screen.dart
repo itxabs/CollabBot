@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/text_styles.dart';
 import '../../core/widgets/primary_button.dart';
-import '../../core/widgets/custom_text_field.dart'; // Ensure this exists or use standard TextField
 import '../../view_model/skills_view_model.dart';
 import '../../data/models/profile_models.dart';
 
@@ -71,7 +70,7 @@ class _AddSkillScreenState extends State<AddSkillScreen> {
                 Text('Skill Level', style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600)),
                 const SizedBox(height: 8),
                 DropdownButtonFormField<String>(
-                  value: _selectedLevelId,
+                  initialValue: _selectedLevelId,
                   decoration: InputDecoration(
                     hintText: 'Select level',
                     filled: true,

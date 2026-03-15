@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../core/constants/colors.dart';
 import 'home/home_screen.dart';
+import 'swap/swap_screen.dart';
+import 'chat/chat_screen.dart';
 import 'events/events_screen.dart';
 import 'profile/profile_screen.dart';
 
@@ -16,6 +18,8 @@ class _MainNavigationState extends State<MainNavigation> {
 
   final List<Widget> _screens = [
     const HomeScreen(),
+    const SwapScreen(),
+    const ChatScreen(),
     const EventsScreen(),
     const ProfileScreen(),
   ];
@@ -47,20 +51,37 @@ class _MainNavigationState extends State<MainNavigation> {
           showSelectedLabels: true,
           showUnselectedLabels: true,
           type: BottomNavigationBarType.fixed,
-          items: const [
+          items: [
             BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined),
-              activeIcon: Icon(Icons.home),
+              icon: const Icon(Icons.home_outlined),
+              activeIcon: const Icon(Icons.home),
               label: 'Home',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.calendar_today_outlined),
-              activeIcon: Icon(Icons.calendar_today),
+              icon: const Icon(Icons.people_outline),
+              activeIcon: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.people, color: AppColors.primary),
+              ),
+              label: 'Swap',
+            ),
+            BottomNavigationBarItem(
+              icon: const Icon(Icons.chat_bubble_outline),
+              activeIcon: const Icon(Icons.chat_bubble),
+              label: 'Chat',
+            ),
+            BottomNavigationBarItem(
+              icon: const Icon(Icons.calendar_today_outlined),
+              activeIcon: const Icon(Icons.calendar_today),
               label: 'Events',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline),
-              activeIcon: Icon(Icons.person),
+              icon: const Icon(Icons.person_outline),
+              activeIcon: const Icon(Icons.person),
               label: 'Profile',
             ),
           ],

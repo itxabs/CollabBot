@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
-import 'package:intl/intl.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/text_styles.dart';
 import '../../view_model/profile_view_model.dart';
-import '../../data/models/profile_models.dart';
 import '../../data/models/profile_models.dart';
 import '../skills/skills_list_screen.dart';
 import '../experience/experience_list_screen.dart';
