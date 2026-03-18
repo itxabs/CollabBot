@@ -12,6 +12,10 @@ import 'screens/auth/otp_screen.dart';
 import 'screens/auth/forget_pass_screen.dart';
 import 'screens/auth/signup_screen.dart';
 import 'screens/main_navigation.dart';
+import 'screens/chat/chat_list_screen.dart';
+import 'local_db/local_message_db.dart';
+import 'screens/chat/new_chat_screen.dart';
+import 'screens/chat/chat_screen.dart';
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
@@ -23,6 +27,7 @@ void main() async {
     url: 'https://hgpcisbeepambgudfncr.supabase.co',
     anonKey: 'sb_publishable_E_cRI60_IKr9jBLfGmpdmQ_3B9ih8K0',
   );
+  await LocalMessageDb.instance.init();
   runApp(const MyApp());
 }
 
@@ -53,6 +58,17 @@ class MyApp extends StatelessWidget {
           AppRoutes.forgotPassword: (context) => const ForgetPassScreen(),
           AppRoutes.otp: (context) => const OtpScreen(), // Note: OtpScreen is reused but navigation logic inside VM handles context.
           AppRoutes.home: (context) => const MainNavigation(),
+          AppRoutes.chatList: (context) => const ChatListScreen(),
+          AppRoutes.newChat: (context) => const NewChatScreen(),
+          AppRoutes.chat: (context) {
+            final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+            final chatId = args?['chatId'] as String?;
+            final otherName = args?['otherName'] as String? ?? 'Chat';
+            if (chatId == null) {
+              return const Scaffold(body: Center(child: Text('Chat id missing')));
+            }
+            return ChatScreen(chatId: chatId, otherName: otherName);
+          },
         },
       ),
     );
