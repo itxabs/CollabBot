@@ -1,6 +1,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Network permission required for Image.network() and Supabase -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <application
         android:label="CollabBot"
+        android:usesCleartextTraffic="true"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon">
         <activity

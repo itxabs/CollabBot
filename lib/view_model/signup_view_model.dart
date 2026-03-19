@@ -3,8 +3,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../data/repositories/auth_repository.dart';
 import '../data/services/auth_service.dart';
 import '../core/constants/routes.dart';
-import 'package:provider/provider.dart';
-import 'auth_view_model.dart';
 
 
 class SignupViewModel extends ChangeNotifier {

@@ -27,6 +27,8 @@ class _EventsContent extends StatelessWidget {
   Widget build(BuildContext context) {
     final viewModel = Provider.of<EventsViewModel>(context);
     final authViewModel = Provider.of<AuthViewModel>(context);
+    // Capture the scaffold context once so snackbars always reach the Scaffold
+    final scaffoldContext = context;
     
     final String userRole = authViewModel.currentUser?.role.trim().toLowerCase() ?? 'not_loaded';
     
@@ -139,10 +141,40 @@ class _EventsContent extends StatelessWidget {
                         padding: const EdgeInsets.all(16),
                         itemCount: viewModel.filteredEvents.length,
                         separatorBuilder: (_, _) => const SizedBox(height: 16),
-                        itemBuilder: (context, index) {
+                        itemBuilder: (_, index) {
                           final event = viewModel.filteredEvents[index];
-                          final isMyEvent = event.creatorId == authViewModel.currentUser?.userId;
-                          
+
+                          void showMsg(String msg, Color bg, IconData icon) {
+                            ScaffoldMessenger.of(scaffoldContext)
+                              ..hideCurrentSnackBar()
+                              ..showSnackBar(
+                                SnackBar(
+                                  content: Row(
+                                    children: [
+                                      Icon(icon, color: Colors.white, size: 20),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: Text(
+                                          msg,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  backgroundColor: bg,
+                                  behavior: SnackBarBehavior.floating,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  margin: const EdgeInsets.all(16),
+                                  duration: const Duration(seconds: 3),
+                                ),
+                              );
+                          }
+
                           return EventCard(
                             tag: event.category,
                             tagColor: _getCategoryColor(event.category),
@@ -153,38 +185,31 @@ class _EventsContent extends StatelessWidget {
                             location: event.venue,
                             imageUrl: event.imageUrl,
                             attendees: '${event.enrolledCount} / ${event.totalSeats} spots',
-                            isSaved: false, // In a real app, check if saved
+                            isSaved: false,
                             onSave: () => viewModel.toggleSaveEvent(event),
                             onRegister: () async {
-                              // 1. Check if Full
+                              // Check capacity
                               if (event.totalSeats > 0 && event.enrolledCount >= event.totalSeats) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Registration closed: Full capacity'), backgroundColor: Colors.orange),
-                                );
+                                showMsg('This event is fully booked!', Colors.orange, Icons.event_busy);
                                 return;
                               }
-
-                              // 2. Check if Date passed
-                              final now = DateTime.now();
-                              final eventDate = DateTime(event.date.year, event.date.month, event.date.day, 23, 59);
-                              if (eventDate.isBefore(now)) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Registration closed: Event has passed'), backgroundColor: Colors.orange),
-                                );
+                              // Check date
+                              final eventDate = DateTime(
+                                event.date.year, event.date.month, event.date.day, 23, 59,
+                              );
+                              if (eventDate.isBefore(DateTime.now())) {
+                                showMsg('Registration closed: Event has already passed.', Colors.orange, Icons.schedule);
                                 return;
                               }
-
+                              // Attempt registration
                               final result = await viewModel.registerForEvent(event);
-                              if (context.mounted) {
-                                if (result == null) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Successfully registered!'), backgroundColor: Colors.green),
-                                  );
-                                } else {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text(result), backgroundColor: Colors.red),
-                                  );
-                                }
+                              final isAlreadyEnrolled = result != null && result.toLowerCase().contains('already');
+                              if (result == null) {
+                                showMsg('🎉 Successfully registered!', Colors.green.shade600, Icons.check_circle);
+                              } else if (isAlreadyEnrolled) {
+                                showMsg('You are already registered for this event.', Colors.blueGrey, Icons.info_outline);
+                              } else {
+                                showMsg(result, Colors.red.shade600, Icons.error_outline);
                               }
                             },
                           );
@@ -273,7 +298,7 @@ class _EventsContent extends StatelessWidget {
                 
                 _buildFieldLabel('Category'),
                 DropdownButtonFormField<String>(
-                  value: categoryController.text,
+                  initialValue: categoryController.text,
                   items: ['Workshop', 'Seminar', 'Career', 'Social'].map((val) => DropdownMenuItem(value: val, child: Text(val))).toList(),
                   onChanged: (val) => setState(() => categoryController.text = val!),
                   decoration: _inputDecoration(''),
@@ -330,7 +355,66 @@ class _EventsContent extends StatelessWidget {
                 const SizedBox(height: 16),
 
                 _buildFieldLabel('Banner Image URL (Optional)'),
-                TextField(controller: imageController, decoration: _inputDecoration('https://example.com/image.jpg')),
+                TextField(
+                  controller: imageController,
+                  decoration: _inputDecoration('https://i.imgur.com/abc.jpg'),
+                  onChanged: (val) => setState(() {}), // trigger preview rebuild
+                ),
+                // Warning tip about share links
+                Padding(
+                  padding: const EdgeInsets.only(top: 6, left: 4),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.info_outline, size: 13, color: Colors.orange),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          'Use a direct image link (ends with .jpg/.png). '
+                          'Google Photos/Drive share links will NOT work.',
+                          style: TextStyle(fontSize: 11, color: Colors.orange.shade700),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Live preview
+                if (imageController.text.trim().isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: Image.network(
+                        imageController.text.trim(),
+                        height: 110,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        loadingBuilder: (ctx, child, progress) => progress == null
+                            ? child
+                            : const SizedBox(
+                                height: 110,
+                                child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                              ),
+                        errorBuilder: (ctx, err, st) => Container(
+                          height: 60,
+                          decoration: BoxDecoration(
+                            color: Colors.red.shade50,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Colors.red.shade200),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.link_off, size: 18, color: Colors.red.shade400),
+                              const SizedBox(width: 8),
+                              Text('Cannot load image — use a direct URL',
+                                  style: TextStyle(fontSize: 12, color: Colors.red.shade600)),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+
                 const SizedBox(height: 16),
                 
                 _buildFieldLabel('Description'),
