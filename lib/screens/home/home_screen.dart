@@ -95,10 +95,10 @@ class _HomeContent extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _buildQuickAction(Icons.search, 'Find Match', Colors.blue),
-                  _buildQuickAction(Icons.auto_awesome, 'CollabAI', Colors.orange),
-                  _buildQuickAction(Icons.leaderboard, 'Rankings', Colors.purple),
-                  _buildQuickAction(Icons.event, 'Events', Colors.green),
+                  _buildQuickAction(context, Icons.search, 'Find Match', Colors.blue),
+                  _buildQuickAction(context, Icons.help_outline, 'Questions', Colors.redAccent),
+                  _buildQuickAction(context, Icons.auto_awesome, 'CollabAI', Colors.orange),
+                  _buildQuickAction(context, Icons.event, 'Events', Colors.green),
                 ],
               ),
               const SizedBox(height: 32),
@@ -130,23 +130,39 @@ class _HomeContent extends StatelessWidget {
           ),
         ),
       ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          // Navigate to AskQuestionScreen (to be created)
+           Navigator.pushNamed(context, '/ask_question');
+        },
+        backgroundColor: AppColors.primary,
+        icon: const Icon(Icons.help_outline, color: Colors.white),
+        label: const Text('Ask Question', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+      ),
     );
   }
 
-  Widget _buildQuickAction(IconData icon, String label, Color color) {
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(16),
+  Widget _buildQuickAction(BuildContext context, IconData icon, String label, Color color) {
+    return GestureDetector(
+      onTap: () {
+        if (label == 'Questions') {
+          Navigator.pushNamed(context, '/questions');
+        }
+      },
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Icon(icon, color: color, size: 28),
           ),
-          child: Icon(icon, color: color, size: 28),
-        ),
-        const SizedBox(height: 8),
-        Text(label, style: AppTextStyles.bodyMedium.copyWith(fontSize: 12, fontWeight: FontWeight.w600)),
-      ],
+          const SizedBox(height: 8),
+          Text(label, style: AppTextStyles.bodyMedium.copyWith(fontSize: 12, fontWeight: FontWeight.w600)),
+        ],
+      ),
     );
   }
 

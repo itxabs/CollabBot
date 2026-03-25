@@ -11,6 +11,10 @@ import 'screens/auth/forget_pass_screen.dart';
 import 'screens/auth/signup_screen.dart';
 import 'view_model/auth_view_model.dart';
 import 'screens/main_navigation.dart';
+import 'screens/questions/questions_screen.dart';
+import 'screens/questions/ask_question_screen.dart';
+import 'view_model/questions/questions_view_model.dart';
+import 'view_model/events_view_model.dart';
 
 
 void main() async {
@@ -32,6 +36,8 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => SplashViewModel()),
         ChangeNotifierProvider(create: (_) => AuthViewModel()),
+        ChangeNotifierProvider(create: (_) => QuestionsViewModel()),
+        ChangeNotifierProvider(create: (_) => EventsViewModel()),
       ],
 
       child: MaterialApp(
@@ -51,6 +57,8 @@ class MyApp extends StatelessWidget {
           AppRoutes.forgotPassword: (context) => const ForgetPassScreen(),
           AppRoutes.otp: (context) => const OtpScreen(), // Note: OtpScreen is reused but navigation logic inside VM handles context.
           AppRoutes.home: (context) => const MainNavigation(),
+          AppRoutes.questions: (context) => const QuestionsScreen(),
+          AppRoutes.askQuestion: (context) => const AskQuestionScreen(),
         },
       ),
     );
