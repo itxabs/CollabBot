@@ -9,15 +9,26 @@ class SwapProfileCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Extracting data with safe defaults
+    final String name = profile['name'] ?? 'Unknown';
+    final String title = profile['title'] ?? 'Collaborator';
+    final String degree = profile['degree'] ?? 'Not specified';
+    final String description = profile['description'] ?? 'No bio provided.';
+    final String rating = profile['rating']?.toString() ?? '4.8';
+    final String distance = profile['distance']?.toString() ?? '2.3 km';
+    final String initials = profile['initials'] ?? (name.isNotEmpty ? name[0] : 'U');
+    final dynamic skillsData = profile['skills'] ?? [];
+    final int mentorships = profile['mentorships'] ?? 15;
+
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(30),
+        borderRadius: BorderRadius.circular(32),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
@@ -26,15 +37,15 @@ class SwapProfileCard extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Top Gradient Section
+              // Top Gradient Section (Lavender to Peach)
               Container(
-                height: 140,
+                height: 160,
                 decoration: const BoxDecoration(
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
                   gradient: LinearGradient(
                     colors: [
-                      Color(0xFFE6D6F6), // Light purple 
-                      Color(0xFFFFE5E0), // Peach
+                      Color(0xFFE9D5FF), // Lavender
+                      Color(0xFFFFEDD5), // Peach
                     ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
@@ -42,47 +53,53 @@ class SwapProfileCard extends StatelessWidget {
                 ),
                 child: Stack(
                   children: [
-                    // Top Left Rating
+                    // Top Left Rating Badge
                     Positioned(
                       top: 20,
                       left: 20,
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: Colors.white.withOpacity(0.9),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.star, color: Colors.orange, size: 16),
+                            const Icon(Icons.star, color: Color(0xFFF59E0B), size: 16),
                             const SizedBox(width: 4),
                             Text(
-                              profile['rating'] ?? '4.7',
-                              style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.bold, color: Colors.black),
+                              rating,
+                              style: AppTextStyles.bodyMedium.copyWith(
+                                fontWeight: FontWeight.bold, 
+                                color: Colors.black87,
+                              ),
                             ),
                           ],
                         ),
                       ),
                     ),
-                    // Top Right Distance
+                    // Top Right Distance Badge
                     Positioned(
                       top: 20,
                       right: 20,
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: Colors.white.withOpacity(0.9),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.location_on_outlined, color: Colors.deepOrange, size: 16),
+                            const Icon(Icons.location_on, color: Color(0xFFEF4444), size: 16),
                             const SizedBox(width: 4),
                             Text(
-                              profile['distance'] ?? '8.7 km',
-                              style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.bold, color: Colors.black),
+                              distance,
+                              style: AppTextStyles.bodyMedium.copyWith(
+                                fontWeight: FontWeight.bold, 
+                                color: Colors.black87,
+                              ),
                             ),
                           ],
                         ),
@@ -93,96 +110,80 @@ class SwapProfileCard extends StatelessWidget {
               ),
               // Bottom Details Section
               Expanded(
-                child: Container(
-                  padding: const EdgeInsets.only(top: 60, left: 24, right: 24, bottom: 24),
-                  decoration: const BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.vertical(bottom: Radius.circular(30)),
-                  ),
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 60, left: 24, right: 24, bottom: 20),
                   child: SingleChildScrollView(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // Name and Sparkle Icon
                         Row(
                           children: [
                             Text(
-                              profile['name'],
-                              style: AppTextStyles.h2.copyWith(fontWeight: FontWeight.bold),
+                              name,
+                              style: AppTextStyles.h2.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF1F2937),
+                              ),
                             ),
                             const SizedBox(width: 8),
-                            const Icon(Icons.auto_awesome, color: AppColors.primary, size: 24),
+                            const Icon(Icons.auto_awesome, color: Color(0xFF8B5CF6), size: 24),
                           ],
                         ),
                         const SizedBox(height: 4),
+                        // Title in Coral/Orange
                         Text(
-                          profile['title'],
+                          title,
                           style: AppTextStyles.bodyLarge.copyWith(
-                            color: Colors.deepOrange,
+                            color: const Color(0xFFF97316),
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                         const SizedBox(height: 16),
+                        // Education with Graduation Cap
                         Row(
                           children: [
-                            const Icon(Icons.school_outlined, color: Colors.grey, size: 20),
+                            const Icon(Icons.school, color: Color(0xFF9CA3AF), size: 20),
                             const SizedBox(width: 8),
-                            Text(
-                              profile['degree'] ?? 'BSCS - 6th Semester',
-                              style: AppTextStyles.bodyMedium.copyWith(color: Colors.grey.shade600),
+                            Expanded(
+                              child: Text(
+                                degree,
+                                style: AppTextStyles.bodyMedium.copyWith(color: const Color(0xFF6B7280)),
+                              ),
                             ),
                           ],
                         ),
                         const SizedBox(height: 16),
+                        // Description/Bio
                         Text(
-                          profile['description'],
-                          style: AppTextStyles.bodyMedium.copyWith(color: Colors.grey.shade600, height: 1.5),
-                        ),
-                        const SizedBox(height: 20),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: (profile['skills'] as List<dynamic>).map((skillInfo) {
-                            final name = skillInfo['name'] as String;
-                            final type = skillInfo['type'] as String;
-                            
-                            final isVerified = type == 'verified';
-                            final color = isVerified ? Colors.teal : Colors.grey.shade600;
-                            final bgColor = isVerified ? Colors.teal.withOpacity(0.1) : Colors.grey.shade100;
-                            final icon = isVerified ? Icons.check_circle_outline : Icons.schedule;
-
-                            return Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: bgColor,
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(icon, color: color, size: 16),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    name,
-                                    style: AppTextStyles.bodySmall.copyWith(
-                                      color: color,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }).toList(),
+                          description,
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            color: const Color(0xFF4B5563),
+                            height: 1.6,
+                          ),
                         ),
                         const SizedBox(height: 24),
+                        // Skills Chips
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 10,
+                          children: _buildSkillChips(skillsData),
+                        ),
+                        const SizedBox(height: 24),
+                        // Stats
                         Row(
                           children: [
                             Text(
-                              profile['mentorships']?.toString() ?? '8',
-                              style: AppTextStyles.bodyLarge.copyWith(fontWeight: FontWeight.bold),
+                              mentorships.toString(),
+                              style: AppTextStyles.bodyLarge.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF111827),
+                              ),
                             ),
-                            const SizedBox(width: 4),
+                            const SizedBox(width: 6),
                             Text(
                               'successful mentorships',
-                              style: AppTextStyles.bodyMedium.copyWith(color: Colors.grey.shade600),
+                              style: AppTextStyles.bodyMedium.copyWith(color: const Color(0xFF6B7280)),
                             ),
                           ],
                         ),
@@ -193,33 +194,33 @@ class SwapProfileCard extends StatelessWidget {
               ),
             ],
           ),
-          // Positioned Avatar
+          // Positioned Avatar (Centered between sections)
           Positioned(
-            top: 140 - 55, // 140 is the gradient height, 55 is avatar wrapper radius
+            top: 160 - 55, // 160 is top section height, 55 is half of avatar container
             left: 0,
             right: 0,
-            child: Align(
-              alignment: Alignment.center,
+            child: Center(
               child: Container(
                 width: 110,
                 height: 110,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: const Color(0xFFE3D6F5), // Light purple interior
-                  border: Border.all(color: Colors.white, width: 3),
+                  color: const Color(0xFFEDE9FE), // Light purple/lavender
+                  border: Border.all(color: Colors.white, width: 4),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.primary.withOpacity(0.35),
-                      spreadRadius: 2, // Simulates the outer purple ring
+                      color: const Color(0xFF8B5CF6).withOpacity(0.2),
+                      blurRadius: 15,
+                      spreadRadius: 2,
                     ),
                   ],
                 ),
                 child: Center(
                   child: Text(
-                    profile['initials'] ?? 'FK',
+                    initials,
                     style: const TextStyle(
-                      color: AppColors.primary,
-                      fontSize: 24,
+                      color: Color(0xFF7C3AED),
+                      fontSize: 32,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -231,4 +232,54 @@ class SwapProfileCard extends StatelessWidget {
       ),
     );
   }
+
+  List<Widget> _buildSkillChips(dynamic skillsData) {
+    final List<Widget> chips = [];
+    
+    if (skillsData is List) {
+      for (var skill in skillsData) {
+        String skillName = '';
+        bool isVerified = true; // Default to true as per design aesthetics
+
+        if (skill is String) {
+          skillName = skill;
+        } else if (skill is Map) {
+          skillName = skill['name']?.toString() ?? '';
+          isVerified = skill['type'] == 'verified' || skill['is_verified'] == true;
+        }
+
+        if (skillName.isEmpty) continue;
+
+        chips.add(
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF0FDF4), // Light green background
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (isVerified)
+                  const Padding(
+                    padding: EdgeInsets.only(right: 6.0),
+                    child: Icon(Icons.check_circle, color: Color(0xFF16A34A), size: 16),
+                  ),
+                Text(
+                  skillName,
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: const Color(0xFF166534), // Dark green text
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+    }
+    
+    return chips;
+  }
 }
+

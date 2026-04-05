@@ -26,10 +26,14 @@ async def get_recommendations(user_id: str) -> List[Dict[str, Any]]:
 @router.post("/like")
 async def like_user(request: LikeRequest):
     """
-    Records a like between two users. If mutual, saves to the matches table.
+    Records a like between two users. If mutual, returns is_match=True.
     """
-    success = record_like(request.user_id, request.liked_user_id)
+    success, is_match = record_like(request.user_id, request.liked_user_id)
     if success:
-        return {"status": "success", "message": "Like recorded successfully"}
+        return {
+            "status": "success", 
+            "message": "Match pending" if not is_match else "Mutual match found!",
+            "is_match": is_match
+        }
     else:
         raise HTTPException(status_code=500, detail="Failed to record like or match")

@@ -63,7 +63,7 @@ def fetch_recommendations(current_user_id: str) -> List[Dict[str, Any]]:
     current_vector = generate_feature_vector(current_user)
 
     # 2. Fetch all other users
-    other_users = _fetch_table_data("users", {"id": f"neq.{current_user_id}", "select": "id,name,title,description,degree"})
+    other_users = _fetch_table_data("users", {"id": f"neq.{current_user_id}", "select": "id,full_name,title,description,degree"})
 
     # 3. Calculate similarities
     scored_users = []
@@ -78,14 +78,26 @@ def fetch_recommendations(current_user_id: str) -> List[Dict[str, Any]]:
             # Extract names of skills for the UI payload
             skills_names = [s.get('skill_name', '') for s in other_full_profile.get('skills', []) if s.get('skill_name')]
             
+            # Extract degree from education
+            education_list = other_full_profile.get('education', [])
+            degree_str = other.get('degree') or (education_list[0].get('degree') if education_list else 'Student')
+            
+            # Calculate initials
+            full_name = other.get('full_name') or other.get('name') or 'User'
+            initials = ''.join([n[0] for n in full_name.split()[:2]]).upper()
+
             if score > SIMILARITY_THRESHOLD:
                 scored_users.append({
                     "user_id": other_id,
-                    "name": other.get('name', 'Unknown User'),
-                    "title": other.get('title', ''),
-                    "description": other.get('description', ''),
-                    "degree": other.get('degree', ''),
+                    "name": full_name,
+                    "title": other.get('title', 'Collaborator'),
+                    "description": other.get('description', 'No bio available.'),
+                    "degree": degree_str,
                     "skills": skills_names,
+                    "rating": round(4.0 + (score * 1.0), 1), # Map similarity to a 4.0-5.0 rating
+                    "distance": f"{round(1.0 + (1.0 - score) * 10, 1)} km", # Map similarity to distance
+                    "initials": initials,
+                    "mentorships": other_full_profile.get('reputation', 12),
                     "match_score": round(score, 3) 
                 })
 
@@ -93,14 +105,22 @@ def fetch_recommendations(current_user_id: str) -> List[Dict[str, Any]]:
     scored_users.sort(key=lambda x: x['match_score'], reverse=True)
     return scored_users[:10]
 
-def record_like(current_user_id: str, liked_user_id: str) -> bool:
+def record_like(current_user_id: str, liked_user_id: str) -> (bool, bool):
     """
-    Records a like action. If mutual, saves to the matches table.
+    Records a like action. If mutual, returns is_match=True.
     """
-    if not SUPABASE_URL: return False
+    if not SUPABASE_URL: return False, False
     
     try:
-        # Calculate score
+        # Check for mutual like first (did the other user already like me?)
+        match_params = {
+            "user_id": f"eq.{liked_user_id}",
+            "matched_user_id": f"eq.{current_user_id}"
+        }
+        reciprocal_likes = _fetch_table_data("matches", match_params)
+        is_match = len(reciprocal_likes) > 0
+
+        # Calculate score for the new record
         u1_prof = _fetch_user_full_profile(current_user_id)
         u2_prof = _fetch_user_full_profile(liked_user_id)
         
@@ -110,7 +130,7 @@ def record_like(current_user_id: str, liked_user_id: str) -> bool:
             v2 = generate_feature_vector(u2_prof)
             score = cosine_similarity(v1, v2)
 
-        # Insert via REST
+        # Insert the like record via REST
         url = f"{SUPABASE_URL}/rest/v1/matches"
         payload = {
             "user_id": current_user_id,
@@ -118,7 +138,9 @@ def record_like(current_user_id: str, liked_user_id: str) -> bool:
             "match_score": score
         }
         res = requests.post(url, headers=HEADERS, json=payload)
-        return res.status_code in (200, 201)
+        
+        success = res.status_code in (200, 201)
+        return success, is_match
     except Exception as e:
         print(f"Error recording match: {e}")
-        return False
+        return False, False
