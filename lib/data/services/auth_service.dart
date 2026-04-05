@@ -37,15 +37,40 @@ class AuthService {
 
     if (userId == null) throw Exception('Signup failed: No user ID retrieved');
 
-    // 2. Self-Healing Upsert: Update profile by email if it already exists
-    // This fixes the "duplicate key" error for the public.users table
-    await _supabase.from('users').upsert({
-      'id': userId,
-      'email': email,
-      'full_name': fullName,
-      'role': role,
-      'updated_at': DateTime.now().toIso8601String(),
-    }, onConflict: 'email'); 
+    // 2. Insert the new user profile. If the email already exists in public.users
+    // (e.g. orphaned row from a previous attempt), only UPDATE the non-PK fields
+    // using that existing row's own id — never try to change the primary key.
+    try {
+      await _supabase.from('users').insert({
+        'id': userId,
+        'email': email,
+        'full_name': fullName,
+        'role': role,
+        'created_at': DateTime.now().toIso8601String(),
+        'updated_at': DateTime.now().toIso8601String(),
+      });
+    } on PostgrestException catch (e) {
+      // 23505 = unique_violation (email already exists)
+      if (e.code == '23505') {
+        // Look up the existing row by email to get its real id
+        final existing = await _supabase
+            .from('users')
+            .select('id')
+            .eq('email', email)
+            .maybeSingle();
+
+        if (existing != null) {
+          final existingId = existing['id'] as String;
+          await _supabase.from('users').update({
+            'full_name': fullName,
+            'role': role,
+            'updated_at': DateTime.now().toIso8601String(),
+          }).eq('id', existingId);
+        }
+      } else {
+        rethrow;
+      }
+    }
   }
 
 
