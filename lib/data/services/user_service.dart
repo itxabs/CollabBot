@@ -4,7 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class UserService {
   final supabase = Supabase.instance.client;
 
-  /// Fetch user by ID
+  /// Fetch user by ID ......
   Future<UserModel?> fetchUser(String userId) async {
     try {
       final response = await supabase
