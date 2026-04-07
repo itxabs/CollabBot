@@ -8,24 +8,14 @@ abstract class AuthRepository {
     required String role,
   });
 
-  Future<void> signIn({
-    required String email,
-    required String password,
-  });
+  Future<void> signIn({required String email, required String password});
 
   Future<void> resetPasswordForEmail(String email);
 
-  Future<void> verifyOTP({
-    required String email,
-    required String token,
-  });
+  Future<void> verifyOTP({required String email, required String token});
 
   Future<void> updatePassword(String newPassword);
-<<<<<<< HEAD
-
   Future<Map<String, dynamic>?> getUserProfile(String userId);
-=======
->>>>>>> main
 }
 
 class AuthRepositoryImpl implements AuthRepository {
@@ -53,15 +43,9 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<void> signIn({
-    required String email,
-    required String password,
-  }) async {
+  Future<void> signIn({required String email, required String password}) async {
     try {
-      await _authService.signIn(
-        email: email,
-        password: password,
-      );
+      await _authService.signIn(email: email, password: password);
     } catch (e) {
       rethrow;
     }
@@ -77,10 +61,7 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<void> verifyOTP({
-    required String email,
-    required String token,
-  }) async {
+  Future<void> verifyOTP({required String email, required String token}) async {
     try {
       await _authService.verifyOTP(email: email, token: token);
     } catch (e) {
@@ -96,7 +77,7 @@ class AuthRepositoryImpl implements AuthRepository {
       rethrow;
     }
   }
-<<<<<<< HEAD
+
   @override
   Future<Map<String, dynamic>?> getUserProfile(String userId) async {
     try {
@@ -105,6 +86,4 @@ class AuthRepositoryImpl implements AuthRepository {
       rethrow;
     }
   }
-=======
->>>>>>> main
 }

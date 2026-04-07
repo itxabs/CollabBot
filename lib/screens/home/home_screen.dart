@@ -3,10 +3,7 @@ import 'package:provider/provider.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/text_styles.dart';
 import '../../view_model/home_view_model.dart';
-<<<<<<< HEAD
-=======
-import '../../core/widgets/primary_button.dart'; // Reuse button if needed, or create cards
->>>>>>> main
+import '../../core/widgets/primary_button.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -35,7 +32,6 @@ class _HomeContent extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -43,29 +39,26 @@ class _HomeContent extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text('Hello, Abdul!', style: AppTextStyles.h2),
-                      Text('Ready to learn today?', style: AppTextStyles.bodyMedium),
+                      Text(
+                        'Ready to learn today?',
+                        style: AppTextStyles.bodyMedium,
+                      ),
                     ],
                   ),
                   CircleAvatar(
                     radius: 24,
-<<<<<<< HEAD
-                    backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-=======
                     backgroundColor: AppColors.primary.withOpacity(0.1),
->>>>>>> main
                     child: const Icon(Icons.person, color: AppColors.primary),
                   ),
                 ],
               ),
               const SizedBox(height: 24),
-
-              // Points Card
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                    colors: [AppColors.primary, Color(0xFF6366F1)], // Indigo to Purple
+                    colors: [AppColors.primary, Color(0xFF6366F1)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -74,55 +67,74 @@ class _HomeContent extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('My Points', style: AppTextStyles.bodyMedium.copyWith(color: Colors.white70)),
+                    Text(
+                      'My Points',
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        color: Colors.white70,
+                      ),
+                    ),
                     const SizedBox(height: 8),
                     Text(
-                      '${viewModel.points}', 
-                      style: AppTextStyles.h1.copyWith(color: Colors.white, fontSize: 36),
+                      '${viewModel.points}',
+                      style: AppTextStyles.h1.copyWith(
+                        color: Colors.white,
+                        fontSize: 36,
+                      ),
                     ),
                     const SizedBox(height: 16),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
-<<<<<<< HEAD
-                        color: Colors.white.withValues(alpha: 0.2),
-=======
                         color: Colors.white.withOpacity(0.2),
->>>>>>> main
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
                         'Top 5% of Learners',
-                        style: AppTextStyles.bodyMedium.copyWith(color: Colors.white, fontSize: 12),
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          color: Colors.white,
+                          fontSize: 12,
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
               const SizedBox(height: 32),
-
-              // Quick Actions
               Text('Quick Actions', style: AppTextStyles.h3),
               const SizedBox(height: 16),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-<<<<<<< HEAD
-                  _buildQuickAction(context, Icons.search, 'Find Match', Colors.blue),
-                  _buildQuickAction(context, Icons.help_outline, 'Questions', Colors.redAccent),
-                  _buildQuickAction(context, Icons.auto_awesome, 'CollabAI', Colors.orange),
-                  _buildQuickAction(context, Icons.event, 'Events', Colors.green),
-=======
-                  _buildQuickAction(Icons.search, 'Find Match', Colors.blue),
-                  _buildQuickAction(Icons.auto_awesome, 'CollabAI', Colors.orange),
-                  _buildQuickAction(Icons.leaderboard, 'Rankings', Colors.purple),
-                  _buildQuickAction(Icons.event, 'Events', Colors.green),
->>>>>>> main
+                  _buildQuickAction(
+                    context,
+                    Icons.search,
+                    'Find Match',
+                    Colors.blue,
+                  ),
+                  _buildQuickAction(
+                    context,
+                    Icons.help_outline,
+                    'Questions',
+                    Colors.redAccent,
+                  ),
+                  _buildQuickAction(
+                    context,
+                    Icons.auto_awesome,
+                    'CollabAI',
+                    Colors.orange,
+                  ),
+                  _buildQuickAction(
+                    context,
+                    Icons.event,
+                    'Events',
+                    Colors.green,
+                  ),
                 ],
               ),
               const SizedBox(height: 32),
-
-              // Suggested Mentors
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -131,7 +143,6 @@ class _HomeContent extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 16),
-              
               if (viewModel.isLoading)
                 const Center(child: CircularProgressIndicator())
               else
@@ -139,11 +150,7 @@ class _HomeContent extends StatelessWidget {
                   physics: const NeverScrollableScrollPhysics(),
                   shrinkWrap: true,
                   itemCount: viewModel.suggestedMentors.length,
-<<<<<<< HEAD
-                  separatorBuilder: (_, _) => const SizedBox(height: 16),
-=======
                   separatorBuilder: (_, __) => const SizedBox(height: 16),
->>>>>>> main
                   itemBuilder: (context, index) {
                     final mentor = viewModel.suggestedMentors[index];
                     return _buildMentorCard(mentor);
@@ -153,20 +160,26 @@ class _HomeContent extends StatelessWidget {
           ),
         ),
       ),
-<<<<<<< HEAD
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
-          // Navigate to AskQuestionScreen (to be created)
-           Navigator.pushNamed(context, '/ask_question');
+          Navigator.pushNamed(context, '/ask_question');
         },
         backgroundColor: AppColors.primary,
         icon: const Icon(Icons.help_outline, color: Colors.white),
-        label: const Text('Ask Question', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        label: const Text(
+          'Ask Question',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
       ),
     );
   }
 
-  Widget _buildQuickAction(BuildContext context, IconData icon, String label, Color color) {
+  Widget _buildQuickAction(
+    BuildContext context,
+    IconData icon,
+    String label,
+    Color color,
+  ) {
     return GestureDetector(
       onTap: () {
         if (label == 'Questions') {
@@ -178,34 +191,21 @@ class _HomeContent extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
+              color: color.withOpacity(0.1),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Icon(icon, color: color, size: 28),
           ),
           const SizedBox(height: 8),
-          Text(label, style: AppTextStyles.bodyMedium.copyWith(fontSize: 12, fontWeight: FontWeight.w600)),
+          Text(
+            label,
+            style: AppTextStyles.bodyMedium.copyWith(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ],
       ),
-=======
-    );
-  }
-
-  Widget _buildQuickAction(IconData icon, String label, Color color) {
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Icon(icon, color: color, size: 28),
-        ),
-        const SizedBox(height: 8),
-        Text(label, style: AppTextStyles.bodyMedium.copyWith(fontSize: 12, fontWeight: FontWeight.w600)),
-      ],
->>>>>>> main
     );
   }
 
@@ -222,15 +222,26 @@ class _HomeContent extends StatelessWidget {
           CircleAvatar(
             radius: 24,
             backgroundColor: AppColors.background,
-            child: Text(mentor.name[0], style: AppTextStyles.h3.copyWith(fontSize: 18)),
+            child: Text(
+              mentor.name[0],
+              style: AppTextStyles.h3.copyWith(fontSize: 18),
+            ),
           ),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(mentor.name, style: AppTextStyles.bodyLarge.copyWith(fontWeight: FontWeight.w600)),
-                Text('${mentor.role} at ${mentor.company}', style: AppTextStyles.bodyMedium),
+                Text(
+                  mentor.name,
+                  style: AppTextStyles.bodyLarge.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                Text(
+                  '${mentor.role} at ${mentor.company}',
+                  style: AppTextStyles.bodyMedium,
+                ),
               ],
             ),
           ),

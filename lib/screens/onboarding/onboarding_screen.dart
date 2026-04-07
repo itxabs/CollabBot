@@ -44,7 +44,7 @@ class _OnboardingContent extends StatelessWidget {
                 ),
               ),
             ),
-            
+
             // PageView
             Expanded(
               child: PageView.builder(
@@ -63,18 +63,10 @@ class _OnboardingContent extends StatelessWidget {
                           width: size.width * 0.8,
                           height: size.width * 0.8,
                           decoration: BoxDecoration(
-<<<<<<< HEAD
-                            color: item.color.withValues(alpha: 0.1),
-=======
                             color: item.color.withOpacity(0.1),
->>>>>>> main
                             shape: BoxShape.circle,
                           ),
-                          child: Icon(
-                            item.icon,
-                            size: 100,
-                            color: item.color,
-                          ),
+                          child: Icon(item.icon, size: 100, color: item.color),
                         ),
                         const SizedBox(height: 48),
                         Text(
@@ -96,7 +88,7 @@ class _OnboardingContent extends StatelessWidget {
                 },
               ),
             ),
-            
+
             // Bottom Section: Indicator & Button
             Padding(
               padding: const EdgeInsets.all(24.0),
@@ -107,11 +99,7 @@ class _OnboardingContent extends StatelessWidget {
                     count: viewModel.items.length,
                     effect: ExpandingDotsEffect(
                       activeDotColor: AppColors.primary,
-<<<<<<< HEAD
-                      dotColor: AppColors.primary.withValues(alpha: 0.2),
-=======
                       dotColor: AppColors.primary.withOpacity(0.2),
->>>>>>> main
                       dotHeight: 8,
                       dotWidth: 8,
                       expansionFactor: 4,

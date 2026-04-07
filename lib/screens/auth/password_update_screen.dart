@@ -5,10 +5,7 @@ import '../../core/constants/text_styles.dart';
 import '../../core/widgets/custom_text_field.dart';
 import '../../core/widgets/primary_button.dart';
 import '../../view_model/forget_pass_view_model.dart';
-<<<<<<< HEAD
-=======
 import '../../core/constants/routes.dart';
->>>>>>> main
 
 class PasswordUpdateScreen extends StatelessWidget {
   const PasswordUpdateScreen({super.key});
@@ -40,37 +37,60 @@ class PasswordUpdateScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 32),
 
-                Text('New Password', style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600)),
+                Text(
+                  'New Password',
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 const SizedBox(height: 8),
                 CustomTextField(
                   controller: viewModel.newPasswordController,
                   hintText: 'Enter new password',
                   obscureText: true,
-                  prefixIcon: const Icon(Icons.lock_outline, color: AppColors.textSecondary),
-                   validator: (value) {
-                    if (value == null || value.isEmpty) return 'Please enter a password';
-                    if (value.length < 6) return 'Password must be at least 6 characters';
+                  prefixIcon: const Icon(
+                    Icons.lock_outline,
+                    color: AppColors.textSecondary,
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty)
+                      return 'Please enter a password';
+                    if (value.length < 6)
+                      return 'Password must be at least 6 characters';
                     return null;
                   },
                 ),
                 const SizedBox(height: 24),
 
-                Text('Confirm Password', style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600)),
+                Text(
+                  'Confirm Password',
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 const SizedBox(height: 8),
                 CustomTextField(
                   controller: viewModel.confirmPasswordController,
                   hintText: 'Confirm new password',
                   obscureText: true,
-                  prefixIcon: const Icon(Icons.lock_outline, color: AppColors.textSecondary),
-                   validator: (value) {
-                    if (value == null || value.isEmpty) return 'Please confirm password';
+                  prefixIcon: const Icon(
+                    Icons.lock_outline,
+                    color: AppColors.textSecondary,
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty)
+                      return 'Please confirm password';
                     return null;
                   },
                 ),
 
                 if (viewModel.errorMessage != null) ...[
-                 const SizedBox(height: 16),
-                 Text(viewModel.errorMessage!, style: const TextStyle(color: Colors.red), textAlign: TextAlign.center),
+                  const SizedBox(height: 16),
+                  Text(
+                    viewModel.errorMessage!,
+                    style: const TextStyle(color: Colors.red),
+                    textAlign: TextAlign.center,
+                  ),
                 ],
 
                 const SizedBox(height: 32),

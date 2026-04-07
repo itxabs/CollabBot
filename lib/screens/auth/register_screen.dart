@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/colors.dart';
-<<<<<<< HEAD
-=======
 import '../../core/constants/routes.dart';
->>>>>>> main
 import '../../core/constants/text_styles.dart';
 import '../../core/widgets/custom_text_field.dart';
 import '../../core/widgets/primary_button.dart';
@@ -56,79 +53,122 @@ class _RegisterContent extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text(
                   'Join the community of learners',
-                  style: AppTextStyles.bodyLarge.copyWith(color: AppColors.textSecondary),
+                  style: AppTextStyles.bodyLarge.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 32),
 
                 // Name
-                Text('Full Name', style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600)),
+                Text(
+                  'Full Name',
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 const SizedBox(height: 8),
                 CustomTextField(
                   controller: viewModel.nameController,
                   hintText: 'Enter your full name',
-                  prefixIcon: const Icon(Icons.person_outline, color: AppColors.textSecondary),
+                  prefixIcon: const Icon(
+                    Icons.person_outline,
+                    color: AppColors.textSecondary,
+                  ),
                   validator: (value) {
-                    if (value == null || value.isEmpty) return 'Please enter your name';
+                    if (value == null || value.isEmpty)
+                      return 'Please enter your name';
                     return null;
                   },
                 ),
                 const SizedBox(height: 24),
 
                 // Email
-                Text('Email Address', style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600)),
+                Text(
+                  'Email Address',
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 const SizedBox(height: 8),
                 CustomTextField(
                   controller: viewModel.emailController,
                   hintText: 'Enter your email',
                   keyboardType: TextInputType.emailAddress,
-                  prefixIcon: const Icon(Icons.email_outlined, color: AppColors.textSecondary),
+                  prefixIcon: const Icon(
+                    Icons.email_outlined,
+                    color: AppColors.textSecondary,
+                  ),
                   validator: (value) {
-                    if (value == null || value.isEmpty) return 'Please enter your email';
-                    if (!value.contains('@')) return 'Please enter a valid email';
+                    if (value == null || value.isEmpty)
+                      return 'Please enter your email';
+                    if (!value.contains('@'))
+                      return 'Please enter a valid email';
                     return null;
                   },
                 ),
                 const SizedBox(height: 24),
 
                 // Password
-                Text('Password', style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600)),
+                Text(
+                  'Password',
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 const SizedBox(height: 8),
                 CustomTextField(
                   controller: viewModel.passwordController,
                   hintText: 'Create a password',
                   obscureText: viewModel.obscurePassword,
-                  prefixIcon: const Icon(Icons.lock_outline, color: AppColors.textSecondary),
+                  prefixIcon: const Icon(
+                    Icons.lock_outline,
+                    color: AppColors.textSecondary,
+                  ),
                   suffixIcon: IconButton(
                     icon: Icon(
-                      viewModel.obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                      viewModel.obscurePassword
+                          ? Icons.visibility_outlined
+                          : Icons.visibility_off_outlined,
                       color: AppColors.textSecondary,
                     ),
                     onPressed: viewModel.togglePasswordVisibility,
                   ),
                   validator: (value) {
-                    if (value == null || value.isEmpty) return 'Please enter a password';
-                    if (value.length < 6) return 'Password must be at least 6 characters';
+                    if (value == null || value.isEmpty)
+                      return 'Please enter a password';
+                    if (value.length < 6)
+                      return 'Password must be at least 6 characters';
                     return null;
                   },
                 ),
                 const SizedBox(height: 24),
 
                 // Confirm Password
-                Text('Confirm Password', style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600)),
+                Text(
+                  'Confirm Password',
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 const SizedBox(height: 8),
                 CustomTextField(
                   controller: viewModel.confirmPasswordController,
                   hintText: 'Confirm your password',
                   obscureText: viewModel.obscurePassword,
-                  prefixIcon: const Icon(Icons.lock_outline, color: AppColors.textSecondary),
+                  prefixIcon: const Icon(
+                    Icons.lock_outline,
+                    color: AppColors.textSecondary,
+                  ),
                   validator: (value) {
-                    if (value == null || value.isEmpty) return 'Please confirm your password';
-                    if (value != viewModel.passwordController.text) return 'Passwords do not match';
+                    if (value == null || value.isEmpty)
+                      return 'Please confirm your password';
+                    if (value != viewModel.passwordController.text)
+                      return 'Passwords do not match';
                     return null;
                   },
                 ),
-                
+
                 const SizedBox(height: 32),
 
                 // Register Button
@@ -151,10 +191,7 @@ class _RegisterContent extends StatelessWidget {
                       onTap: () {
                         Navigator.pop(context);
                       },
-                      child: Text(
-                        'Sign In',
-                        style: AppTextStyles.link,
-                      ),
+                      child: Text('Sign In', style: AppTextStyles.link),
                     ),
                   ],
                 ),

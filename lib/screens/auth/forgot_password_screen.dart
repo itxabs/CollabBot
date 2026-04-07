@@ -5,10 +5,7 @@ import '../../core/constants/text_styles.dart';
 import '../../core/widgets/custom_text_field.dart';
 import '../../core/widgets/primary_button.dart';
 import '../../view_model/forgot_view_model.dart';
-<<<<<<< HEAD
-=======
 import '../../core/constants/routes.dart';
->>>>>>> main
 
 class ForgotPasswordScreen extends StatelessWidget {
   const ForgotPasswordScreen({super.key});
@@ -55,25 +52,37 @@ class _ForgotContent extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text(
                   'Enter your email to receive a reset link',
-                  style: AppTextStyles.bodyLarge.copyWith(color: AppColors.textSecondary),
+                  style: AppTextStyles.bodyLarge.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 32),
 
-                Text('Email Address', style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600)),
+                Text(
+                  'Email Address',
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 const SizedBox(height: 8),
                 CustomTextField(
                   controller: viewModel.emailController,
                   hintText: 'Enter your email',
                   keyboardType: TextInputType.emailAddress,
-                  prefixIcon: const Icon(Icons.email_outlined, color: AppColors.textSecondary),
+                  prefixIcon: const Icon(
+                    Icons.email_outlined,
+                    color: AppColors.textSecondary,
+                  ),
                   validator: (value) {
-                    if (value == null || value.isEmpty) return 'Please enter your email';
-                    if (!value.contains('@')) return 'Please enter a valid email';
+                    if (value == null || value.isEmpty)
+                      return 'Please enter your email';
+                    if (!value.contains('@'))
+                      return 'Please enter a valid email';
                     return null;
                   },
                 ),
-                
+
                 const SizedBox(height: 32),
 
                 PrimaryButton(

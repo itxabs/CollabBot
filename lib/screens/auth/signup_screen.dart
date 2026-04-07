@@ -55,25 +55,25 @@ class _SignupContent extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 'Step ${viewModel.currentStep} of 2',
-                style: AppTextStyles.bodyLarge.copyWith(color: AppColors.textSecondary),
+                style: AppTextStyles.bodyLarge.copyWith(
+                  color: AppColors.textSecondary,
+                ),
                 textAlign: TextAlign.center,
               ),
-              
+
               if (viewModel.errorMessage != null) ...[
                 const SizedBox(height: 16),
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-<<<<<<< HEAD
-                    color: AppColors.error.withValues(alpha: 0.1),
-=======
                     color: AppColors.error.withOpacity(0.1),
->>>>>>> main
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
                     viewModel.errorMessage!,
-                    style: AppTextStyles.bodyMedium.copyWith(color: AppColors.error),
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      color: AppColors.error,
+                    ),
                     textAlign: TextAlign.center,
                   ),
                 ),
@@ -91,7 +91,9 @@ class _SignupContent extends StatelessWidget {
               const SizedBox(height: 32),
 
               PrimaryButton(
-                text: viewModel.currentStep == 1 ? 'Continue' : 'Create Account',
+                text: viewModel.currentStep == 1
+                    ? 'Continue'
+                    : 'Create Account',
                 isLoading: viewModel.isLoading,
                 onPressed: () {
                   if (viewModel.currentStep == 1) {
@@ -119,30 +121,48 @@ class _StepOneInputs extends StatelessWidget {
       key: const ValueKey(1),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Full Name', style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600)),
+        Text(
+          'Full Name',
+          style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600),
+        ),
         const SizedBox(height: 8),
         CustomTextField(
           controller: viewModel.nameController,
           hintText: 'Enter your full name',
-          prefixIcon: const Icon(Icons.person_outline, color: AppColors.textSecondary),
+          prefixIcon: const Icon(
+            Icons.person_outline,
+            color: AppColors.textSecondary,
+          ),
         ),
         const SizedBox(height: 24),
-        Text('Email Address', style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600)),
+        Text(
+          'Email Address',
+          style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600),
+        ),
         const SizedBox(height: 8),
         CustomTextField(
           controller: viewModel.emailController,
           hintText: 'Enter your email',
           keyboardType: TextInputType.emailAddress,
-          prefixIcon: const Icon(Icons.email_outlined, color: AppColors.textSecondary),
+          prefixIcon: const Icon(
+            Icons.email_outlined,
+            color: AppColors.textSecondary,
+          ),
         ),
         const SizedBox(height: 24),
-        Text('Password', style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600)),
+        Text(
+          'Password',
+          style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600),
+        ),
         const SizedBox(height: 8),
         CustomTextField(
           controller: viewModel.passwordController,
           hintText: 'Create a password',
           obscureText: true,
-          prefixIcon: const Icon(Icons.lock_outline, color: AppColors.textSecondary),
+          prefixIcon: const Icon(
+            Icons.lock_outline,
+            color: AppColors.textSecondary,
+          ),
         ),
       ],
     );
@@ -155,7 +175,7 @@ class _StepTwoRoles extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final viewModel = Provider.of<SignupViewModel>(context);
-    
+
     return Column(
       key: const ValueKey(2),
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -211,11 +231,7 @@ class _RoleCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-<<<<<<< HEAD
-          color: isSelected ? AppColors.primary.withValues(alpha: 0.1) : Colors.white,
-=======
           color: isSelected ? AppColors.primary.withOpacity(0.1) : Colors.white,
->>>>>>> main
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isSelected ? AppColors.primary : AppColors.border,
@@ -225,7 +241,9 @@ class _RoleCard extends StatelessWidget {
         child: Row(
           children: [
             Icon(
-              isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+              isSelected
+                  ? Icons.radio_button_checked
+                  : Icons.radio_button_unchecked,
               color: isSelected ? AppColors.primary : AppColors.textSecondary,
             ),
             const SizedBox(width: 16),
@@ -236,13 +254,12 @@ class _RoleCard extends StatelessWidget {
                   title,
                   style: AppTextStyles.bodyLarge.copyWith(
                     fontWeight: FontWeight.w600,
-                    color: isSelected ? AppColors.primary : AppColors.textPrimary,
+                    color: isSelected
+                        ? AppColors.primary
+                        : AppColors.textPrimary,
                   ),
                 ),
-                Text(
-                  description,
-                  style: AppTextStyles.bodyMedium,
-                ),
+                Text(description, style: AppTextStyles.bodyMedium),
               ],
             ),
           ],

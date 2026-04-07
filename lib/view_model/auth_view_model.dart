@@ -5,13 +5,7 @@ import '../data/services/auth_service.dart';
 import 'package:flutter/material.dart';
 
 class AuthViewModel extends ChangeNotifier {
-<<<<<<< HEAD
-  final AuthRepository _repository = AuthRepositoryImpl(
-    AuthService(Supabase.instance.client),
-  );
-=======
   final AuthRepository _repository = AuthRepositoryImpl(AuthService(Supabase.instance.client));
->>>>>>> main
 
   bool isLoading = false;
   String? successMessage;
@@ -20,44 +14,7 @@ class AuthViewModel extends ChangeNotifier {
   // ✅ Add current user
   UserModel? currentUser;
 
-<<<<<<< HEAD
-  AuthViewModel() {
-    initializeCurrentUser();
-  }
-
-  Future<void> initializeCurrentUser() async {
-    final session = Supabase.instance.client.auth.currentSession;
-    if (session == null) {
-       currentUser = null;
-       notifyListeners();
-       return;
-    }
-    await fetchUserProfile(session.user.id);
-  }
-
-
-  Future<void> fetchUserProfile(String userId) async {
-    try {
-      final userData = await _repository.getUserProfile(userId);
-      if (userData != null) {
-        currentUser = UserModel.fromMap(userData);
-      }
-    } catch (e) {
-      debugPrint('Error fetching user profile: $e');
-    }
-    notifyListeners();
-  }
-
-
-  Future<void> signUp({
-    required String email,
-    required String password,
-    required String fullName,
-    required String role,
-  }) async {
-=======
   Future<void> signUp(String email, String password) async {
->>>>>>> main
     isLoading = true;
     notifyListeners();
 
@@ -65,24 +22,10 @@ class AuthViewModel extends ChangeNotifier {
       await _repository.signUp(
         email: email,
         password: password,
-<<<<<<< HEAD
-        fullName: fullName,
-        role: role,
-      );
-      
-      // Fetch profile immediately after signup so currentUser is not null
-      final session = Supabase.instance.client.auth.currentSession;
-      if (session != null) {
-        await fetchUserProfile(session.user.id);
-      }
-      
-      errorMessage = null;
-=======
         fullName: 'New User',
         role: 'user',
       );
       errorMessage = null; // No error
->>>>>>> main
     } catch (e) {
       errorMessage = e.toString();
     } finally {
@@ -96,24 +39,10 @@ class AuthViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-<<<<<<< HEAD
-      await _repository.signIn(
-        email: email,
-        password: password,
-      );
-      
-      final session = Supabase.instance.client.auth.currentSession;
-      if (session != null) {
-        await fetchUserProfile(session.user.id);
-      }
-      
-      errorMessage = null;
-=======
       await _repository.signIn(email: email, password: password);
       errorMessage = null;
       // Set to null as signIn doesn't directly return a user model
       currentUser = null; 
->>>>>>> main
     } catch (e) {
       errorMessage = e.toString();
       currentUser = null;
@@ -123,10 +52,6 @@ class AuthViewModel extends ChangeNotifier {
     }
   }
 
-<<<<<<< HEAD
-
-=======
->>>>>>> main
   Future<void> forgetPassword(String email) async {
     if (email.isEmpty) {
       errorMessage = "Email cannot be blank";
@@ -150,18 +75,5 @@ class AuthViewModel extends ChangeNotifier {
     isLoading = false;
     notifyListeners();
   }
-<<<<<<< HEAD
-
-  Future<void> logout() async {
-    await Supabase.instance.client.auth.signOut();
-    currentUser = null;
-    notifyListeners();
-  }
 }
 
-
-
-=======
-}
-
->>>>>>> main
