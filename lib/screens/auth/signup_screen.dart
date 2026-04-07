@@ -64,7 +64,11 @@ class _SignupContent extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
+<<<<<<< HEAD
                     color: AppColors.error.withValues(alpha: 0.1),
+=======
+                    color: AppColors.error.withOpacity(0.1),
+>>>>>>> main
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
@@ -207,7 +211,11 @@ class _RoleCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
+<<<<<<< HEAD
           color: isSelected ? AppColors.primary.withValues(alpha: 0.1) : Colors.white,
+=======
+          color: isSelected ? AppColors.primary.withOpacity(0.1) : Colors.white,
+>>>>>>> main
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isSelected ? AppColors.primary : AppColors.border,

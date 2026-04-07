@@ -3,6 +3,10 @@ import 'package:provider/provider.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/text_styles.dart';
 import '../../view_model/home_view_model.dart';
+<<<<<<< HEAD
+=======
+import '../../core/widgets/primary_button.dart'; // Reuse button if needed, or create cards
+>>>>>>> main
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -44,7 +48,11 @@ class _HomeContent extends StatelessWidget {
                   ),
                   CircleAvatar(
                     radius: 24,
+<<<<<<< HEAD
                     backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+=======
+                    backgroundColor: AppColors.primary.withOpacity(0.1),
+>>>>>>> main
                     child: const Icon(Icons.person, color: AppColors.primary),
                   ),
                 ],
@@ -76,7 +84,11 @@ class _HomeContent extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
+<<<<<<< HEAD
                         color: Colors.white.withValues(alpha: 0.2),
+=======
+                        color: Colors.white.withOpacity(0.2),
+>>>>>>> main
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
@@ -95,10 +107,17 @@ class _HomeContent extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
+<<<<<<< HEAD
                   _buildQuickAction(context, Icons.search, 'Find Match', Colors.blue),
                   _buildQuickAction(context, Icons.help_outline, 'Questions', Colors.redAccent),
                   _buildQuickAction(context, Icons.auto_awesome, 'CollabAI', Colors.orange),
                   _buildQuickAction(context, Icons.event, 'Events', Colors.green),
+=======
+                  _buildQuickAction(Icons.search, 'Find Match', Colors.blue),
+                  _buildQuickAction(Icons.auto_awesome, 'CollabAI', Colors.orange),
+                  _buildQuickAction(Icons.leaderboard, 'Rankings', Colors.purple),
+                  _buildQuickAction(Icons.event, 'Events', Colors.green),
+>>>>>>> main
                 ],
               ),
               const SizedBox(height: 32),
@@ -120,7 +139,11 @@ class _HomeContent extends StatelessWidget {
                   physics: const NeverScrollableScrollPhysics(),
                   shrinkWrap: true,
                   itemCount: viewModel.suggestedMentors.length,
+<<<<<<< HEAD
                   separatorBuilder: (_, _) => const SizedBox(height: 16),
+=======
+                  separatorBuilder: (_, __) => const SizedBox(height: 16),
+>>>>>>> main
                   itemBuilder: (context, index) {
                     final mentor = viewModel.suggestedMentors[index];
                     return _buildMentorCard(mentor);
@@ -130,6 +153,7 @@ class _HomeContent extends StatelessWidget {
           ),
         ),
       ),
+<<<<<<< HEAD
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
           // Navigate to AskQuestionScreen (to be created)
@@ -163,6 +187,25 @@ class _HomeContent extends StatelessWidget {
           Text(label, style: AppTextStyles.bodyMedium.copyWith(fontSize: 12, fontWeight: FontWeight.w600)),
         ],
       ),
+=======
+    );
+  }
+
+  Widget _buildQuickAction(IconData icon, String label, Color color) {
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Icon(icon, color: color, size: 28),
+        ),
+        const SizedBox(height: 8),
+        Text(label, style: AppTextStyles.bodyMedium.copyWith(fontSize: 12, fontWeight: FontWeight.w600)),
+      ],
+>>>>>>> main
     );
   }
 

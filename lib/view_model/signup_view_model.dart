@@ -4,14 +4,14 @@ import '../data/repositories/auth_repository.dart';
 import '../data/services/auth_service.dart';
 import '../core/constants/routes.dart';
 
-
 class SignupViewModel extends ChangeNotifier {
   final AuthRepository _authRepository;
 
-  // Constructor with dependency injection (can be simplified if using get_it or direct instantiation for this task)
-  SignupViewModel() : _authRepository = AuthRepositoryImpl(AuthService(Supabase.instance.client));
+  SignupViewModel()
+    : _authRepository = AuthRepositoryImpl(
+        AuthService(Supabase.instance.client),
+      );
 
-  // State
   int _currentStep = 1;
   int get currentStep => _currentStep;
 
@@ -21,12 +21,10 @@ class SignupViewModel extends ChangeNotifier {
   String? _errorMessage;
   String? get errorMessage => _errorMessage;
 
-  // Form Controllers (Step 1)
   final TextEditingController nameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
 
-  // Role Selection (Step 2)
   String? _selectedRole;
   String? get selectedRole => _selectedRole;
 
@@ -35,9 +33,7 @@ class SignupViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Navigation / Logic
   void nextStep() {
-    // Validate Step 1
     if (nameController.text.isEmpty ||
         emailController.text.isEmpty ||
         passwordController.text.isEmpty) {
@@ -45,10 +41,9 @@ class SignupViewModel extends ChangeNotifier {
       notifyListeners();
       return;
     }
-    
-    // Basic email validation
+
     if (!emailController.text.contains('@')) {
-       _errorMessage = 'Invalid email address';
+      _errorMessage = 'Invalid email address';
       notifyListeners();
       return;
     }
@@ -65,7 +60,6 @@ class SignupViewModel extends ChangeNotifier {
   }
 
   Future<void> signUp(BuildContext context) async {
-    // Validate Step 2
     if (_selectedRole == null) {
       _errorMessage = 'Please select a role';
       notifyListeners();
@@ -84,36 +78,37 @@ class SignupViewModel extends ChangeNotifier {
         role: _selectedRole!,
       );
 
-      // Success
       if (context.mounted) {
         _isLoading = false;
-        notifyListeners(); 
+        notifyListeners();
 
-        // decisive to Login page to Login for home 
-        Navigator.of(context).pushNamedAndRemoveUntil(AppRoutes.login, (route) => false);
+        Navigator.of(
+          context,
+        ).pushNamedAndRemoveUntil(AppRoutes.login, (route) => false);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Account Created! Please login to continue.')),
+          const SnackBar(
+            content: Text('Account Created! Please login to continue.'),
+          ),
         );
       }
-
     } catch (e) {
       if (context.mounted) {
         final alreadyExists = e.toString().contains('user_already_exists');
         _isLoading = false;
-        _errorMessage = alreadyExists ? 'Welcome back! Profile Updated.' : e.toString().replaceAll('Exception: ', '');
-        
-        notifyListeners(); 
+        _errorMessage = alreadyExists
+            ? 'Welcome back! Profile Updated.'
+            : e.toString().replaceAll('Exception: ', '');
+
+        notifyListeners();
 
         if (alreadyExists) {
-          // Even if they exist, navigate them to Login for Home 
-          Navigator.of(context).pushNamedAndRemoveUntil(AppRoutes.login, (route) => false);
+          Navigator.of(
+            context,
+          ).pushNamedAndRemoveUntil(AppRoutes.login, (route) => false);
         }
       }
     }
   }
-
-
-
 
   @override
   void dispose() {

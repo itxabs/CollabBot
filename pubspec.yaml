@@ -40,6 +40,10 @@ dependencies:
   smooth_page_indicator: ^2.0.1
   google_fonts: ^7.0.2
   intl: ^0.20.2
+  flutter_dotenv: ^5.1.0
+  file_picker: ^8.0.0
+  http: ^1.2.0
+  google_generative_ai: ^0.2.0
 
 dev_dependencies:
   flutter_best_practices_lints: ^0.2.0
@@ -78,6 +82,7 @@ flutter:
 
   assets:
     - assets/images/
+    - .env
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
 

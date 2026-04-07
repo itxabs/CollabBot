@@ -28,6 +28,27 @@ class _ProfileContent extends StatelessWidget {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
+    if (viewModel.errorMessage != null) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                viewModel.errorMessage!,
+                style: const TextStyle(color: Colors.red),
+              ),
+              ElevatedButton(
+                onPressed: () => viewModel.logout(context),
+                child: const Text('Log Out'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -36,7 +57,6 @@ class _ProfileContent extends StatelessWidget {
           child: Column(
             children: [
               const SizedBox(height: 24),
-              // Profile Header
               Center(
                 child: Column(
                   children: [
@@ -45,7 +65,11 @@ class _ProfileContent extends StatelessWidget {
                         const CircleAvatar(
                           radius: 50,
                           backgroundColor: AppColors.primary,
-                          child: Icon(Icons.person, size: 50, color: Colors.white),
+                          child: Icon(
+                            Icons.person,
+                            size: 50,
+                            color: Colors.white,
+                          ),
                         ),
                         Positioned(
                           bottom: 0,
@@ -56,32 +80,53 @@ class _ProfileContent extends StatelessWidget {
                               color: AppColors.secondary,
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(Icons.edit, color: Colors.white, size: 16),
+                            child: const Icon(
+                              Icons.edit,
+                              color: Colors.white,
+                              size: 16,
+                            ),
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 16),
-                    Text(viewModel.user?.name ?? 'User', style: AppTextStyles.h2),
-                    Text(viewModel.user?.role ?? 'Role', style: AppTextStyles.bodyMedium),
+                    Text(
+                      viewModel.user?.name ?? 'User',
+                      style: AppTextStyles.h2,
+                    ),
+                    Text(
+                      viewModel.user?.role ?? 'Role',
+                      style: AppTextStyles.bodyMedium,
+                    ),
                   ],
                 ),
               ),
               const SizedBox(height: 32),
 
-              // Settings Sections
               _buildSectionTitle('Account'),
-              _buildSettingsItem(Icons.person_outline, 'Personal Information', onTap: () {}),
-              _buildSettingsItem(Icons.notifications_outlined, 'Notifications', onTap: () {}),
+              _buildSettingsItem(
+                Icons.person_outline,
+                'Personal Information',
+                onTap: () {},
+              ),
+              _buildSettingsItem(
+                Icons.notifications_outlined,
+                'Notifications',
+                onTap: () {},
+              ),
               _buildSettingsItem(Icons.lock_outline, 'Security', onTap: () {}),
-              
+
               const SizedBox(height: 24),
               _buildSectionTitle('Support'),
-              _buildSettingsItem(Icons.help_outline, 'Help Center', onTap: () {}),
+              _buildSettingsItem(
+                Icons.help_outline,
+                'Help Center',
+                onTap: () {},
+              ),
               _buildSettingsItem(Icons.info_outline, 'About Us', onTap: () {}),
 
               const SizedBox(height: 48),
-              
+
               PrimaryButton(
                 text: 'Log Out',
                 onPressed: () => viewModel.logout(context),
@@ -105,7 +150,11 @@ class _ProfileContent extends StatelessWidget {
     );
   }
 
-  Widget _buildSettingsItem(IconData icon, String title, {required VoidCallback onTap}) {
+  Widget _buildSettingsItem(
+    IconData icon,
+    String title, {
+    required VoidCallback onTap,
+  }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -122,8 +171,14 @@ class _ProfileContent extends StatelessWidget {
           ),
           child: Icon(icon, color: AppColors.primary),
         ),
-        title: Text(title, style: AppTextStyles.bodyLarge.copyWith(fontWeight: FontWeight.w500)),
-        trailing: const Icon(Icons.chevron_right, color: AppColors.textSecondary),
+        title: Text(
+          title,
+          style: AppTextStyles.bodyLarge.copyWith(fontWeight: FontWeight.w500),
+        ),
+        trailing: const Icon(
+          Icons.chevron_right,
+          color: AppColors.textSecondary,
+        ),
         onTap: onTap,
       ),
     );

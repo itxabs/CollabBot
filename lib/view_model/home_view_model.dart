@@ -6,11 +6,16 @@ class Mentor {
   final String company;
   final String imageUrl;
 
-  Mentor({required this.name, required this.role, required this.company, required this.imageUrl});
+  Mentor({
+    required this.name,
+    required this.role,
+    required this.company,
+    required this.imageUrl,
+  });
 }
 
 class HomeViewModel extends ChangeNotifier {
-  final int _points = 1250;
+  int _points = 1250;
   int get points => _points;
 
   bool _isLoading = false;
@@ -27,13 +32,27 @@ class HomeViewModel extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
 
-    // Simulate API fetch
     await Future.delayed(const Duration(seconds: 1));
-    
+
     _suggestedMentors = [
-      Mentor(name: 'Sarah Chen', role: 'Product Designer', company: 'Google', imageUrl: ''),
-      Mentor(name: 'Alex Morgan', role: 'Flutter Expert', company: 'Freelance', imageUrl: ''),
-      Mentor(name: 'David Kim', role: 'Senior Engineer', company: 'Amazon', imageUrl: ''),
+      Mentor(
+        name: 'Sarah Chen',
+        role: 'Product Designer',
+        company: 'Google',
+        imageUrl: '',
+      ),
+      Mentor(
+        name: 'Alex Morgan',
+        role: 'Flutter Expert',
+        company: 'Freelance',
+        imageUrl: '',
+      ),
+      Mentor(
+        name: 'David Kim',
+        role: 'Senior Engineer',
+        company: 'Amazon',
+        imageUrl: '',
+      ),
     ];
 
     _isLoading = false;

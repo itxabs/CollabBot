@@ -14,20 +14,18 @@ class AuthService {
     String? userId;
 
     try {
-      // 1. Attempt to Sign Up
       final response = await _supabase.auth.signUp(
         email: email,
         password: password,
       );
       userId = response.user?.id;
     } catch (e) {
-      // If user already exists in Auth system, try to sign in to get the existing userId
-      if (e.toString().contains('user_already_exists') || e.toString().contains('422')) {
+      if (e.toString().contains('user_already_exists') ||
+          e.toString().contains('422')) {
         try {
           final signInRes = await signIn(email: email, password: password);
           userId = signInRes.user?.id;
         } catch (_) {
-          // If sign-in also fails (e.g. wrong password), rethrow the original error
           rethrow;
         }
       } else {
@@ -37,9 +35,6 @@ class AuthService {
 
     if (userId == null) throw Exception('Signup failed: No user ID retrieved');
 
-    // 2. Insert the new user profile. If the email already exists in public.users
-    // (e.g. orphaned row from a previous attempt), only UPDATE the non-PK fields
-    // using that existing row's own id — never try to change the primary key.
     try {
       await _supabase.from('users').insert({
         'id': userId,
@@ -50,9 +45,7 @@ class AuthService {
         'updated_at': DateTime.now().toIso8601String(),
       });
     } on PostgrestException catch (e) {
-      // 23505 = unique_violation (email already exists)
       if (e.code == '23505') {
-        // Look up the existing row by email to get its real id
         final existing = await _supabase
             .from('users')
             .select('id')
@@ -61,20 +54,20 @@ class AuthService {
 
         if (existing != null) {
           final existingId = existing['id'] as String;
-          await _supabase.from('users').update({
-            'full_name': fullName,
-            'role': role,
-            'updated_at': DateTime.now().toIso8601String(),
-          }).eq('id', existingId);
+          await _supabase
+              .from('users')
+              .update({
+                'full_name': fullName,
+                'role': role,
+                'updated_at': DateTime.now().toIso8601String(),
+              })
+              .eq('id', existingId);
         }
       } else {
         rethrow;
       }
     }
   }
-
-
-
 
   Future<AuthResponse> signIn({
     required String email,
@@ -94,7 +87,6 @@ class AuthService {
         .maybeSingle();
     return response;
   }
-
 
   Future<void> resetPasswordForEmail(String email) async {
     await _supabase.auth.resetPasswordForEmail(email);

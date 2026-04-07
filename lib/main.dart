@@ -15,10 +15,12 @@ import 'screens/questions/questions_screen.dart';
 import 'screens/questions/ask_question_screen.dart';
 import 'view_model/questions/questions_view_model.dart';
 import 'view_model/events_view_model.dart';
-
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: ".env");
+
   // Keep existing Supabase config
   await Supabase.initialize(
     url: 'https://hgpcisbeepambgudfncr.supabase.co',
@@ -29,7 +31,6 @@ void main() async {
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
-
 
   @override
   Widget build(BuildContext context) {
@@ -56,7 +57,8 @@ class MyApp extends StatelessWidget {
           AppRoutes.login: (context) => const LoginScreen(),
           AppRoutes.register: (context) => const SignupScreen(),
           AppRoutes.forgotPassword: (context) => const ForgetPassScreen(),
-          AppRoutes.otp: (context) => const OtpScreen(), // Note: OtpScreen is reused but navigation logic inside VM handles context.
+          AppRoutes.otp: (context) =>
+              const OtpScreen(), // Note: OtpScreen is reused but navigation logic inside VM handles context.
           AppRoutes.home: (context) => const MainNavigation(),
           AppRoutes.questions: (context) => const QuestionsScreen(),
           AppRoutes.askQuestion: (context) => const AskQuestionScreen(),

@@ -7,7 +7,12 @@ class UserProfile {
   final String role;
   final int points;
 
-  UserProfile({required this.name, required this.email, required this.role, required this.points});
+  UserProfile({
+    required this.name,
+    required this.email,
+    required this.role,
+    required this.points,
+  });
 }
 
 class ProfileViewModel extends ChangeNotifier {
@@ -16,6 +21,8 @@ class ProfileViewModel extends ChangeNotifier {
 
   bool _isLoading = false;
   bool get isLoading => _isLoading;
+
+  String? get errorMessage => null;
 
   ProfileViewModel() {
     _loadProfile();
@@ -26,9 +33,9 @@ class ProfileViewModel extends ChangeNotifier {
     notifyListeners();
 
     await Future.delayed(const Duration(seconds: 1));
-    
+
     _user = UserProfile(
-      name: 'Abdul', // Utilizing user name from input context if available, otherwise generic
+      name: 'Abdul',
       email: 'abdul@example.com',
       role: 'Flutter Developer',
       points: 1250,
@@ -39,7 +46,10 @@ class ProfileViewModel extends ChangeNotifier {
   }
 
   void logout(BuildContext context) {
-    // Clear tokens/state
-    Navigator.pushNamedAndRemoveUntil(context, AppRoutes.login, (route) => false);
+    Navigator.pushNamedAndRemoveUntil(
+      context,
+      AppRoutes.login,
+      (route) => false,
+    );
   }
 }

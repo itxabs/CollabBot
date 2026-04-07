@@ -23,15 +23,23 @@ class _MainNavigationState extends State<MainNavigation> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+<<<<<<< HEAD
       body: IndexedStack(
         index: _currentIndex,
         children: _screens,
       ),
+=======
+      body: _screens[_currentIndex],
+>>>>>>> main
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           boxShadow: [
             BoxShadow(
+<<<<<<< HEAD
               color: Colors.black.withValues(alpha: 0.05),
+=======
+              color: Colors.black.withOpacity(0.05),
+>>>>>>> main
               blurRadius: 10,
               offset: const Offset(0, -5),
             ),

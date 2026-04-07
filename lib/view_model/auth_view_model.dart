@@ -5,9 +5,13 @@ import '../data/services/auth_service.dart';
 import 'package:flutter/material.dart';
 
 class AuthViewModel extends ChangeNotifier {
+<<<<<<< HEAD
   final AuthRepository _repository = AuthRepositoryImpl(
     AuthService(Supabase.instance.client),
   );
+=======
+  final AuthRepository _repository = AuthRepositoryImpl(AuthService(Supabase.instance.client));
+>>>>>>> main
 
   bool isLoading = false;
   String? successMessage;
@@ -16,6 +20,7 @@ class AuthViewModel extends ChangeNotifier {
   // ✅ Add current user
   UserModel? currentUser;
 
+<<<<<<< HEAD
   AuthViewModel() {
     initializeCurrentUser();
   }
@@ -50,6 +55,9 @@ class AuthViewModel extends ChangeNotifier {
     required String fullName,
     required String role,
   }) async {
+=======
+  Future<void> signUp(String email, String password) async {
+>>>>>>> main
     isLoading = true;
     notifyListeners();
 
@@ -57,6 +65,7 @@ class AuthViewModel extends ChangeNotifier {
       await _repository.signUp(
         email: email,
         password: password,
+<<<<<<< HEAD
         fullName: fullName,
         role: role,
       );
@@ -68,6 +77,12 @@ class AuthViewModel extends ChangeNotifier {
       }
       
       errorMessage = null;
+=======
+        fullName: 'New User',
+        role: 'user',
+      );
+      errorMessage = null; // No error
+>>>>>>> main
     } catch (e) {
       errorMessage = e.toString();
     } finally {
@@ -81,6 +96,7 @@ class AuthViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
+<<<<<<< HEAD
       await _repository.signIn(
         email: email,
         password: password,
@@ -92,6 +108,12 @@ class AuthViewModel extends ChangeNotifier {
       }
       
       errorMessage = null;
+=======
+      await _repository.signIn(email: email, password: password);
+      errorMessage = null;
+      // Set to null as signIn doesn't directly return a user model
+      currentUser = null; 
+>>>>>>> main
     } catch (e) {
       errorMessage = e.toString();
       currentUser = null;
@@ -101,7 +123,10 @@ class AuthViewModel extends ChangeNotifier {
     }
   }
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> main
   Future<void> forgetPassword(String email) async {
     if (email.isEmpty) {
       errorMessage = "Email cannot be blank";
@@ -125,6 +150,7 @@ class AuthViewModel extends ChangeNotifier {
     isLoading = false;
     notifyListeners();
   }
+<<<<<<< HEAD
 
   Future<void> logout() async {
     await Supabase.instance.client.auth.signOut();
@@ -135,3 +161,7 @@ class AuthViewModel extends ChangeNotifier {
 
 
 
+=======
+}
+
+>>>>>>> main

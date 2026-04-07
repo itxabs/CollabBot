@@ -21,8 +21,11 @@ abstract class AuthRepository {
   });
 
   Future<void> updatePassword(String newPassword);
+<<<<<<< HEAD
 
   Future<Map<String, dynamic>?> getUserProfile(String userId);
+=======
+>>>>>>> main
 }
 
 class AuthRepositoryImpl implements AuthRepository {
@@ -93,6 +96,7 @@ class AuthRepositoryImpl implements AuthRepository {
       rethrow;
     }
   }
+<<<<<<< HEAD
   @override
   Future<Map<String, dynamic>?> getUserProfile(String userId) async {
     try {
@@ -101,4 +105,6 @@ class AuthRepositoryImpl implements AuthRepository {
       rethrow;
     }
   }
+=======
+>>>>>>> main
 }
