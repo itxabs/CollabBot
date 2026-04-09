@@ -1,36 +1,101 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:uuid/uuid.dart';
+import '../models/attachment_model.dart';
 import '../models/message_model.dart';
+import 'attachment_service.dart';
 
 class MessageService {
   final SupabaseClient _supabase;
+  late final AttachmentService _attachmentService;
 
-  MessageService(this._supabase);
+  MessageService(this._supabase) {
+    _attachmentService = AttachmentService(_supabase);
+  }
+
+  AttachmentService get attachmentService => _attachmentService;
 
   Future<MessageModel> sendMessage({
     required String chatId,
     required String senderId,
     required String content,
+    List<File>? attachments,
+    String? messageId,
   }) async {
+    final id = messageId ?? const Uuid().v4();
     final createdAt = DateTime.now().toIso8601String();
     try {
       final response = await _supabase.from('messages').insert({
+        'id': id,
         'chat_id': chatId,
         'sender_id': senderId,
         'content': content,
         'created_at': createdAt,
       }).select().single();
 
-      final inserted = response as Map<String, dynamic>;
+      final inserted = response;
+      final realMessageId = inserted['id'] as String;
+      final attachmentModels = attachments != null && attachments.isNotEmpty
+          ? await _uploadAttachments(realMessageId, chatId, attachments)
+          : <AttachmentModel>[];
+
       return MessageModel(
-        id: inserted['id'] as String,
+        id: realMessageId,
         chatId: inserted['chat_id'] as String,
         senderId: inserted['sender_id'] as String,
         content: inserted['content'] as String,
         createdAt: DateTime.parse(inserted['created_at'] as String),
+        attachments: attachmentModels,
       );
     } catch (e) {
+      try {
+        await _supabase.from('messages').delete().eq('id', id);
+      } catch (_) {
+        // ignore cleanup failure
+      }
       throw Exception('Failed to send message: $e');
+    }
+  }
+
+  Future<List<AttachmentModel>> _uploadAttachments(
+    String messageId,
+    String chatId,
+    List<File> files,
+  ) async {
+    final uploaded = await _attachmentService.uploadFiles(
+      chatId: chatId,
+      messageId: messageId,
+      files: files,
+    );
+    try {
+      final rows = uploaded
+          .map((attachment) => {
+                'id': attachment.id,
+                'message_id': messageId,
+                'file_url': attachment.fileUrl,
+                'file_name': attachment.fileName,
+                'download_state': attachment.downloadState,
+                'created_at': attachment.createdAt.toIso8601String(),
+              })
+          .toList();
+      final inserted = await _supabase.from('message_attachments').insert(rows).select();
+      return List<dynamic>.from(inserted as List<dynamic>)
+          .map((item) => AttachmentModel.fromJson(Map<String, dynamic>.from(item as Map)))
+          .toList();
+    } catch (e) {
+      await _deleteUploadedPaths(uploaded);
+      throw Exception('Failed to persist attachment metadata: $e');
+    }
+  }
+
+  Future<void> _deleteUploadedPaths(List<AttachmentModel> attachments) async {
+    for (final attachment in attachments) {
+      try {
+        await _supabase.storage.from(_attachmentService.storageBucket).remove([attachment.fileUrl]);
+      } catch (_) {
+        // ignore cleanup failure
+      }
     }
   }
 
@@ -46,10 +111,39 @@ class MessageService {
     });
   }
 
+  Future<List<AttachmentModel>> fetchAttachmentsForMessage(String messageId) async {
+    try {
+      final response = await _supabase
+          .from('message_attachments')
+          .select()
+          .eq('message_id', messageId);
+      final list = List<dynamic>.from(response as List<dynamic>);
+      return list
+          .map((json) => AttachmentModel.fromJson(Map<String, dynamic>.from(json as Map)))
+          .toList();
+    } catch (e) {
+      print('⚠️ Failed to fetch attachments: $e');
+      return [];
+    }
+  }
+
   Future<void> deleteMessageFromSupabase(String messageId) async {
     try {
-      await _supabase.from('messages').delete().eq('id', messageId);
+      print('🗑️ Deleting attachments for message $messageId...');
+      await _supabase
+          .from('message_attachments')
+          .delete()
+          .eq('message_id', messageId);
+
+      print('🗑️ Deleting message $messageId from messages table...');
+      await _supabase
+          .from('messages')
+          .delete()
+          .eq('id', messageId);
+
+      print('✅ Successfully deleted message $messageId from Supabase');
     } catch (e) {
+      print('❌ Failed to delete message $messageId from Supabase: $e');
       throw Exception('Failed to delete message from Supabase: $e');
     }
   }
@@ -58,7 +152,7 @@ class MessageService {
     try {
       final response = await _supabase
           .from('messages')
-          .select('id, chat_id, sender_id, content, created_at')
+          .select('id, chat_id, sender_id, content, created_at, message_attachments(id, message_id, file_url, file_name, download_state, created_at)')
           .eq('chat_id', chatId)
           .order('created_at', ascending: true)
           .limit(limit);

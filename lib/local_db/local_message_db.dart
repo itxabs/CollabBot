@@ -18,9 +18,22 @@ class LocalMessageDb {
     final box = Hive.box<dynamic>(_messagesBox);
     final chatBoxName = _storageKeyForChat(message.chatId);
     final existing = box.get(chatBoxName) as List<dynamic>?;
-    final messageList = existing != null ? List<Map<String, dynamic>>.from(existing) : <Map<String, dynamic>>[];
-    messageList.add(message.toJson());
+    final messageList = existing != null 
+        ? (existing as List<dynamic>)
+            .map((item) => Map<String, dynamic>.from(item as Map))
+            .toList()
+        : <Map<String, dynamic>>[];
+    final existingIndex = messageList.indexWhere((item) => item['id'] == message.id);
+    if (existingIndex >= 0) {
+      messageList[existingIndex] = message.toJson();
+    } else {
+      messageList.add(message.toJson());
+    }
     await box.put(chatBoxName, messageList);
+  }
+
+  Future<void> updateMessage(LocalMessage message) async {
+    await saveMessage(message);
   }
 
   Future<List<LocalMessage>> getMessagesForChat(String chatId) async {
