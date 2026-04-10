@@ -41,7 +41,8 @@ class QuestionModel {
       upvotes: json['upvotes'] ?? 0,
       downvotes: json['downvotes'] ?? 0,
       isSolved: json['is_solved'] ?? false,
-      tags: (json['question_tags'] as List?)
+      tags:
+          (json['question_tags'] as List?)
               ?.map((t) => t['tags']['name'].toString())
               .toList() ??
           [],
@@ -59,6 +60,7 @@ class QuestionModel {
   }
 
   String get formattedDate => DateFormat.yMMMd().format(createdAt);
+  String get formattedTime => DateFormat('h:mm a').format(createdAt);
   int get score => upvotes - downvotes;
 }
 
@@ -109,5 +111,6 @@ class AnswerModel {
   }
 
   String get formattedDate => DateFormat.yMMMd().format(createdAt);
+  String get formattedTime => DateFormat('h:mm a').format(createdAt);
   int get score => upvotes - downvotes;
 }

@@ -3,6 +3,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../data/models/question_model.dart';
 import '../../data/services/question_service.dart';
 
+enum QuestionFilter { newest, mostVotes, mostViewed, unanswered }
+
 class QuestionsViewModel extends ChangeNotifier {
   final QuestionService _service = QuestionService();
   final SupabaseClient _client = Supabase.instance.client;
@@ -11,14 +13,45 @@ class QuestionsViewModel extends ChangeNotifier {
   List<AnswerModel> _answers = [];
   bool _isLoading = false;
   bool _isLoadingAnswers = false;
+  QuestionFilter _currentFilter = QuestionFilter.newest;
 
-  List<QuestionModel> get questions => _questions;
+  List<QuestionModel> get questions {
+    List<QuestionModel> filtered = List.from(_questions);
+
+    switch (_currentFilter) {
+      case QuestionFilter.newest:
+        filtered.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        break;
+      case QuestionFilter.mostVotes:
+        filtered.sort((a, b) => b.score.compareTo(a.score));
+        break;
+      case QuestionFilter.mostViewed:
+        filtered.sort((a, b) => b.viewCount.compareTo(a.viewCount));
+        break;
+      case QuestionFilter.unanswered:
+        filtered = filtered.where((q) => q.answerCount == 0).toList();
+        filtered.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        break;
+    }
+
+    return filtered;
+  }
+
+  List<QuestionModel> get allQuestions => _questions;
   List<AnswerModel> get answers => _answers;
   bool get isLoading => _isLoading;
   bool get isLoadingAnswers => _isLoadingAnswers;
+  QuestionFilter get currentFilter => _currentFilter;
+
+  String? get currentUserId => _client.auth.currentUser?.id;
 
   QuestionsViewModel() {
     fetchQuestions();
+  }
+
+  void setFilter(QuestionFilter filter) {
+    _currentFilter = filter;
+    notifyListeners();
   }
 
   Future<void> fetchQuestions() async {
@@ -27,7 +60,7 @@ class QuestionsViewModel extends ChangeNotifier {
     try {
       _questions = await _service.getQuestions();
     } catch (e) {
-      print('Fetch Questions Error: $e');
+      debugPrint('Fetch Questions Error: $e');
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -41,14 +74,18 @@ class QuestionsViewModel extends ChangeNotifier {
       await _service.incrementViewCount(questionId);
       _answers = await _service.getAnswers(questionId);
     } catch (e) {
-      print('Fetch Answers Error: $e');
+      debugPrint('Fetch Answers Error: $e');
     } finally {
       _isLoadingAnswers = false;
       notifyListeners();
     }
   }
 
-  Future<void> askQuestion(String title, String content, List<String> tags) async {
+  Future<void> askQuestion(
+    String title,
+    String content,
+    List<String> tags,
+  ) async {
     final user = _client.auth.currentUser;
     if (user != null) {
       await _service.createQuestion(user.id, title, content, tags);
@@ -57,23 +94,50 @@ class QuestionsViewModel extends ChangeNotifier {
   }
 
   Future<void> postAnswer(String questionId, String content) async {
-     final user = _client.auth.currentUser;
+    final user = _client.auth.currentUser;
     if (user != null) {
       await _service.postAnswer(questionId, user.id, content);
-      await fetchQuestions(); // Updates comment counts in feed
+      await fetchAnswers(questionId);
+      await fetchQuestions();
     }
   }
 
-  Future<void> vote(String targetId, bool isQuestion, int voteValue, {String? questionId}) async {
+  Future<void> deleteAnswer(String answerId, String questionId) async {
+    await _service.deleteAnswer(answerId);
+    await fetchAnswers(questionId);
+    await fetchQuestions();
+  }
+
+  Future<void> updateAnswer(
+    String answerId,
+    String questionId,
+    String content,
+  ) async {
+    await _service.updateAnswer(answerId, content);
+    await fetchAnswers(questionId);
+  }
+
+  Future<bool> vote(
+    String targetId,
+    bool isQuestion,
+    int voteValue, {
+    String? questionId,
+    required String authorId,
+  }) async {
     final user = _client.auth.currentUser;
-    if (user != null) {
-      await _service.vote(targetId, user.id, isQuestion, voteValue);
-      if (isQuestion) {
-        await fetchQuestions();
-      } else if (questionId != null) {
-        await fetchAnswers(questionId);
-      }
-      notifyListeners();
+    if (user == null) return false;
+
+    if (authorId == user.id) {
+      return false;
     }
+
+    await _service.vote(targetId, user.id, isQuestion, voteValue);
+    if (isQuestion) {
+      await fetchQuestions();
+    } else if (questionId != null) {
+      await fetchAnswers(questionId);
+    }
+    notifyListeners();
+    return true;
   }
 }
