@@ -41,6 +41,11 @@ class _ChatScreenContentState extends State<_ChatScreenContent> {
     super.dispose();
   }
 
+  void _scrollToBottom() {
+    if (!_scrollController.hasClients) return;
+    _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+  }
+
   Future<void> _pickAttachments() async {
     final result = await FilePicker.platform.pickFiles(
       allowMultiple: true,
@@ -206,7 +211,13 @@ class _ChatScreenContentState extends State<_ChatScreenContent> {
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<ChatViewModel>();
-    // Automatic scrolling with reverse=true, no need for manual scroll
+    if (!vm.isLoading) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _scrollToBottom();
+        }
+      });
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -240,7 +251,7 @@ class _ChatScreenContentState extends State<_ChatScreenContent> {
             Expanded(
               child: ListView.builder(
                 controller: _scrollController,
-                reverse: true,
+                reverse: false,
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 itemCount: vm.messages.length,
                 itemBuilder: (context, index) {
