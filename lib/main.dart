@@ -64,10 +64,15 @@ class MyApp extends StatelessWidget {
             final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
             final chatId = args?['chatId'] as String?;
             final otherName = args?['otherName'] as String? ?? 'Chat';
+            final otherUserId = args?['otherUserId'] as String?;
             if (chatId == null) {
               return const Scaffold(body: Center(child: Text('Chat id missing')));
             }
-            return ChatScreen(chatId: chatId, otherName: otherName);
+            return ChatScreen(
+              chatId: chatId,
+              otherName: otherName,
+              otherUserId: otherUserId,
+            );
           },
         },
       ),

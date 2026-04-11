@@ -61,14 +61,16 @@ class ChatService {
           }
         }
 
-        chats.add(ChatSummary(
-          chatId: chatId,
-          otherUserId: otherUserId,
-          otherUserName: otherName,
-          lastMessage: lastMessage,
-          lastMessageAt: lastMessageAt,
-          hasUnread: false,
-        ));
+        chats.add(
+          ChatSummary(
+            chatId: chatId,
+            otherUserId: otherUserId,
+            otherUserName: otherName,
+            lastMessage: lastMessage,
+            lastMessageAt: lastMessageAt,
+            hasUnread: false,
+          ),
+        );
       }
 
       chats.sort((a, b) {
@@ -82,7 +84,10 @@ class ChatService {
     }
   }
 
-  Future<List<Map<String, dynamic>>> searchUsers(String query, String currentUserId) async {
+  Future<List<Map<String, dynamic>>> searchUsers(
+    String query,
+    String currentUserId,
+  ) async {
     try {
       final response = await _supabase
           .from('users')
@@ -97,17 +102,79 @@ class ChatService {
     }
   }
 
-  Future<String> createOrGetChat(String currentUserId, String otherUserId) async {
+  Future<String> createOrGetChat(
+    String currentUserId,
+    String otherUserId,
+  ) async {
     final existing = await findChatByUsers(currentUserId, otherUserId);
     if (existing != null) return existing;
 
     final chatId = _uuid.v4();
     await _supabase.from('chats').insert({'id': chatId});
     await _supabase.from('chat_participants').insert([
-      {'chat_id': chatId, 'user_id': currentUserId, 'joined_at': DateTime.now().toIso8601String()},
-      {'chat_id': chatId, 'user_id': otherUserId, 'joined_at': DateTime.now().toIso8601String()},
+      {
+        'chat_id': chatId,
+        'user_id': currentUserId,
+        'joined_at': DateTime.now().toIso8601String(),
+      },
+      {
+        'chat_id': chatId,
+        'user_id': otherUserId,
+        'joined_at': DateTime.now().toIso8601String(),
+      },
     ]);
     return chatId;
+  }
+
+  Future<void> leaveChat(String chatId, String userId) async {
+    try {
+      await _supabase
+          .from('chat_participants')
+          .delete()
+          .eq('chat_id', chatId)
+          .eq('user_id', userId);
+
+      final remainingParticipants = await _supabase
+          .from('chat_participants')
+          .select('chat_id')
+          .eq('chat_id', chatId);
+
+      if (remainingParticipants is List && remainingParticipants.isEmpty) {
+        await _supabase.from('chats').delete().eq('id', chatId);
+      }
+    } catch (e) {
+      throw Exception('Failed to delete chat: $e');
+    }
+  }
+
+  Future<bool> isParticipant(String chatId, String userId) async {
+    try {
+      final response = await _supabase
+          .from('chat_participants')
+          .select('user_id')
+          .eq('chat_id', chatId)
+          .eq('user_id', userId)
+          .maybeSingle();
+
+      return response != null;
+    } catch (e) {
+      throw Exception('Failed to check participant: $e');
+    }
+  }
+
+  Future<void> ensureParticipant(String chatId, String userId) async {
+    try {
+      final exists = await isParticipant(chatId, userId);
+      if (!exists) {
+        await _supabase.from('chat_participants').insert({
+          'chat_id': chatId,
+          'user_id': userId,
+          'joined_at': DateTime.now().toIso8601String(),
+        });
+      }
+    } catch (e) {
+      throw Exception('Failed to restore participant: $e');
+    }
   }
 
   Future<String?> findChatByUsers(String userA, String userB) async {

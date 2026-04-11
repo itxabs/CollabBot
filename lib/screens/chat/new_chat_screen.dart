@@ -75,6 +75,7 @@ class _NewChatContentState extends State<_NewChatContent> {
                         Navigator.pushReplacementNamed(context, AppRoutes.chat, arguments: {
                           'chatId': chatId,
                           'otherName': user['full_name'] as String? ?? 'Chat',
+                          'otherUserId': user['id'] as String,
                         });
                       } catch (e) {
                         if (!mounted) return;

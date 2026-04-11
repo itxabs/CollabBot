@@ -26,13 +26,17 @@ class MessageService {
     final id = messageId ?? const Uuid().v4();
     final createdAt = DateTime.now().toIso8601String();
     try {
-      final response = await _supabase.from('messages').insert({
-        'id': id,
-        'chat_id': chatId,
-        'sender_id': senderId,
-        'content': content,
-        'created_at': createdAt,
-      }).select().single();
+      final response = await _supabase
+          .from('messages')
+          .insert({
+            'id': id,
+            'chat_id': chatId,
+            'sender_id': senderId,
+            'content': content,
+            'created_at': createdAt,
+          })
+          .select()
+          .single();
 
       final inserted = response;
       final realMessageId = inserted['id'] as String;
@@ -70,18 +74,27 @@ class MessageService {
     );
     try {
       final rows = uploaded
-          .map((attachment) => {
-                'id': attachment.id,
-                'message_id': messageId,
-                'file_url': attachment.fileUrl,
-                'file_name': attachment.fileName,
-                'download_state': attachment.downloadState,
-                'created_at': attachment.createdAt.toIso8601String(),
-              })
+          .map(
+            (attachment) => {
+              'id': attachment.id,
+              'message_id': messageId,
+              'file_url': attachment.fileUrl,
+              'file_name': attachment.fileName,
+              'download_state': attachment.downloadState,
+              'created_at': attachment.createdAt.toIso8601String(),
+            },
+          )
           .toList();
-      final inserted = await _supabase.from('message_attachments').insert(rows).select();
+      final inserted = await _supabase
+          .from('message_attachments')
+          .insert(rows)
+          .select();
       return List<dynamic>.from(inserted as List<dynamic>)
-          .map((item) => AttachmentModel.fromJson(Map<String, dynamic>.from(item as Map)))
+          .map(
+            (item) => AttachmentModel.fromJson(
+              Map<String, dynamic>.from(item as Map),
+            ),
+          )
           .toList();
     } catch (e) {
       await _deleteUploadedPaths(uploaded);
@@ -92,10 +105,51 @@ class MessageService {
   Future<void> _deleteUploadedPaths(List<AttachmentModel> attachments) async {
     for (final attachment in attachments) {
       try {
-        await _supabase.storage.from(_attachmentService.storageBucket).remove([attachment.fileUrl]);
+        await _supabase.storage.from(_attachmentService.storageBucket).remove([
+          attachment.fileUrl,
+        ]);
       } catch (_) {
         // ignore cleanup failure
       }
+    }
+  }
+
+  Future<bool> _chatExists(String chatId) async {
+    final response = await _supabase
+        .from('chats')
+        .select('id')
+        .eq('id', chatId)
+        .maybeSingle();
+    return response != null;
+  }
+
+  Future<bool> isParticipant(String chatId, String userId) async {
+    final response = await _supabase
+        .from('chat_participants')
+        .select('user_id')
+        .eq('chat_id', chatId)
+        .eq('user_id', userId)
+        .maybeSingle();
+    return response != null;
+  }
+
+  Future<void> ensureParticipant(String chatId, String userId) async {
+    try {
+      final chatExists = await _chatExists(chatId);
+      if (!chatExists) {
+        await _supabase.from('chats').insert({'id': chatId});
+      }
+
+      final participantExists = await isParticipant(chatId, userId);
+      if (!participantExists) {
+        await _supabase.from('chat_participants').insert({
+          'chat_id': chatId,
+          'user_id': userId,
+          'joined_at': DateTime.now().toIso8601String(),
+        });
+      }
+    } catch (e) {
+      throw Exception('Failed to restore participant: $e');
     }
   }
 
@@ -106,12 +160,17 @@ class MessageService {
 
     return stream.expand((rows) {
       return (rows as List<dynamic>)
-          .map((item) => MessageModel.fromJson(Map<String, dynamic>.from(item as Map)))
+          .map(
+            (item) =>
+                MessageModel.fromJson(Map<String, dynamic>.from(item as Map)),
+          )
           .toList();
     });
   }
 
-  Future<List<AttachmentModel>> fetchAttachmentsForMessage(String messageId) async {
+  Future<List<AttachmentModel>> fetchAttachmentsForMessage(
+    String messageId,
+  ) async {
     try {
       final response = await _supabase
           .from('message_attachments')
@@ -119,7 +178,11 @@ class MessageService {
           .eq('message_id', messageId);
       final list = List<dynamic>.from(response as List<dynamic>);
       return list
-          .map((json) => AttachmentModel.fromJson(Map<String, dynamic>.from(json as Map)))
+          .map(
+            (json) => AttachmentModel.fromJson(
+              Map<String, dynamic>.from(json as Map),
+            ),
+          )
           .toList();
     } catch (e) {
       print('⚠️ Failed to fetch attachments: $e');
@@ -136,10 +199,7 @@ class MessageService {
           .eq('message_id', messageId);
 
       print('🗑️ Deleting message $messageId from messages table...');
-      await _supabase
-          .from('messages')
-          .delete()
-          .eq('id', messageId);
+      await _supabase.from('messages').delete().eq('id', messageId);
 
       print('✅ Successfully deleted message $messageId from Supabase');
     } catch (e) {
@@ -148,18 +208,26 @@ class MessageService {
     }
   }
 
-  Future<List<MessageModel>> fetchLastMessages(String chatId, {int limit = 50}) async {
+  Future<List<MessageModel>> fetchLastMessages(
+    String chatId, {
+    int limit = 50,
+  }) async {
     try {
       final response = await _supabase
           .from('messages')
-          .select('id, chat_id, sender_id, content, created_at, message_attachments(id, message_id, file_url, file_name, download_state, created_at)')
+          .select(
+            'id, chat_id, sender_id, content, created_at, message_attachments(id, message_id, file_url, file_name, download_state, created_at)',
+          )
           .eq('chat_id', chatId)
           .order('created_at', ascending: true)
           .limit(limit);
 
       final list = List<dynamic>.from(response as List<dynamic>);
       return list
-          .map((json) => MessageModel.fromJson(Map<String, dynamic>.from(json as Map)))
+          .map(
+            (json) =>
+                MessageModel.fromJson(Map<String, dynamic>.from(json as Map)),
+          )
           .toList();
     } catch (e) {
       throw Exception('Failed to fetch messages: $e');

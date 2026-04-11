@@ -35,13 +35,23 @@ class _ChatListContent extends StatelessWidget {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Messages', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
+                      const Text(
+                        'Messages',
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       const SizedBox(height: 4),
-                      Text('${vm.chats.length} conversations', style: TextStyle(color: Colors.grey.shade600)),
+                      Text(
+                        '${vm.chats.length} conversations',
+                        style: TextStyle(color: Colors.grey.shade600),
+                      ),
                     ],
                   ),
                   InkWell(
-                    onTap: () => Navigator.pushNamed(context, AppRoutes.newChat),
+                    onTap: () =>
+                        Navigator.pushNamed(context, AppRoutes.newChat),
                     borderRadius: BorderRadius.circular(12),
                     child: Container(
                       decoration: BoxDecoration(
@@ -59,18 +69,20 @@ class _ChatListContent extends StatelessWidget {
               child: vm.isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : vm.errorMessage != null
-                      ? Center(child: Text(vm.errorMessage!))
-                      : vm.chats.isEmpty
-                          ? const Center(child: Text('No chats yet. Start a conversation.'))
-                          : ListView.separated(
-                              padding: const EdgeInsets.symmetric(horizontal: 12),
-                              itemCount: vm.chats.length,
-                              separatorBuilder: (_, __) => const SizedBox(height: 8),
-                              itemBuilder: (context, index) {
-                                final chat = vm.chats[index];
-                                return ChatTile(chat: chat);
-                              },
-                            ),
+                  ? Center(child: Text(vm.errorMessage!))
+                  : vm.chats.isEmpty
+                  ? const Center(
+                      child: Text('No chats yet. Start a conversation.'),
+                    )
+                  : ListView.separated(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      itemCount: vm.chats.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 8),
+                      itemBuilder: (context, index) {
+                        final chat = vm.chats[index];
+                        return ChatTile(chat: chat);
+                      },
+                    ),
             ),
           ],
         ),
@@ -89,27 +101,89 @@ class ChatTile extends StatelessWidget {
       onTap: () => Navigator.pushNamed(
         context,
         AppRoutes.chat,
-        arguments: {'chatId': chat.chatId, 'otherName': chat.otherUserName},
+        arguments: {
+          'chatId': chat.chatId,
+          'otherName': chat.otherUserName,
+          'otherUserId': chat.otherUserId,
+        },
       ),
+      onLongPress: () async {
+        final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Delete chat'),
+            content: const Text('Delete this conversation from your chats?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text(
+                  'Delete',
+                  style: TextStyle(color: Colors.red),
+                ),
+              ),
+            ],
+          ),
+        );
+
+        if (confirmed != true) return;
+
+        final vm = context.read<ChatListViewModel>();
+        try {
+          await vm.deleteChat(chat.chatId);
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Chat deleted')));
+        } catch (e) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Could not delete chat: $e')));
+        }
+      },
       borderRadius: BorderRadius.circular(16),
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
           color: Colors.white,
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 6, offset: const Offset(0, 2))],
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         child: Row(
           children: [
-            CircleAvatar(backgroundColor: Colors.blue.shade100, child: Text(chat.otherUserName.isNotEmpty ? chat.otherUserName[0] : 'U')),
+            CircleAvatar(
+              backgroundColor: Colors.blue.shade100,
+              child: Text(
+                chat.otherUserName.isNotEmpty ? chat.otherUserName[0] : 'U',
+              ),
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(chat.otherUserName, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                  Text(
+                    chat.otherUserName,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15,
+                    ),
+                  ),
                   const SizedBox(height: 4),
-                  Text(chat.lastMessage ?? 'Say hi!', maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: Colors.grey.shade700)),
+                  Text(
+                    chat.lastMessage ?? 'Say hi!',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: Colors.grey.shade700),
+                  ),
                 ],
               ),
             ),
@@ -124,9 +198,18 @@ class ChatTile extends StatelessWidget {
                 const SizedBox(height: 8),
                 if (chat.hasUnread)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(color: Colors.purple.shade600, borderRadius: BorderRadius.circular(12)),
-                    child: const Text('New', style: TextStyle(color: Colors.white, fontSize: 11)),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.purple.shade600,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Text(
+                      'New',
+                      style: TextStyle(color: Colors.white, fontSize: 11),
+                    ),
                   ),
               ],
             ),
@@ -142,7 +225,19 @@ class ChatTile extends StatelessWidget {
       return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
     }
     if (now.difference(dt).inDays < 7) {
-      return '${dt.weekday == 1 ? 'Mon' : dt.weekday == 2 ? 'Tue' : dt.weekday == 3 ? 'Wed' : dt.weekday == 4 ? 'Thu' : dt.weekday == 5 ? 'Fri' : dt.weekday == 6 ? 'Sat' : 'Sun'}';
+      return '${dt.weekday == 1
+          ? 'Mon'
+          : dt.weekday == 2
+          ? 'Tue'
+          : dt.weekday == 3
+          ? 'Wed'
+          : dt.weekday == 4
+          ? 'Thu'
+          : dt.weekday == 5
+          ? 'Fri'
+          : dt.weekday == 6
+          ? 'Sat'
+          : 'Sun'}';
     }
     return '${dt.day}/${dt.month}/${dt.year}';
   }

@@ -13,6 +13,7 @@ import '../local_db/local_message_db.dart';
 class ChatViewModel extends ChangeNotifier {
   final String chatId;
   final String otherUserName;
+  final String? otherUserId;
   final SupabaseClient _supabase = Supabase.instance.client;
   late final MessageService _messageService;
   final Uuid _uuid = const Uuid();
@@ -24,7 +25,11 @@ class ChatViewModel extends ChangeNotifier {
   final Set<String> _messageIds = {};
   StreamSubscription<List<Map<String, dynamic>>>? _realtimeSubscription;
 
-  ChatViewModel({required this.chatId, required this.otherUserName}) {
+  ChatViewModel({
+    required this.chatId,
+    required this.otherUserName,
+    this.otherUserId,
+  }) {
     _messageService = MessageService(_supabase);
     subscribeRealtime();
     loadMessages();
@@ -127,6 +132,9 @@ class ChatViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
+      if (otherUserId != null) {
+        await _messageService.ensureParticipant(chatId, otherUserId!);
+      }
       final sent = await _messageService.sendMessage(
         chatId: chatId,
         senderId: currentUser.id,
