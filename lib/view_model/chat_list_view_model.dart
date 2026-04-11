@@ -9,11 +9,26 @@ class ChatListViewModel extends ChangeNotifier {
   late final ChatService _chatService;
   bool isLoading = false;
   String? errorMessage;
+  String searchQuery = '';
   List<ChatSummary> chats = [];
 
   ChatListViewModel() {
     _chatService = ChatService(_supabase);
     loadChats();
+  }
+
+  List<ChatSummary> get filteredChats {
+    if (searchQuery.isEmpty) return chats;
+    final query = searchQuery.toLowerCase();
+    return chats.where((chat) {
+      return chat.otherUserName.toLowerCase().contains(query) ||
+          (chat.lastMessage?.toLowerCase().contains(query) ?? false);
+    }).toList();
+  }
+
+  void updateSearchQuery(String query) {
+    searchQuery = query;
+    notifyListeners();
   }
 
   Future<void> loadChats() async {

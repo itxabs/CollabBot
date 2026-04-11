@@ -44,7 +44,7 @@ class _ChatListContent extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '${vm.chats.length} conversations',
+                        '${vm.filteredChats.length} conversations',
                         style: TextStyle(color: Colors.grey.shade600),
                       ),
                     ],
@@ -65,21 +65,50 @@ class _ChatListContent extends StatelessWidget {
                 ],
               ),
             ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.blue.shade200),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: TextField(
+                  onChanged: vm.updateSearchQuery,
+                  decoration: InputDecoration(
+                    hintText: 'Search conversations...',
+                    border: InputBorder.none,
+                    prefixIcon: Icon(Icons.search, color: Colors.grey.shade500),
+                    suffixIcon: vm.searchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: Icon(
+                              Icons.clear,
+                              color: Colors.grey.shade500,
+                            ),
+                            onPressed: () => vm.updateSearchQuery(''),
+                          )
+                        : null,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
             Expanded(
               child: vm.isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : vm.errorMessage != null
                   ? Center(child: Text(vm.errorMessage!))
-                  : vm.chats.isEmpty
+                  : vm.filteredChats.isEmpty
                   ? const Center(
                       child: Text('No chats yet. Start a conversation.'),
                     )
                   : ListView.separated(
                       padding: const EdgeInsets.symmetric(horizontal: 12),
-                      itemCount: vm.chats.length,
+                      itemCount: vm.filteredChats.length,
                       separatorBuilder: (_, __) => const SizedBox(height: 8),
                       itemBuilder: (context, index) {
-                        final chat = vm.chats[index];
+                        final chat = vm.filteredChats[index];
                         return ChatTile(chat: chat);
                       },
                     ),
