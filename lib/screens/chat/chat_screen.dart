@@ -2,8 +2,13 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../../data/models/message_model.dart';
 import '../../view_model/chat_view_model.dart';
 
 class ChatScreen extends StatelessWidget {
@@ -42,7 +47,14 @@ class _ChatScreenContent extends StatefulWidget {
 class _ChatScreenContentState extends State<_ChatScreenContent> {
   final _controller = TextEditingController();
   final _scrollController = ScrollController();
+  Future<Position?>? _currentPositionFuture;
   List<PlatformFile> _selectedFiles = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _currentPositionFuture = _resolveCurrentPosition();
+  }
 
   @override
   void dispose() {
@@ -54,6 +66,26 @@ class _ChatScreenContentState extends State<_ChatScreenContent> {
   void _scrollToBottom() {
     if (!_scrollController.hasClients) return;
     _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+  }
+
+  Future<Position?> _resolveCurrentPosition() async {
+    try {
+      if (!await Geolocator.isLocationServiceEnabled()) {
+        return null;
+      }
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+        return null;
+      }
+      return await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(accuracy: LocationAccuracy.best),
+      );
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<void> _pickAttachments() async {
@@ -80,10 +112,59 @@ class _ChatScreenContentState extends State<_ChatScreenContent> {
     });
   }
 
-  void _shareLocation() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Location sharing not available yet.')),
-    );
+  Future<void> _shareLocation() async {
+    try {
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!mounted) return;
+      if (!serviceEnabled) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please enable location services.')),
+        );
+        return;
+      }
+
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (!mounted) return;
+      if (permission == LocationPermission.deniedForever) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Location permissions are permanently denied. Please enable them in settings.',
+            ),
+          ),
+        );
+        return;
+      }
+      if (permission == LocationPermission.denied) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Location permission denied.')),
+        );
+        return;
+      }
+
+      final position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(accuracy: LocationAccuracy.best),
+      );
+      if (!mounted) return;
+      final vm = context.read<ChatViewModel>();
+      await vm.sendMessage(
+        'Shared location',
+        latitude: position.latitude,
+        longitude: position.longitude,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Location shared successfully.')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not share location: $e')),
+      );
+    }
   }
 
   void _insertEmoji() {
@@ -153,7 +234,7 @@ class _ChatScreenContentState extends State<_ChatScreenContent> {
     );
   }
 
-  Widget _buildAttachmentTile(BuildContext context, message, attachment) {
+  Widget _buildAttachmentTile(BuildContext context, LocalMessage message, attachment) {
     final vm = context.read<ChatViewModel>();
     final downloaded = attachment.isDownloaded && attachment.localPath != null;
     final stateLabel = downloaded
@@ -252,7 +333,135 @@ class _ChatScreenContentState extends State<_ChatScreenContent> {
     );
   }
 
-  void _showRetryDialog(BuildContext context, ChatViewModel vm, message) {
+  Widget _buildLocationMessageCard(LocalMessage message, bool isMine) {
+    final LatLng locationPoint = LatLng(message.latitude!, message.longitude!);
+    return GestureDetector(
+      onTap: () async {
+        final currentPosition = await _currentPositionFuture ?? await _resolveCurrentPosition();
+        final userLatLng = currentPosition != null
+            ? LatLng(currentPosition.latitude, currentPosition.longitude)
+            : null;
+        if (!mounted) return;
+        Navigator.push(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (_, animation, secondaryAnimation) => FadeTransition(
+              opacity: animation,
+              child: LocationMapScreen(
+                destination: locationPoint,
+                userLocation: userLatLng,
+              ),
+            ),
+          ),
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(top: 8),
+        decoration: BoxDecoration(
+          color: isMine ? Colors.blue.shade700 : Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: isMine ? Colors.blue.shade300 : Colors.grey.shade300,
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 14,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+              child: SizedBox(
+                height: 150,
+                child: FlutterMap(
+                  options: MapOptions(
+                    initialCenter: locationPoint,
+                    initialZoom: 15,
+                    interactionOptions: const InteractionOptions(
+                      flags: InteractiveFlag.none,
+                    ),
+                  ),
+                  children: [
+                    TileLayer(
+                      urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      userAgentPackageName: 'com.example.collab_bot',
+                    ),
+                    MarkerLayer(
+                      markers: [
+                        Marker(
+                          point: locationPoint,
+                          width: 48,
+                          height: 48,
+                          child: const Icon(
+                            Icons.location_pin,
+                            color: Colors.redAccent,
+                            size: 40,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    message.content.isNotEmpty ? message.content : 'Shared location',
+                    style: TextStyle(
+                      color: isMine ? Colors.white : Colors.black87,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  FutureBuilder<Position?>(
+                    future: _currentPositionFuture,
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState != ConnectionState.done || snapshot.data == null) {
+                        return Text(
+                          'Tap to view full map',
+                          style: TextStyle(
+                            color: isMine ? Colors.white70 : Colors.grey.shade600,
+                            fontSize: 12,
+                          ),
+                        );
+                      }
+                      final distanceMeters = Geolocator.distanceBetween(
+                        snapshot.data!.latitude,
+                        snapshot.data!.longitude,
+                        message.latitude!,
+                        message.longitude!,
+                      );
+                      final distanceKm = distanceMeters / 1000;
+                      return Text(
+                        '📍 ${distanceKm.toStringAsFixed(1)} km away',
+                        style: TextStyle(
+                          color: isMine ? Colors.white70 : Colors.black54,
+                          fontSize: 12,
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showRetryDialog(BuildContext context, ChatViewModel vm, LocalMessage message) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -344,7 +553,7 @@ class _ChatScreenContentState extends State<_ChatScreenContent> {
                   ),
                   itemCount: vm.messages.length,
                   itemBuilder: (context, index) {
-                    final message = vm.messages[index];
+                    final LocalMessage message = vm.messages[index];
                     final currentUser =
                         Supabase.instance.client.auth.currentUser;
                     final isMine =
@@ -395,29 +604,33 @@ class _ChatScreenContentState extends State<_ChatScreenContent> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                if (message.attachments.isNotEmpty)
-                                  ...message.attachments.map(
-                                    (attachment) => _buildAttachmentTile(
-                                      context,
-                                      message,
-                                      attachment,
+                                if (message.latitude != null && message.longitude != null)
+                                  _buildLocationMessageCard(message, isMine)
+                                else ...[
+                                  if (message.attachments.isNotEmpty)
+                                    ...message.attachments.map(
+                                      (attachment) => _buildAttachmentTile(
+                                        context,
+                                        message,
+                                        attachment,
+                                      ),
                                     ),
-                                  ),
-                                if (message.attachments.isNotEmpty &&
-                                    message.content.isNotEmpty)
-                                  const SizedBox(height: 8),
-                                if (message.content.isNotEmpty)
-                                  Text(
-                                    message.content,
-                                    style: TextStyle(
-                                      color: isMine
-                                          ? Colors.white
-                                          : Colors.black87,
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w400,
-                                      height: 1.4,
+                                  if (message.attachments.isNotEmpty &&
+                                      message.content.isNotEmpty)
+                                    const SizedBox(height: 8),
+                                  if (message.content.isNotEmpty)
+                                    Text(
+                                      message.content,
+                                      style: TextStyle(
+                                        color: isMine
+                                            ? Colors.white
+                                            : Colors.black87,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w400,
+                                        height: 1.4,
+                                      ),
                                     ),
-                                  ),
+                                ],
                                 const SizedBox(height: 4),
                                 Row(
                                   mainAxisSize: MainAxisSize.min,
@@ -644,6 +857,108 @@ class _ChatScreenContentState extends State<_ChatScreenContent> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class LocationMapScreen extends StatelessWidget {
+  final LatLng destination;
+  final LatLng? userLocation;
+
+  const LocationMapScreen({
+    super.key,
+    required this.destination,
+    this.userLocation,
+  });
+
+  Future<LatLng?> _resolveUserLocation() async {
+    try {
+      if (!await Geolocator.isLocationServiceEnabled()) {
+        return null;
+      }
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+        return null;
+      }
+      final position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(accuracy: LocationAccuracy.best),
+      );
+      return LatLng(position.latitude, position.longitude);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Location details'),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        elevation: 1,
+      ),
+      backgroundColor: const Color(0xFFF8FAFF),
+      body: FutureBuilder<LatLng?>(
+        future: userLocation != null ? Future.value(userLocation) : _resolveUserLocation(),
+        builder: (context, snapshot) {
+          final currentPoint = snapshot.data;
+          final mapCenter = currentPoint != null
+              ? LatLng((currentPoint.latitude + destination.latitude) / 2,
+                  (currentPoint.longitude + destination.longitude) / 2)
+              : destination;
+          return FlutterMap(
+            options: MapOptions(
+              initialCenter: mapCenter,
+              initialZoom: currentPoint != null ? 11 : 14,
+            ),
+            children: [
+              TileLayer(
+                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                userAgentPackageName: 'com.example.collab_bot',
+              ),
+              MarkerLayer(
+                markers: [
+                  Marker(
+                    point: destination,
+                    width: 48,
+                    height: 48,
+                    child: const Icon(
+                      Icons.location_on,
+                      color: Colors.redAccent,
+                      size: 40,
+                    ),
+                  ),
+                  if (currentPoint != null)
+                    Marker(
+                      point: currentPoint,
+                      width: 44,
+                      height: 44,
+                      child: const Icon(
+                        Icons.my_location,
+                        color: Colors.blueAccent,
+                        size: 32,
+                      ),
+                    ),
+                ],
+              ),
+              if (currentPoint != null)
+                PolylineLayer(
+                  polylines: [
+                    Polyline(
+                      points: [currentPoint, destination],
+                      color: Colors.blueAccent.withValues(alpha: 0.8),
+                      strokeWidth: 4,
+                    ),
+                  ],
+                ),
+            ],
+          );
+        },
       ),
     );
   }

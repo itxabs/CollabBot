@@ -21,10 +21,19 @@ class MessageService {
     required String senderId,
     required String content,
     List<File>? attachments,
+    double? latitude,
+    double? longitude,
     String? messageId,
   }) async {
     final id = messageId ?? const Uuid().v4();
     final createdAt = DateTime.now().toIso8601String();
+    
+    // Encode location into content to avoid needing extra columns in the database
+    String finalContent = content;
+    if (latitude != null && longitude != null) {
+      finalContent = '[LOC:$latitude,$longitude]$content';
+    }
+
     try {
       final response = await _supabase
           .from('messages')
@@ -32,7 +41,7 @@ class MessageService {
             'id': id,
             'chat_id': chatId,
             'sender_id': senderId,
-            'content': content,
+            'content': finalContent,
             'created_at': createdAt,
           })
           .select()
@@ -51,6 +60,12 @@ class MessageService {
         content: inserted['content'] as String,
         createdAt: DateTime.parse(inserted['created_at'] as String),
         attachments: attachmentModels,
+        latitude: inserted['latitude'] == null
+            ? null
+            : (inserted['latitude'] as num).toDouble(),
+        longitude: inserted['longitude'] == null
+            ? null
+            : (inserted['longitude'] as num).toDouble(),
       );
     } catch (e) {
       try {

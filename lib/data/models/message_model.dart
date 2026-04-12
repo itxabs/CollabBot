@@ -9,7 +9,16 @@ class MessageModel {
   final String content;
   final DateTime createdAt;
   final List<AttachmentModel> attachments;
+  final double? latitude;
+  final double? longitude;
   final String status;
+  
+  static double? _parseCoord(dynamic val) {
+    if (val == null) return null;
+    if (val is num) return val.toDouble();
+    if (val is String) return double.tryParse(val);
+    return null;
+  }
 
   MessageModel({
     required this.id,
@@ -18,6 +27,8 @@ class MessageModel {
     required this.content,
     required this.createdAt,
     this.attachments = const [],
+    this.latitude,
+    this.longitude,
     String? status,
   }) : status = status ?? MessageStatus.sent.name;
 
@@ -29,6 +40,8 @@ class MessageModel {
     DateTime? createdAt,
     List<AttachmentModel>? attachments,
     String? status,
+    double? latitude,
+    double? longitude,
   }) {
     return MessageModel(
       id: id ?? this.id,
@@ -37,23 +50,45 @@ class MessageModel {
       content: content ?? this.content,
       createdAt: createdAt ?? this.createdAt,
       attachments: attachments ?? this.attachments,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
       status: status ?? this.status,
     );
   }
 
   factory MessageModel.fromJson(Map<String, dynamic> json) {
     final attachmentsJson = json['message_attachments'] as List<dynamic>?;
+    String rawContent = json['content'] as String;
+    double? lat = _parseCoord(json['latitude']);
+    double? lng = _parseCoord(json['longitude']);
+
+    // Check if location is encoded in content (fallback for when columns don't exist)
+    if (lat == null && lng == null && rawContent.startsWith('[LOC:')) {
+      final endBracket = rawContent.indexOf(']');
+      if (endBracket > 5) {
+        final coordsStr = rawContent.substring(5, endBracket);
+        final parts = coordsStr.split(',');
+        if (parts.length == 2) {
+          lat = double.tryParse(parts[0]);
+          lng = double.tryParse(parts[1]);
+          rawContent = rawContent.substring(endBracket + 1);
+        }
+      }
+    }
+
     return MessageModel(
       id: json['id'] as String,
       chatId: json['chat_id'] as String,
       senderId: json['sender_id'] as String,
-      content: json['content'] as String,
+      content: rawContent,
       createdAt: DateTime.parse(json['created_at'] as String),
       attachments: attachmentsJson != null
           ? attachmentsJson
               .map((item) => AttachmentModel.fromJson(Map<String, dynamic>.from(item as Map)))
               .toList()
           : [],
+      latitude: lat,
+      longitude: lng,
       status: (json['status'] as String?) ?? MessageStatus.sent.name,
     );
   }
@@ -66,6 +101,8 @@ class MessageModel {
       'content': content,
       'created_at': createdAt.toIso8601String(),
       'attachments': attachments.map((a) => a.toJson()).toList(),
+      'latitude': latitude,
+      'longitude': longitude,
       'status': status,
     };
   }
@@ -78,6 +115,8 @@ class LocalMessage {
   final String content;
   final DateTime createdAt;
   final List<AttachmentModel> attachments;
+  final double? latitude;
+  final double? longitude;
   final String status;
 
   LocalMessage({
@@ -87,6 +126,8 @@ class LocalMessage {
     required this.content,
     required this.createdAt,
     this.attachments = const [],
+    this.latitude,
+    this.longitude,
     String? status,
   }) : status = status ?? MessageStatus.pending.name;
 
@@ -98,6 +139,8 @@ class LocalMessage {
     DateTime? createdAt,
     List<AttachmentModel>? attachments,
     String? status,
+    double? latitude,
+    double? longitude,
   }) {
     return LocalMessage(
       id: id ?? this.id,
@@ -106,23 +149,45 @@ class LocalMessage {
       content: content ?? this.content,
       createdAt: createdAt ?? this.createdAt,
       attachments: attachments ?? this.attachments,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
       status: status ?? this.status,
     );
   }
 
   factory LocalMessage.fromJson(Map<String, dynamic> json) {
     final attachmentsJson = json['attachments'] as List<dynamic>?;
+    String rawContent = json['content'] as String;
+    double? lat = MessageModel._parseCoord(json['latitude']);
+    double? lng = MessageModel._parseCoord(json['longitude']);
+
+    // Check if location is encoded in content
+    if (lat == null && lng == null && rawContent.startsWith('[LOC:')) {
+      final endBracket = rawContent.indexOf(']');
+      if (endBracket > 5) {
+        final coordsStr = rawContent.substring(5, endBracket);
+        final parts = coordsStr.split(',');
+        if (parts.length == 2) {
+          lat = double.tryParse(parts[0]);
+          lng = double.tryParse(parts[1]);
+          rawContent = rawContent.substring(endBracket + 1);
+        }
+      }
+    }
+
     return LocalMessage(
       id: json['id'] as String,
       chatId: json['chat_id'] as String,
       senderId: json['sender_id'] as String,
-      content: json['content'] as String,
+      content: rawContent,
       createdAt: DateTime.parse(json['created_at'] as String),
       attachments: attachmentsJson != null
           ? attachmentsJson
               .map((item) => AttachmentModel.fromJson(Map<String, dynamic>.from(item as Map)))
               .toList()
           : [],
+      latitude: lat,
+      longitude: lng,
       status: (json['status'] as String?) ?? MessageStatus.pending.name,
     );
   }
@@ -135,6 +200,8 @@ class LocalMessage {
       'content': content,
       'created_at': createdAt.toIso8601String(),
       'attachments': attachments.map((a) => a.toJson()).toList(),
+      'latitude': latitude,
+      'longitude': longitude,
       'status': status,
     };
   }

@@ -58,6 +58,7 @@ class ChatViewModel extends ChangeNotifier {
           print('💾 Saving to local DB...');
           await LocalMessageDb.instance.saveMessage(localMessage);
           messages.add(localMessage);
+          _messageIds.add(localMessage.id);
           
           // Download all attachments BEFORE deleting from Supabase
           if (localMessage.attachments.isNotEmpty) {
@@ -89,14 +90,19 @@ class ChatViewModel extends ChangeNotifier {
     }
   }
 
-  Future<void> sendMessage(String content, {List<File>? attachments}) async {
+  Future<void> sendMessage(
+    String content, {
+    List<File>? attachments,
+    double? latitude,
+    double? longitude,
+  }) async {
     final currentUser = _supabase.auth.currentUser;
     if (currentUser == null) {
       errorMessage = 'User signed out';
       notifyListeners();
       return;
     }
-    if (content.trim().isEmpty && (attachments == null || attachments.isEmpty)) {
+    if (content.trim().isEmpty && (attachments == null || attachments.isEmpty) && latitude == null && longitude == null) {
       return;
     }
 
@@ -122,6 +128,8 @@ class ChatViewModel extends ChangeNotifier {
       content: content.trim(),
       createdAt: DateTime.now(),
       attachments: pendingAttachments ?? [],
+      latitude: latitude,
+      longitude: longitude,
       status: MessageStatus.sending.name,
     );
 
@@ -140,6 +148,8 @@ class ChatViewModel extends ChangeNotifier {
         senderId: currentUser.id,
         content: content.trim(),
         attachments: attachments,
+        latitude: latitude,
+        longitude: longitude,
         messageId: tempId,
       );
 
@@ -147,6 +157,8 @@ class ChatViewModel extends ChangeNotifier {
         content: sent.content,
         createdAt: sent.createdAt,
         attachments: sent.attachments,
+        latitude: sent.latitude,
+        longitude: sent.longitude,
         status: MessageStatus.sent.name,
       );
       await LocalMessageDb.instance.updateMessage(sentMessage);
@@ -186,6 +198,9 @@ class ChatViewModel extends ChangeNotifier {
         chatId: chatId,
         senderId: currentUser.id,
         content: failedMessage.content,
+        latitude: failedMessage.latitude,
+        longitude: failedMessage.longitude,
+        attachments: failedMessage.attachments.map((a) => File(a.localPath!)).toList(), // Note: assumes attachments are local if retrying
         messageId: failedMessage.id,
       );
 
@@ -229,38 +244,58 @@ class ChatViewModel extends ChangeNotifier {
           final row = Map<String, dynamic>.from(raw as Map);
           final senderId = row['sender_id'] as String?;
           final messageId = row['id'] as String?;
-          if (senderId == null || messageId == null) {
-            print('❌ Realtime row missing required fields: $row');
+          if (senderId == null || messageId == null) continue;
+          
+          if (senderId == currentUser.id) {
+            // If it's our own message, we only care about updating its status in the UI
+            // but we usually handle this via the sendMessage response.
+            // Still, update status if different.
+            final index = messages.indexWhere((m) => m.id == messageId);
+            if (index >= 0) {
+              final existing = messages[index];
+              if (existing.status != row['status']) {
+                messages[index] = existing.copyWith(status: row['status'] as String?);
+              }
+            }
             continue;
           }
-          if (senderId == currentUser.id) continue;
-          if (_messageIds.contains(messageId)) continue;
 
           final remote = MessageModel.fromJson(row);
+          final exists = _messageIds.contains(messageId);
+          
+          if (exists) {
+            // Update existing message if it's missing latitude/longitude or has new attachments
+            final index = messages.indexWhere((m) => m.id == messageId);
+            if (index >= 0) {
+              final existing = messages[index];
+              // Only update if the remote has more info or a newer status
+              if (existing.latitude == null && remote.latitude != null) {
+                print('🔄 Updating existing message $messageId with location data');
+                messages[index] = existing.copyWith(
+                  latitude: remote.latitude,
+                  longitude: remote.longitude,
+                );
+              }
+            }
+            continue;
+          }
+
+          _messageIds.add(messageId);
           final attachments = await _messageService.fetchAttachmentsForMessage(remote.id);
           final message = _localMessageFromRemote(remote.copyWith(attachments: attachments));
 
-          print('📥 Received message ${message.id} from ${message.senderId}, saving to local DB...');
+          print('📥 Received new message ${message.id} from ${message.senderId}, saving to local DB...');
           await LocalMessageDb.instance.saveMessage(message);
-          print('✅ Saved to local DB');
 
           if (message.attachments.isNotEmpty) {
-            print('📥 Downloading ${message.attachments.length} attachments...');
             for (final attachment in message.attachments) {
               try {
                 await downloadAttachment(message, attachment);
-                print('✅ Downloaded attachment: ${attachment.fileName}');
-              } catch (e) {
-                print('⚠️ Failed to download attachment ${attachment.fileName}: $e');
-              }
+              } catch (_) {}
             }
           }
 
-          print('🗑️ All attachments processed, now deleting from Supabase...');
           await _messageService.deleteMessageFromSupabase(message.id);
-          print('✅ Deleted from Supabase');
-
-          _messageIds.add(message.id);
           messages.add(message);
         } catch (itemError) {
           print('❌ Error processing realtime row: $itemError');
@@ -360,6 +395,8 @@ class ChatViewModel extends ChangeNotifier {
       content: remote.content,
       createdAt: remote.createdAt,
       attachments: attachments,
+      latitude: remote.latitude,
+      longitude: remote.longitude,
       status: MessageStatus.sent.name,
     );
   }
