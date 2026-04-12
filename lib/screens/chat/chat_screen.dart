@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
@@ -350,6 +351,7 @@ class _ChatScreenContentState extends State<_ChatScreenContent> {
               child: LocationMapScreen(
                 destination: locationPoint,
                 userLocation: userLatLng,
+                otherName: isMine ? 'Shared by You' : widget.otherUserName,
               ),
             ),
           ),
@@ -862,103 +864,270 @@ class _ChatScreenContentState extends State<_ChatScreenContent> {
   }
 }
 
-class LocationMapScreen extends StatelessWidget {
+class LocationMapScreen extends StatefulWidget {
   final LatLng destination;
   final LatLng? userLocation;
+  final String otherName;
 
   const LocationMapScreen({
     super.key,
     required this.destination,
     this.userLocation,
+    required this.otherName,
   });
 
-  Future<LatLng?> _resolveUserLocation() async {
+  @override
+  State<LocationMapScreen> createState() => _LocationMapScreenState();
+}
+
+class _LocationMapScreenState extends State<LocationMapScreen> with SingleTickerProviderStateMixin {
+  late LatLng _currentReceiverLocation;
+  late LatLng _previousReceiverLocation;
+  bool _isRefreshing = false;
+  DateTime? _lastUpdateTime;
+  Timer? _refreshTimer;
+  
+  late AnimationController _animationController;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentReceiverLocation = widget.userLocation ?? widget.destination;
+    _previousReceiverLocation = _currentReceiverLocation;
+    _lastUpdateTime = DateTime.now();
+
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    );
+    _animation = CurvedAnimation(parent: _animationController, curve: Curves.easeInOut);
+
+    // Initial fetch if userLocation was null
+    if (widget.userLocation == null) {
+      _fetchLocation();
+    }
+
+    // Auto refresh every 30 seconds
+    _refreshTimer = Timer.periodic(const Duration(seconds: 30), (_) => _fetchLocation());
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _fetchLocation() async {
+    if (_isRefreshing) return;
+    
+    if (mounted) {
+      setState(() => _isRefreshing = true);
+    }
+    
     try {
       if (!await Geolocator.isLocationServiceEnabled()) {
-        return null;
+        throw 'Location services are disabled.';
       }
+      
       var permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
       }
-      if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
-        return null;
+      
+      if (permission == LocationPermission.deniedForever || permission == LocationPermission.denied) {
+        throw 'Location permission denied.';
       }
+
       final position = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(accuracy: LocationAccuracy.best),
       );
-      return LatLng(position.latitude, position.longitude);
-    } catch (_) {
-      return null;
+      
+      final newLocation = LatLng(position.latitude, position.longitude);
+      
+      if (mounted) {
+        setState(() {
+          _previousReceiverLocation = _currentReceiverLocation;
+          _currentReceiverLocation = newLocation;
+          _lastUpdateTime = DateTime.now();
+          _isRefreshing = false;
+        });
+        
+        _animationController.reset();
+        _animationController.forward();
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isRefreshing = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Update failed: $e')),
+        );
+      }
     }
+  }
+
+  double _calculateDistance() {
+    return Geolocator.distanceBetween(
+      _currentReceiverLocation.latitude,
+      _currentReceiverLocation.longitude,
+      widget.destination.latitude,
+      widget.destination.longitude,
+    ) / 1000;
+  }
+
+  LatLng _interpolate(LatLng start, LatLng end, double fraction) {
+    return LatLng(
+      start.latitude + (end.latitude - start.latitude) * fraction,
+      start.longitude + (end.longitude - start.longitude) * fraction,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final distance = _calculateDistance();
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Location details'),
+        title: const Text('Live Tracking'),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         elevation: 1,
-      ),
-      backgroundColor: const Color(0xFFF8FAFF),
-      body: FutureBuilder<LatLng?>(
-        future: userLocation != null ? Future.value(userLocation) : _resolveUserLocation(),
-        builder: (context, snapshot) {
-          final currentPoint = snapshot.data;
-          final mapCenter = currentPoint != null
-              ? LatLng((currentPoint.latitude + destination.latitude) / 2,
-                  (currentPoint.longitude + destination.longitude) / 2)
-              : destination;
-          return FlutterMap(
-            options: MapOptions(
-              initialCenter: mapCenter,
-              initialZoom: currentPoint != null ? 11 : 14,
-            ),
-            children: [
-              TileLayer(
-                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                userAgentPackageName: 'com.example.collab_bot',
+        actions: [
+          if (_isRefreshing)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.only(right: 16),
+                child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
               ),
-              MarkerLayer(
-                markers: [
-                  Marker(
-                    point: destination,
-                    width: 48,
-                    height: 48,
-                    child: const Icon(
-                      Icons.location_on,
-                      color: Colors.redAccent,
-                      size: 40,
-                    ),
+            )
+        ],
+      ),
+      body: Stack(
+        children: [
+          AnimatedBuilder(
+            animation: _animation,
+            builder: (context, child) {
+              final movingLocation = _interpolate(_previousReceiverLocation, _currentReceiverLocation, _animation.value);
+              
+              return FlutterMap(
+                options: MapOptions(
+                  initialCenter: movingLocation,
+                  initialZoom: 13,
+                ),
+                children: [
+                  TileLayer(
+                    urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                    userAgentPackageName: 'com.example.collab_bot',
                   ),
-                  if (currentPoint != null)
-                    Marker(
-                      point: currentPoint,
-                      width: 44,
-                      height: 44,
-                      child: const Icon(
-                        Icons.my_location,
-                        color: Colors.blueAccent,
-                        size: 32,
+                  PolylineLayer(
+                    polylines: [
+                      Polyline(
+                        points: [movingLocation, widget.destination],
+                        color: Colors.blue.withValues(alpha: 0.5),
+                        strokeWidth: 4,
+                        pattern: const StrokePattern.dotted(),
                       ),
-                    ),
+                    ],
+                  ),
+                  MarkerLayer(
+                    markers: [
+                      // Fixed Sender Marker
+                      Marker(
+                        point: widget.destination,
+                        width: 150,
+                        height: 70,
+                        child: Column(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.redAccent,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                widget.otherName,
+                                style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                            const Icon(Icons.location_on, color: Colors.redAccent, size: 30),
+                          ],
+                        ),
+                      ),
+                      // Moving Receiver Marker
+                      Marker(
+                        point: movingLocation,
+                        width: 150,
+                        height: 80,
+                        child: Column(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.blueAccent,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Text(
+                                'You',
+                                style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                            const Icon(Icons.my_location, color: Colors.blueAccent, size: 30),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              );
+            },
+          ),
+          
+          // Info Overlay
+          Positioned(
+            top: 16,
+            left: 16,
+            right: 16,
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 10, offset: const Offset(0, 4)),
                 ],
               ),
-              if (currentPoint != null)
-                PolylineLayer(
-                  polylines: [
-                    Polyline(
-                      points: [currentPoint, destination],
-                      color: Colors.blueAccent.withValues(alpha: 0.8),
-                      strokeWidth: 4,
+              child: Row(
+                children: [
+                  const Icon(Icons.directions_walk, color: Colors.blueAccent),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          '📍 ${distance.toStringAsFixed(2)} km away',
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        ),
+                        if (_lastUpdateTime != null)
+                          Text(
+                            'Your location updated just now',
+                            style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                          ),
+                      ],
                     ),
-                  ],
-                ),
-            ],
-          );
-        },
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.refresh, color: _isRefreshing ? Colors.grey : Colors.blueAccent),
+                    onPressed: _isRefreshing ? null : _fetchLocation,
+                    tooltip: 'Refresh Location',
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
