@@ -41,6 +41,8 @@ class _QuestionDetailScreenState extends State<QuestionDetailScreen> {
     final content = _answerController.text.trim();
     _answerController.clear();
 
+    FocusScope.of(context).unfocus();
+    
     try {
       await viewModel.postAnswer(widget.question.id, content);
       if (mounted) {
@@ -559,12 +561,24 @@ class _AnswerCard extends StatelessWidget {
           ElevatedButton(
             onPressed: () async {
               if (controller.text.trim().isNotEmpty) {
-                await viewModel.updateAnswer(
-                  answer.id,
-                  questionId,
-                  controller.text.trim(),
-                );
-                if (context.mounted) Navigator.pop(ctx);
+                final updatedContent = controller.text.trim();
+                Navigator.pop(ctx);
+                try {
+                  await viewModel.updateAnswer(
+                    answer.id,
+                    questionId,
+                    updatedContent,
+                  );
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Error updating answer: $e'),
+                        backgroundColor: AppColors.error,
+                      ),
+                    );
+                  }
+                }
               }
             },
             child: const Text('Save'),

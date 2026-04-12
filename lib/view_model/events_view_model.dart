@@ -20,8 +20,19 @@ class EventsViewModel extends ChangeNotifier {
     } else if (_currentTab == 'My Events') {
       baseList = _myEvents;
     } else {
-      // Upcoming: Only show Approved (status_id = 2) and future events
-      baseList = _allEvents.where((e) => e.status == '2').toList();
+      // Upcoming: Only show Approved (status_id = 2)
+      // AND Date must be present/future
+      // AND Vacancy must be available (enrolled < total_seats)
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      
+      baseList = _allEvents.where((e) {
+        final isApproved = e.status == '2';
+        final isNotPast = e.date.isAtSameMomentAs(today) || e.date.isAfter(today);
+        final hasVacancy = e.totalSeats == 0 || e.enrolledCount < e.totalSeats;
+        
+        return isApproved && isNotPast && hasVacancy;
+      }).toList();
     }
 
     if (_searchQuery.isEmpty) return baseList;
@@ -39,6 +50,11 @@ class EventsViewModel extends ChangeNotifier {
 
   EventsViewModel() {
     loadEvents();
+  }
+
+  bool isEventSaved(String? eventId) {
+    if (eventId == null) return false;
+    return _savedEvents.any((e) => e.eventId == eventId);
   }
 
   void setTab(String tab) {
@@ -68,9 +84,20 @@ class EventsViewModel extends ChangeNotifier {
           .map((json) => EventModel.fromJson(json))
           .toList();
 
-      // Load My Events
+      // Load My Events (where user is registered)
       if (userId != null) {
-        _myEvents = _allEvents.where((e) => e.creatorId == userId).toList();
+        try {
+          final registeredResponse = await _supabase
+              .from('event_registrations')
+              .select('event_id')
+              .eq('user_id', userId);
+          
+          final registeredIds = (registeredResponse as List).map((r) => r['event_id']).toSet();
+          _myEvents = _allEvents.where((e) => registeredIds.contains(e.eventId)).toList();
+        } catch (e) {
+          debugPrint('Error loading registrations: $e');
+          _myEvents = [];
+        }
       }
 
       // Load Saved Events (Mocking for now, would need a junction table 'saved_events')
