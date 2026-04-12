@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import '../../widgets/swap_profile_card.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/text_styles.dart';
@@ -16,6 +17,7 @@ class _SwapScreenState extends State<SwapScreen> {
   List<Map<String, dynamic>> _profiles = [];
   final List<Map<String, dynamic>> _history = []; // For Undo functionality
   bool _isLoading = true;
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -23,28 +25,60 @@ class _SwapScreenState extends State<SwapScreen> {
     _fetchProfiles();
   }
 
-  void _fetchProfiles() {
+  Future<Position?> _getCurrentLocation() async {
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) return null;
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) return null;
+      }
+      
+      if (permission == LocationPermission.deniedForever) return null;
+
+      return await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.low,
+        timeLimit: const Duration(seconds: 5),
+      );
+    } catch (e) {
+      print("Location Error: $e");
+      return null;
+    }
+  }
+
+  void _fetchProfiles() async {
     if (!mounted) return;
     setState(() {
       _isLoading = true;
-      _recommendationsFuture = SwapService.getRecommendations().then((data) {
-        if (mounted) {
-          setState(() {
-            _profiles = data;
-            _isLoading = false;
-          });
-        }
-        return data;
-      }).catchError((error) {
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-          });
-        }
-        print("Swap UI Load Error: $error");
-        return <Map<String, dynamic>>[];
-      });
+      _errorMessage = null;
     });
+
+    try {
+      final position = await _getCurrentLocation();
+      final data = await SwapService.getRecommendations(
+        lat: position?.latitude,
+        lng: position?.longitude,
+      );
+      
+      if (mounted) {
+        setState(() {
+          _profiles = data;
+          _isLoading = false;
+        });
+      }
+    } catch (error) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = error.toString().contains("Connection refused") 
+              ? "Cannot connect to server. Check IP: \${SwapService.baseUrl}" 
+              : error.toString();
+        });
+      }
+      print("Swap UI Load Error: $error");
+    }
   }
 
   void _onSwipe(bool isLiked, {bool isSuperLike = false}) async {
@@ -210,9 +244,11 @@ class _SwapScreenState extends State<SwapScreen> {
               Expanded(
                 child: _isLoading 
                   ? const Center(child: CircularProgressIndicator(color: Color(0xFF8B5CF6)))
-                  : _profiles.isEmpty
-                    ? _buildEmptyState()
-                    : Stack(
+                  : _errorMessage != null
+                    ? _buildErrorState()
+                    : _profiles.isEmpty
+                      ? _buildEmptyState()
+                      : Stack(
                         clipBehavior: Clip.none,
                         children: _profiles.asMap().entries.map((entry) {
                           int index = entry.key;
@@ -263,6 +299,37 @@ class _SwapScreenState extends State<SwapScreen> {
               const SizedBox(height: 16),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 64, color: Colors.redAccent),
+            const SizedBox(height: 16),
+            Text(
+              "Connection Issue",
+              style: AppTextStyles.h3.copyWith(color: Colors.redAccent),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _errorMessage ?? "Something went wrong",
+              textAlign: TextAlign.center,
+              style: AppTextStyles.bodyMedium,
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: _fetchProfiles,
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF8B5CF6)),
+              child: const Text("Try Again", style: TextStyle(color: Colors.white)),
+            ),
+          ],
         ),
       ),
     );

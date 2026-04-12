@@ -2,26 +2,31 @@ import math
 from typing import Dict, List, Any
 
 # Threshold for matching
-# Lowered from 0.5 to 0.0 so that test users with empty profiles still show up in the UI.
-SIMILARITY_THRESHOLD = 0.0 
+SIMILARITY_THRESHOLD = 0.05 
 
-def generate_feature_vector(user_data: Dict[str, Any]) -> List[float]:
+def generate_keywords(text: str) -> set:
+    if not text:
+        return set()
+    # Basic normalization
+    return set(text.lower().replace(',', ' ').split())
+
+def generate_feature_vector(user_data: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Converts a user dictionary loosely containing data from Supabase
-    into a structured numerical feature vector for cosine similarity matching.
+    Extracts features as a dictionary to allow more flexible comparisons.
     """
     
-    # Base value to ensure magnitude is never completely 0
-    # Everyone gets a base 0.1 match score just for existing!
-    base_val = 0.1
-    
-    # 1. Skills Count (Normalize slightly. Max expected around 20)
+    # 1. Skills Set (Separating verified vs non-verified)
     skills = user_data.get('skills', [])
-    skills_val = len(skills) / 20.0 
+    verified_skills = set(s.get('skill_name', '').lower() for s in skills if s.get('is_verified'))
+    unverified_skills = set(s.get('skill_name', '').lower() for s in skills if not s.get('is_verified'))
 
-    # 2. Experience Years (Normalize roughly assuming max relevant is 15 years)
-    experience = user_data.get('experiences', [])
-    exp_val = len(experience) / 10.0
+    # 2. Experience Keywords
+    exp_keywords = set()
+    for exp in user_data.get('experiences', []):
+        title = exp.get('title', '')
+        desc = exp.get('description', '')
+        exp_keywords.update(generate_keywords(title))
+        exp_keywords.update(generate_keywords(desc))
 
     # 3. Quiz Score
     quiz_attempts = user_data.get('quiz_attempts', [])
@@ -30,45 +35,76 @@ def generate_feature_vector(user_data: Dict[str, Any]) -> List[float]:
         scores = [q.get('score', 0) for q in quiz_attempts if q.get('score') is not None]
         if scores:
             avg_quiz = sum(scores) / len(scores)
-            
-    quiz_val = avg_quiz / 100.0  # Assumes score is 0-100
 
-    # 4. Activity: Issues Posted and Solved
-    issues_posted = user_data.get('issues_posted', [])
-    issues_solved = user_data.get('issues_solved', [])
-    
-    posted_val = len(issues_posted) / 50.0 
-    solved_val = len(issues_solved) / 50.0
+    # 4. Role
+    role = user_data.get('role', 'Junior').lower()
 
-    # 5. Events Participation
-    events = user_data.get('events', [])
-    events_val = len(events) / 30.0
+    return {
+        "verified_skills": verified_skills,
+        "unverified_skills": unverified_skills,
+        "exp_keywords": exp_keywords,
+        "avg_quiz": avg_quiz,
+        "role": role,
+        "reputation": user_data.get('reputation', 0)
+    }
 
-    vector = [
-        base_val,
-        skills_val,
-        exp_val,
-        quiz_val,
-        posted_val,
-        solved_val,
-        events_val
-    ]
-    
-    return vector
-
-def cosine_similarity(v1: List[float], v2: List[float]) -> float:
+def calculate_similarity(v1: Dict[str, Any], v2: Dict[str, Any]) -> float:
     """
-    Calculates the cosine similarity between two vectors.
-    Returns 0.0 to 1.0.
+    Calculates a hybrid similarity score (0.0 to 1.0).
+    Verified skills (badges) and Role-matching are prioritized.
     """
-    if not v1 or not v2 or len(v1) != len(v2):
-        return 0.0
-        
-    dot_product = sum(x * y for x, y in zip(v1, v2))
-    magnitude1 = math.sqrt(sum(x * x for x in v1))
-    magnitude2 = math.sqrt(sum(x * x for x in v2))
     
-    if magnitude1 == 0 or magnitude2 == 0:
-        return 0.0
+    # A. Skills Similarity (Jaccard)
+    # Give verified skills 2x weight
+    s1_v, s1_u = v1['verified_skills'], v1['unverified_skills']
+    s2_v, s2_u = v2['verified_skills'], v2['unverified_skills']
+    
+    # Combined set for Jaccard, but we track verified matches separately
+    all1 = s1_v.union(s1_u)
+    all2 = s2_v.union(s2_u)
+    
+    skill_score = 0.0
+    if all1 or all2:
+        intersection = all1.intersection(all2)
+        union = all1.union(all2)
         
-    return dot_product / (magnitude1 * magnitude2)
+        # Base Jaccard
+        base_jaccard = len(intersection) / len(union) if union else 0.0
+        
+        # Verified match boost (if they share a verified skill)
+        verified_match = len(s1_v.intersection(s2_v))
+        boost = 1.0 + (verified_match * 0.2) # 20% boost per verified skill match
+        skill_score = base_jaccard * boost
+
+    # B. Experience Similarity (Jaccard on keywords)
+    k1, k2 = v1['exp_keywords'], v2['exp_keywords']
+    exp_score = 0.0
+    if k1 or k2:
+        intersection = k1.intersection(k2)
+        union = k1.union(k2)
+        exp_score = len(intersection) / len(union) if union else 0.0
+
+    # C. Role-based boost (The "Smart Swap" rules)
+    role_boost = 1.0
+    r1, r2 = v1['role'], v2['role']
+    
+    combinations = {
+        ('junior', 'senior'): 1.5, # Juniors prioritize Seniors
+        ('junior', 'alumni'): 1.6, # Juniors prioritize Alumni
+        ('senior', 'junior'): 1.2,
+        ('alumni', 'junior'): 1.8, # Alumni matching with Juniors for mentorship
+    }
+    role_boost = combinations.get((r1, r2), 1.0)
+
+    # D. Academic & Reputation (Academic programs matching)
+    quiz_diff = abs(v1['avg_quiz'] - v2['avg_quiz']) / 100.0
+    academic_compatibility = 1.0 - quiz_diff
+    
+    reputation_score = min(v2['reputation'] / 100.0, 1.0) # Boost highly reputable users
+
+    # Weighted Average
+    # Skills = 50%, Experience = 30%, Academic/Reputation = 20%
+    final_score = (skill_score * 0.5) + (exp_score * 0.3) + (academic_compatibility * 0.1) + (reputation_score * 0.1)
+    final_score *= role_boost
+
+    return min(final_score, 1.0)

@@ -10,15 +10,15 @@ class LikeRequest(BaseModel):
     liked_user_id: str
 
 @router.get("/recommendations")
-async def get_recommendations(user_id: str) -> List[Dict[str, Any]]:
+async def get_recommendations(user_id: str, lat: float = None, lng: float = None) -> List[Dict[str, Any]]:
     """
-    Returns the top 10 most similar users based on AI Cosine Similarity.
+    Returns the top 10 most similar users based on AI Similarity and Location.
     """
     if not user_id:
         raise HTTPException(status_code=400, detail="user_id is required")
         
     try:
-        recommendations = fetch_recommendations(user_id)
+        recommendations = fetch_recommendations(user_id, lat=lat, lng=lng)
         return recommendations
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
