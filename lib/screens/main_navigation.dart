@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../core/constants/colors.dart';
 import 'home/home_screen.dart';
+import 'swap/swap_screen.dart';
+import 'chat/chat_list_screen.dart';
 import 'events/events_screen.dart';
 import 'profile/profile_screen.dart';
 
@@ -16,6 +18,8 @@ class _MainNavigationState extends State<MainNavigation> {
 
   final List<Widget> _screens = [
     const HomeScreen(),
+    const SwapScreen(),
+    const ChatListScreen(),
     const EventsScreen(),
     const ProfileScreen(),
   ];
@@ -52,6 +56,16 @@ class _MainNavigationState extends State<MainNavigation> {
               icon: Icon(Icons.home_outlined),
               activeIcon: Icon(Icons.home),
               label: 'Home',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.people_outline),
+              activeIcon: Icon(Icons.people),
+              label: 'Swap',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.chat_bubble_outline),
+              activeIcon: Icon(Icons.chat_bubble),
+              label: 'Chat',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.calendar_today_outlined),
