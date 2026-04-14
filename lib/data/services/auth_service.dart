@@ -64,4 +64,13 @@ class AuthService {
       UserAttributes(password: newPassword),
     );
   }
+
+  Future<Map<String, dynamic>?> getUserProfile(String userId) async {
+    final response = await _supabase
+        .from('users')
+        .select()
+        .eq('id', userId)
+        .maybeSingle();
+    return response;
+  }
 }

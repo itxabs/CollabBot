@@ -6,6 +6,9 @@ import 'chat/chat_list_screen.dart';
 import 'events/events_screen.dart';
 import 'profile/profile_screen.dart';
 
+final GlobalKey<_MainNavigationState> mainNavigationKey =
+    GlobalKey<_MainNavigationState>();
+
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
 
@@ -24,6 +27,12 @@ class _MainNavigationState extends State<MainNavigation> {
     const ProfileScreen(),
   ];
 
+  void switchToTab(int index) {
+    setState(() {
+      _currentIndex = index;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -32,7 +41,7 @@ class _MainNavigationState extends State<MainNavigation> {
         decoration: BoxDecoration(
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: const Offset(0, -5),
             ),

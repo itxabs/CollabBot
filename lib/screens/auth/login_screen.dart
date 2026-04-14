@@ -6,6 +6,7 @@ import '../../core/constants/text_styles.dart';
 import '../../core/widgets/custom_text_field.dart';
 import '../../core/widgets/primary_button.dart';
 import '../../view_model/login_view_model.dart';
+import '../../view_model/auth_view_model.dart';
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
@@ -25,6 +26,7 @@ class _LoginContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final viewModel = Provider.of<LoginViewModel>(context);
+    final authViewModel = Provider.of<AuthViewModel>(context);
 
     // Show error via snackbar logic is handled in ViewModel, OR we can listen to updates here if needed.
     // Given ViewModel handles it via context, we focus on binding inputs here.
@@ -49,19 +51,29 @@ class _LoginContent extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text(
                   'Sign in to continue your journey',
-                  style: AppTextStyles.bodyLarge.copyWith(color: AppColors.textSecondary),
+                  style: AppTextStyles.bodyLarge.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 48),
 
                 // Email
-                Text('Email Address', style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600)),
+                Text(
+                  'Email Address',
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 const SizedBox(height: 8),
                 CustomTextField(
                   controller: viewModel.emailController,
                   hintText: 'Enter your email',
                   keyboardType: TextInputType.emailAddress,
-                  prefixIcon: const Icon(Icons.email_outlined, color: AppColors.textSecondary),
+                  prefixIcon: const Icon(
+                    Icons.email_outlined,
+                    color: AppColors.textSecondary,
+                  ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please enter your email';
@@ -75,16 +87,26 @@ class _LoginContent extends StatelessWidget {
                 const SizedBox(height: 24),
 
                 // Password
-                Text('Password', style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600)),
+                Text(
+                  'Password',
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 const SizedBox(height: 8),
                 CustomTextField(
                   controller: viewModel.passwordController,
                   hintText: 'Enter your password',
                   obscureText: viewModel.obscurePassword,
-                  prefixIcon: const Icon(Icons.lock_outline, color: AppColors.textSecondary),
+                  prefixIcon: const Icon(
+                    Icons.lock_outline,
+                    color: AppColors.textSecondary,
+                  ),
                   suffixIcon: IconButton(
                     icon: Icon(
-                      viewModel.obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                      viewModel.obscurePassword
+                          ? Icons.visibility_outlined
+                          : Icons.visibility_off_outlined,
                       color: AppColors.textSecondary,
                     ),
                     onPressed: viewModel.togglePasswordVisibility,
@@ -99,7 +121,7 @@ class _LoginContent extends StatelessWidget {
                     return null;
                   },
                 ),
-                
+
                 // Forgot Password
                 Align(
                   alignment: Alignment.centerRight,
@@ -122,9 +144,11 @@ class _LoginContent extends StatelessWidget {
                 PrimaryButton(
                   text: 'Sign In',
                   isLoading: viewModel.isLoading,
-                  onPressed: viewModel.isLoading ? () {} : () => viewModel.login(context), // Disable if loading
+                  onPressed: viewModel.isLoading
+                      ? () {}
+                      : () => viewModel.login(context, authViewModel),
                 ),
-                
+
                 if (viewModel.errorMessage != null && !viewModel.isLoading) ...[
                   const SizedBox(height: 16),
                   Text(
@@ -133,7 +157,7 @@ class _LoginContent extends StatelessWidget {
                     textAlign: TextAlign.center,
                   ),
                 ],
-                
+
                 const SizedBox(height: 24),
 
                 // Register Link
@@ -148,10 +172,7 @@ class _LoginContent extends StatelessWidget {
                       onTap: () {
                         Navigator.pushNamed(context, AppRoutes.register);
                       },
-                      child: Text(
-                        'Sign Up',
-                        style: AppTextStyles.link,
-                      ),
+                      child: Text('Sign Up', style: AppTextStyles.link),
                     ),
                   ],
                 ),

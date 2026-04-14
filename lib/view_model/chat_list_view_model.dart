@@ -11,10 +11,23 @@ class ChatListViewModel extends ChangeNotifier {
   String? errorMessage;
   String searchQuery = '';
   List<ChatSummary> chats = [];
+  bool _disposed = false;
 
   ChatListViewModel() {
     _chatService = ChatService(_supabase);
     loadChats();
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
+
+  void safeNotifyListeners() {
+    if (!_disposed) {
+      notifyListeners();
+    }
   }
 
   List<ChatSummary> get filteredChats {
@@ -28,13 +41,13 @@ class ChatListViewModel extends ChangeNotifier {
 
   void updateSearchQuery(String query) {
     searchQuery = query;
-    notifyListeners();
+    safeNotifyListeners();
   }
 
   Future<void> loadChats() async {
     isLoading = true;
     errorMessage = null;
-    notifyListeners();
+    safeNotifyListeners();
     try {
       final currentUser = _supabase.auth.currentUser;
       if (currentUser == null) {
@@ -45,6 +58,7 @@ class ChatListViewModel extends ChangeNotifier {
 
       final enriched = <ChatSummary>[];
       for (final chat in list) {
+        if (_disposed) return;
         final unread = await LocalMessageDb.instance.getUnreadCount(
           chat.chatId,
           currentUserId,
@@ -63,10 +77,11 @@ class ChatListViewModel extends ChangeNotifier {
 
       chats = enriched;
     } catch (e) {
+      if (_disposed) return;
       errorMessage = 'Failed to load chats. ${e.toString()}';
     } finally {
       isLoading = false;
-      notifyListeners();
+      safeNotifyListeners();
     }
   }
 
@@ -78,17 +93,18 @@ class ChatListViewModel extends ChangeNotifier {
 
     isLoading = true;
     errorMessage = null;
-    notifyListeners();
+    safeNotifyListeners();
 
     try {
       await _chatService.leaveChat(chatId, currentUser.id);
       chats.removeWhere((chat) => chat.chatId == chatId);
     } catch (e) {
+      if (_disposed) return;
       errorMessage = 'Failed to delete chat. ${e.toString()}';
       rethrow;
     } finally {
       isLoading = false;
-      notifyListeners();
+      safeNotifyListeners();
     }
   }
 }

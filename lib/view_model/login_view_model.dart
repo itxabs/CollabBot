@@ -3,9 +3,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/constants/routes.dart';
 import '../data/repositories/auth_repository.dart';
 import '../data/services/auth_service.dart';
+import 'auth_view_model.dart';
 
 class LoginViewModel extends ChangeNotifier {
-  // Dependency Injection (Using direct for now as per project context)
   final AuthRepository _authRepository = AuthRepositoryImpl(
     AuthService(Supabase.instance.client),
   );
@@ -19,7 +19,7 @@ class LoginViewModel extends ChangeNotifier {
 
   bool _obscurePassword = true;
   bool get obscurePassword => _obscurePassword;
-  
+
   String? _errorMessage;
   String? get errorMessage => _errorMessage;
 
@@ -28,7 +28,7 @@ class LoginViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> login(BuildContext context) async {
+  Future<void> login(BuildContext context, AuthViewModel authViewModel) async {
     if (!formKey.currentState!.validate()) return;
 
     _isLoading = true;
@@ -41,25 +41,29 @@ class LoginViewModel extends ChangeNotifier {
         password: passwordController.text,
       );
 
-      // Success Logic
+      final session = Supabase.instance.client.auth.currentSession;
+      if (session != null) {
+        await authViewModel.fetchUserProfile(session.user.id);
+      }
+
       _isLoading = false;
       notifyListeners();
 
       if (context.mounted) {
-        // Navigate to Home and remove all previous routes
-        Navigator.of(context).pushNamedAndRemoveUntil(
-          AppRoutes.home,
-          (route) => false,
-        );
+        Navigator.of(
+          context,
+        ).pushNamedAndRemoveUntil(AppRoutes.home, (route) => false);
       }
     } catch (e) {
-      // Error Logic
       _isLoading = false;
-      _errorMessage = e.toString().replaceAll('Exception: ', '').replaceAll('AuthException: ', '');
+      _errorMessage = e
+          .toString()
+          .replaceAll('Exception: ', '')
+          .replaceAll('AuthException: ', '');
       notifyListeners();
-      
+
       if (context.mounted) {
-         ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(_errorMessage ?? 'Login failed'),
             backgroundColor: Colors.red,

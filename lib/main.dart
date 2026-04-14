@@ -6,8 +6,6 @@ import 'view_model/splash_view_model.dart';
 import 'screens/splash/splash_screen.dart';
 import 'screens/onboarding/onboarding_screen.dart';
 import 'screens/auth/login_screen.dart';
-import 'screens/auth/register_screen.dart';
-import 'screens/auth/forgot_password_screen.dart';
 import 'screens/auth/otp_screen.dart';
 import 'screens/auth/forget_pass_screen.dart';
 import 'screens/auth/signup_screen.dart';
@@ -16,6 +14,12 @@ import 'screens/chat/chat_list_screen.dart';
 import 'local_db/local_message_db.dart';
 import 'screens/chat/new_chat_screen.dart';
 import 'screens/chat/chat_screen.dart';
+import 'screens/questions/questions_screen.dart';
+import 'screens/questions/question_detail_screen.dart';
+import 'screens/questions/ask_question_screen.dart';
+import 'view_model/auth_view_model.dart';
+import 'view_model/events_view_model.dart';
+import 'view_model/questions/questions_view_model.dart';
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
@@ -38,8 +42,10 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        ChangeNotifierProvider(create: (_) => AuthViewModel()),
         ChangeNotifierProvider(create: (_) => SplashViewModel()),
-        // Add global providers here (Auth, User) when ready
+        ChangeNotifierProvider(create: (_) => EventsViewModel()),
+        ChangeNotifierProvider(create: (_) => QuestionsViewModel()),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
@@ -56,22 +62,40 @@ class MyApp extends StatelessWidget {
           AppRoutes.login: (context) => const LoginScreen(),
           AppRoutes.register: (context) => const SignupScreen(),
           AppRoutes.forgotPassword: (context) => const ForgetPassScreen(),
-          AppRoutes.otp: (context) => const OtpScreen(), // Note: OtpScreen is reused but navigation logic inside VM handles context.
-          AppRoutes.home: (context) => const MainNavigation(),
+          AppRoutes.otp: (context) =>
+              const OtpScreen(), // Note: OtpScreen is reused but navigation logic inside VM handles context.
+          AppRoutes.home: (context) => MainNavigation(key: mainNavigationKey),
           AppRoutes.chatList: (context) => const ChatListScreen(),
           AppRoutes.newChat: (context) => const NewChatScreen(),
           AppRoutes.chat: (context) {
-            final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+            final args =
+                ModalRoute.of(context)?.settings.arguments
+                    as Map<String, dynamic>?;
             final chatId = args?['chatId'] as String?;
             final otherName = args?['otherName'] as String? ?? 'Chat';
             final otherUserId = args?['otherUserId'] as String?;
             if (chatId == null) {
-              return const Scaffold(body: Center(child: Text('Chat id missing')));
+              return const Scaffold(
+                body: Center(child: Text('Chat id missing')),
+              );
             }
             return ChatScreen(
               chatId: chatId,
               otherName: otherName,
               otherUserId: otherUserId,
+            );
+          },
+          AppRoutes.questions: (context) => const QuestionsScreen(),
+          AppRoutes.askQuestion: (context) => const AskQuestionScreen(),
+          AppRoutes.questions + '/detail': (context) {
+            final args = ModalRoute.of(context)?.settings.arguments;
+            if (args != null &&
+                args is Map<String, dynamic> &&
+                args['question'] != null) {
+              return QuestionDetailScreen(question: args['question']);
+            }
+            return const Scaffold(
+              body: Center(child: Text('Question not found')),
             );
           },
         },
