@@ -11,4 +11,6 @@ class AppRoutes {
   static const String chatList = '/chat_list';
   static const String newChat = '/new_chat';
   static const String chat = '/chat';
+  static const String questions = '/questions';
+  static const String askQuestion = '/ask_question';
 }
