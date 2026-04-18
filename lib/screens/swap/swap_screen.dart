@@ -3,6 +3,7 @@ import 'package:geolocator/geolocator.dart';
 import '../../widgets/swap_profile_card.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/text_styles.dart';
+import '../../core/constants/routes.dart';
 import '../../data/services/swap_service.dart';
 
 class SwapScreen extends StatefulWidget {
@@ -12,56 +13,96 @@ class SwapScreen extends StatefulWidget {
   State<SwapScreen> createState() => _SwapScreenState();
 }
 
-class _SwapScreenState extends State<SwapScreen> {
-  late Future<List<Map<String, dynamic>>> _recommendationsFuture;
+class _SwapScreenState extends State<SwapScreen>
+    with SingleTickerProviderStateMixin {
   List<Map<String, dynamic>> _profiles = [];
-  final List<Map<String, dynamic>> _history = []; // For Undo functionality
+  final List<Map<String, dynamic>> _history = [];
   bool _isLoading = true;
   String? _errorMessage;
+  bool _locationUnavailable = false;
+  String _activeFilter = 'Meet'; 
+  Map<String, dynamic> _counts = {};
+  bool _isSaving = false;
+  int _savedCount = 0;
+
+  // Drag state for the top card
+  Offset _dragOffset = Offset.zero;
+  double _dragAngle = 0.0;
+  bool _isDragging = false;
 
   @override
   void initState() {
     super.initState();
     _fetchProfiles();
+    _fetchCounts();
   }
+
+  void _fetchCounts() async {
+    final counts = await SwapService.getCounts();
+    if (mounted) {
+      setState(() => _counts = counts);
+    }
+  }
+
+  // ─── Location ─────────────────────────────────────────────────────────────
 
   Future<Position?> _getCurrentLocation() async {
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) return null;
+      if (!serviceEnabled) {
+        setState(() => _locationUnavailable = true);
+        return null;
+      }
 
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) return null;
+        if (permission == LocationPermission.denied) {
+          setState(() => _locationUnavailable = true);
+          return null;
+        }
       }
-      
-      if (permission == LocationPermission.deniedForever) return null;
+
+      if (permission == LocationPermission.deniedForever) {
+        setState(() => _locationUnavailable = true);
+        return null;
+      }
 
       return await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.low,
-        timeLimit: const Duration(seconds: 5),
+        timeLimit: const Duration(seconds: 8),
       );
     } catch (e) {
-      print("Location Error: $e");
+      print('Location Error: $e');
+      setState(() => _locationUnavailable = true);
       return null;
     }
   }
+
+  // ─── Fetch ─────────────────────────────────────────────────────────────────
 
   void _fetchProfiles() async {
     if (!mounted) return;
     setState(() {
       _isLoading = true;
       _errorMessage = null;
+      _locationUnavailable = false;
     });
 
     try {
       final position = await _getCurrentLocation();
+
+      if (position != null) {
+        await SwapService.updateUserLocation(
+            position.latitude, position.longitude);
+      }
+
       final data = await SwapService.getRecommendations(
         lat: position?.latitude,
         lng: position?.longitude,
+        filterType: _activeFilter,
       );
-      
+
       if (mounted) {
         setState(() {
           _profiles = data;
@@ -72,69 +113,147 @@ class _SwapScreenState extends State<SwapScreen> {
       if (mounted) {
         setState(() {
           _isLoading = false;
-          _errorMessage = error.toString().contains("Connection refused") 
-              ? "Cannot connect to server. Check IP: \${SwapService.baseUrl}" 
+          _errorMessage = error.toString().contains('Connection refused')
+              ? 'Cannot connect to server.\nCheck backend: ${SwapService.baseUrl}'
               : error.toString();
         });
       }
-      print("Swap UI Load Error: $error");
+      print('Swap UI Load Error: $error');
     }
   }
 
-  void _onSwipe(bool isLiked, {bool isSuperLike = false}) async {
-    if (_profiles.isNotEmpty) {
-      final swipedProfile = _profiles[0];
-      
-      setState(() {
-        _history.add(_profiles.removeAt(0));
-      });
+  // ─── Swipe Logic ───────────────────────────────────────────────────────────
 
-      if (isLiked || isSuperLike) {
-         final result = await SwapService.likeUser(swipedProfile['user_id'] ?? swipedProfile['id']);
-         
-         if (result['is_match'] == true) {
-           _showMatchDialog(swipedProfile);
-         } else if (isSuperLike) {
-           ScaffoldMessenger.of(context).showSnackBar(
-             SnackBar(
-               content: Text('Super Liked ${swipedProfile['name']}!'),
-               duration: const Duration(seconds: 1),
-               backgroundColor: const Color(0xFFF59E0B),
-             ),
-           );
-         }
+  void _handleSwipe(bool direction) {
+    if (_profiles.isEmpty) return;
+
+    final targetOffset = direction 
+        ? const Offset(600, -200) // Diagonal Right (Send/Like)
+        : const Offset(-600, 0); // Horizontal Left (Pass)
+
+    setState(() {
+      _dragOffset = targetOffset;
+      _dragAngle = direction ? 0.3 : -0.3;
+    });
+
+    Future.delayed(const Duration(milliseconds: 300), () async {
+      if (mounted) {
+        final profile = _profiles[0];
+        _history.add(profile);
+        _profiles.removeAt(0);
+        _dragOffset = Offset.zero;
+        _dragAngle = 0.0;
+        _isDragging = false;
+        setState(() {});
+        
+        // Record action to backend
+        final result = await SwapService.swipeUser(profile['user_id'] ?? profile['id'], action: direction ? 'like' : 'reject');
+        
+        if (direction && result['is_match'] == true && mounted) {
+           _showMatchDialog(profile);
+        }
       }
+    });
+  }
+
+  void _undoSwipe() {
+    if (_history.isNotEmpty) {
+      setState(() {
+        _profiles.insert(0, _history.removeLast());
+      });
     }
   }
+
+  // ─── Drag Gesture ──────────────────────────────────────────────────────────
+
+  void _onDragStart(DragStartDetails details) {
+    setState(() => _isDragging = true);
+  }
+
+  void _onDragUpdate(DragUpdateDetails details) {
+    setState(() {
+      _dragOffset += details.delta;
+      _dragAngle = (_dragOffset.dx / 300).clamp(-0.4, 0.4);
+    });
+  }
+
+  void _onDragEnd(DragEndDetails details) {
+    const double swipeThreshold = 100.0;
+    final double velocity = details.velocity.pixelsPerSecond.dx;
+
+    if (_dragOffset.dx > swipeThreshold || velocity > 500) {
+      _handleSwipe(true);
+    } else if (_dragOffset.dx < -swipeThreshold || velocity < -500) {
+      _handleSwipe(false);
+    } else {
+      setState(() {
+        _dragOffset = Offset.zero;
+        _dragAngle = 0.0;
+        _isDragging = false;
+      });
+    }
+  }
+
+  // ─── Match Dialog ──────────────────────────────────────────────────────────
 
   void _showMatchDialog(Map<String, dynamic> profile) {
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
         elevation: 0,
         backgroundColor: Colors.transparent,
         child: Container(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(28),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: BorderRadius.circular(28),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF8B5CF6).withOpacity(0.3),
+                blurRadius: 40,
+                spreadRadius: 4,
+              ),
+            ],
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.auto_awesome, color: Color(0xFF8B5CF6), size: 64),
-              const SizedBox(height: 16),
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF8B5CF6), Color(0xFF6366F1)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF8B5CF6).withOpacity(0.4),
+                      blurRadius: 20,
+                    ),
+                  ],
+                ),
+                child: const Icon(Icons.handshake_rounded,
+                    color: Colors.white, size: 40),
+              ),
+              const SizedBox(height: 20),
               Text(
-                "It's a Match!",
-                style: AppTextStyles.h2.copyWith(fontWeight: FontWeight.bold),
+                "It's a Match! 🎉",
+                style: AppTextStyles.h2.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF1F2937),
+                ),
               ),
               const SizedBox(height: 12),
               Text(
-                "You and ${profile['name']} have liked each other. You can now start collaborating!",
+                "You and ${profile['name']} both want to collaborate! Start a conversation.",
                 textAlign: TextAlign.center,
-                style: AppTextStyles.bodyMedium,
+                style: AppTextStyles.bodyMedium
+                    .copyWith(color: const Color(0xFF6B7280), height: 1.6),
               ),
               const SizedBox(height: 32),
               Row(
@@ -143,25 +262,29 @@ class _SwapScreenState extends State<SwapScreen> {
                     child: OutlinedButton(
                       onPressed: () => Navigator.pop(context),
                       style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        side: const BorderSide(color: Color(0xFFD1D5DB)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14)),
                       ),
-                      child: const Text("Keep Swiping"),
+                      child: const Text('Keep Swiping',
+                          style: TextStyle(color: Color(0xFF6B7280))),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        // Navigate to Chat or Profile
-                      },
+                      onPressed: () => Navigator.pop(context),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF8B5CF6),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14)),
+                        elevation: 0,
                       ),
-                      child: const Text("Say Hello", style: TextStyle(color: Colors.white)),
+                      child: const Text('Say Hello 👋',
+                          style: TextStyle(
+                              color: Colors.white, fontWeight: FontWeight.w600)),
                     ),
                   ),
                 ],
@@ -173,134 +296,382 @@ class _SwapScreenState extends State<SwapScreen> {
     );
   }
 
-  void _undoSwipe() {
-    if (_history.isNotEmpty) {
-      setState(() {
-        _profiles.insert(0, _history.removeLast());
-      });
-    }
+  // ─── UI Helpers ────────────────────────────────────────────────────────────
+
+  double get _overlayOpacity {
+    return (_dragOffset.dx.abs() / 120).clamp(0.0, 1.0);
+  }
+
+  bool get _isDraggingRight => _dragOffset.dx > 10;
+  bool get _isDraggingLeft => _dragOffset.dx < -10;
+
+  Widget _buildActionButtonsRow() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        _buildActionButton(
+          icon: const Icon(Icons.close_rounded, color: Color(0xFF6B7280), size: 28),
+          backgroundColor: Colors.white,
+          borderColor: const Color(0xFFE5E7EB),
+          onPressed: () => _handleSwipe(false),
+          size: 60,
+        ),
+        const SizedBox(width: 20),
+        _buildActionButton(
+          icon: const Icon(Icons.refresh_rounded, color: Color(0xFF6B7280), size: 28),
+          backgroundColor: Colors.white,
+          borderColor: const Color(0xFFE5E7EB),
+          onPressed: _undoSwipe,
+          size: 60,
+        ),
+        const SizedBox(width: 20),
+        _buildActionButton(
+          icon: const Icon(Icons.star_rounded, color: Color(0xFFF97316), size: 28),
+          backgroundColor: Colors.white,
+          borderColor: const Color(0xFFFDE68A),
+          onPressed: () {}, // Recommendation boost
+          size: 60,
+        ),
+        const SizedBox(width: 20),
+        _buildActionButton(
+          icon: const Icon(Icons.favorite_rounded, color: Colors.white, size: 32),
+          backgroundColor: const Color(0xFF5046E5),
+          borderColor: Colors.transparent,
+          onPressed: () => _handleSwipe(true),
+          size: 76,
+        ),
+      ],
+    );
   }
 
   Widget _buildActionButton({
     required Widget icon,
+    required Color backgroundColor,
     required Color borderColor,
-    Color backgroundColor = Colors.white,
-    Gradient? gradient,
-    double size = 56.0,
-    List<BoxShadow>? extraShadows,
     required VoidCallback onPressed,
+    double size = 64,
   }) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: gradient == null ? backgroundColor : null,
-        gradient: gradient,
-        border: gradient == null ? Border.all(color: borderColor, width: 1.0) : null,
-        boxShadow: extraShadows ?? [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: IconButton(
-        padding: EdgeInsets.zero,
-        icon: icon,
-        onPressed: onPressed,
+    return GestureDetector(
+      onTap: onPressed,
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: backgroundColor,
+          border: Border.all(color: borderColor, width: 2),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Center(child: icon),
       ),
     );
   }
 
+  // ─── Build ─────────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: const Color(0xFFF9F9FB),
       appBar: AppBar(
-        title: Text(
-          'Find Collaborators', 
-          style: AppTextStyles.h2.copyWith(fontWeight: FontWeight.bold, color: const Color(0xFF1A1A1A))
-        ),
-        backgroundColor: const Color(0xFFF8F9FA),
+        backgroundColor: const Color(0xFFF9F9FB),
         elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.tune_rounded, color: Color(0xFF0A0B1E)),
+          onPressed: _showPreferencesSheet,
+        ),
+        title: const Text(
+          'Find Collaborator',
+          style: TextStyle(
+            color: Color(0xFF0A0B1E),
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+          ),
+        ),
         centerTitle: true,
         actions: [
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.favorite_outline_rounded, color: Color(0xFF0A0B1E)),
+                onPressed: () {},
+                tooltip: 'Bookmarks',
+              ),
+              if (_savedCount > 0)
+                Positioned(
+                  right: 8,
+                  top: 8,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: const BoxDecoration(color: Color(0xFF5046E5), shape: BoxShape.circle),
+                    child: Text('$_savedCount', style: const TextStyle(color: Colors.white, fontSize: 10)),
+                  ),
+                ),
+            ],
+          ),
           IconButton(
-            icon: const Icon(Icons.tune, color: Color(0xFF6B7280)), // Filter icon
+            icon: const Icon(Icons.send_rounded, color: Color(0xFF0A0B1E)),
             onPressed: () {
-              // Show filters dialog/bottomsheet
+              Navigator.pushNamed(context, AppRoutes.home);
             },
+            tooltip: 'Messages',
           ),
           const SizedBox(width: 8),
         ],
       ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
-          child: Column(
-            children: [
-              Expanded(
-                child: _isLoading 
-                  ? const Center(child: CircularProgressIndicator(color: Color(0xFF8B5CF6)))
-                  : _errorMessage != null
-                    ? _buildErrorState()
-                    : _profiles.isEmpty
-                      ? _buildEmptyState()
-                      : Stack(
-                        clipBehavior: Clip.none,
-                        children: _profiles.asMap().entries.map((entry) {
-                          int index = entry.key;
-                          var profile = entry.value;
-                          
-                          // Show only top 3 cards for performance
-                          if (index > 2) return const SizedBox.shrink();
+        child: Column(
+          children: [
+            _buildFilterPills(),
+            if (_locationUnavailable && !_isLoading)
+              _buildLocationBanner(),
 
-                          final bool isTopCard = index == 0;
-                          final double bottomOffset = index * 15.0;
-                          final double scale = 1.0 - (index * 0.05);
-
-                          Widget cardDisplay = Transform.translate(
-                            offset: Offset(0, bottomOffset),
-                            child: Transform.scale(
-                              scale: scale,
-                              alignment: Alignment.bottomCenter,
-                              child: SwapProfileCard(profile: profile),
-                            ),
-                          );
-
-                          if (isTopCard) {
-                            final String uniqueKey = profile['user_id']?.toString() ?? profile['id']?.toString() ?? profile['name'];
-                            return Positioned.fill(
-                              key: Key(uniqueKey),
-                              child: Dismissible(
-                                key: Key(uniqueKey),
-                                direction: DismissDirection.horizontal,
-                                onDismissed: (direction) {
-                                  bool isLiked = direction == DismissDirection.startToEnd;
-                                  _onSwipe(isLiked);
-                                },
-                                child: cardDisplay,
-                              ),
-                            );
-                          }
-                          
-                          return Positioned.fill(
-                            child: cardDisplay,
-                          );
-                        }).toList().reversed.toList(), // Reversed so index 0 is on top
-                      ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(top: 10, left: 16, right: 16, bottom: 8),
+                child: Column(
+                  children: [
+                    Expanded(child: _buildCardStack()),
+                    const SizedBox(height: 16),
+                    if (!_isLoading && _errorMessage == null && _profiles.isNotEmpty)
+                      _buildActionButtonsRow(),
+                    const SizedBox(height: 12),
+                  ],
+                ),
               ),
-              const SizedBox(height: 32),
-              // Action Buttons Row
-              if (!_isLoading && _profiles.isNotEmpty)
-                _buildActionButtonsRow(),
-              const SizedBox(height: 16),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
+    );
+  }
+
+  Widget _buildFilterPills() {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          _filterPill('Meet', count: _counts['Meet']?.toString()),
+          const SizedBox(width: 8),
+          _filterPill('Waves', count: _counts['Waves']?.toString()),
+          const SizedBox(width: 8),
+          _filterPill('Views', count: _counts['Views']?.toString()),
+          const SizedBox(width: 8),
+          _filterPill('Newbies', count: _counts['Newbies']?.toString()),
+        ],
+      ),
+    );
+  }
+
+  Widget _filterPill(String label, {String? count}) {
+    final bool isActive = _activeFilter == label;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _activeFilter = label;
+          _fetchProfiles(); 
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        decoration: BoxDecoration(
+          color: isActive ? const Color(0xFF5046E5) : Colors.black.withOpacity(0.04),
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: Row(
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                color: isActive ? Colors.white : const Color(0xFF6B7280),
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+              ),
+            ),
+            if (count != null) ...[
+              const SizedBox(width: 8),
+              Text(
+                count,
+                style: TextStyle(
+                  color: isActive ? Colors.white70 : const Color(0xFF9CA3AF),
+                  fontSize: 12,
+                ),
+              ),
+            ]
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _saveProfile(Map<String, dynamic> profile) async {
+    if (_isSaving) return;
+    setState(() => _isSaving = true);
+    
+    final success = await SwapService.saveProfile(profile['user_id'] ?? profile['id']);
+    
+    if (mounted) {
+      setState(() {
+        _isSaving = false;
+        if (success) {
+          _savedCount++;
+        }
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(success ? 'Collaborator saved!' : 'Failed to save'),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: const Color(0xFF5046E5),
+        ),
+      );
+    }
+  }
+
+  void _showPreferencesSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) => _PreferencesSheet(),
+    );
+  }
+
+  void _showProfileDetails(Map<String, dynamic> profile) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _ProfileDetailSheet(profile: profile),
+    );
+  }
+
+
+  Widget _buildLocationBanner() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      color: const Color(0xFF5046E5).withOpacity(0.05),
+      child: Row(
+        children: [
+          const Icon(Icons.location_off_rounded, color: Color(0xFF5046E5), size: 16),
+          const SizedBox(width: 8),
+          const Expanded(
+            child: Text(
+              'Enable location for nearby collaborators',
+              style: TextStyle(color: Color(0xFF6B7280), fontSize: 12),
+            ),
+          ),
+          GestureDetector(
+            onTap: () async {
+              await Geolocator.openLocationSettings();
+            },
+            child: const Text(
+              'Enable',
+              style: TextStyle(
+                color: Color(0xFF5046E5),
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCardStack() {
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(color: Color(0xFF5046E5)),
+      );
+    }
+
+    if (_errorMessage != null) return _buildErrorState();
+    if (_profiles.isEmpty) return _buildEmptyState();
+
+    return Stack(
+      children: [
+        const Opacity(opacity: 0.0, child: SizedBox.expand()),
+
+        if (_profiles.length > 1)
+          Positioned(
+            top: 20,
+            bottom: 0,
+            left: 20,
+            right: -20,
+            child: Transform.scale(
+              scale: 0.9,
+              child: Opacity(
+                opacity: 0.5,
+                child: SwapProfileCard(profile: _profiles[1]),
+              ),
+            ),
+          ),
+
+        Positioned.fill(
+          child: GestureDetector(
+            onTap: () {
+              if (_profiles.isNotEmpty) {
+                _showProfileDetails(_profiles[0]);
+              }
+            },
+            onPanStart: _onDragStart,
+            onPanUpdate: _onDragUpdate,
+            onPanEnd: _onDragEnd,
+            child: Transform.translate(
+              offset: _dragOffset,
+              child: Transform.rotate(
+                angle: _dragAngle,
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: SwapProfileCard(profile: _profiles[0]),
+                    ),
+
+                    if (_isDraggingRight || _isDraggingLeft)
+                      Positioned(
+                        top: 40,
+                        right: 40,
+                        child: Opacity(
+                          opacity: _overlayOpacity.clamp(0.0, 1.0),
+                          child: Container(
+                            width: 80,
+                            height: 80,
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Color(0xFF5046E5),
+                            ),
+                            child: const Center(
+                              child: Text(
+                                'NEXT +',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -311,23 +682,36 @@ class _SwapScreenState extends State<SwapScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error_outline, size: 64, color: Colors.redAccent),
-            const SizedBox(height: 16),
-            Text(
-              "Connection Issue",
-              style: AppTextStyles.h3.copyWith(color: Colors.redAccent),
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: const BoxDecoration(
+                color: Color(0xFFEEF2FF),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.wifi_off_rounded, size: 56, color: Color(0xFF5046E5)),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Connection Issue',
+              style: TextStyle(color: Color(0xFF0A0B1E), fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(
-              _errorMessage ?? "Something went wrong",
+              _errorMessage ?? 'Something went wrong',
               textAlign: TextAlign.center,
-              style: AppTextStyles.bodyMedium,
+              style: const TextStyle(color: Color(0xFF6B7280), fontSize: 14),
             ),
-            const SizedBox(height: 24),
-            ElevatedButton(
+            const SizedBox(height: 32),
+            ElevatedButton.icon(
               onPressed: _fetchProfiles,
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF8B5CF6)),
-              child: const Text("Try Again", style: TextStyle(color: Colors.white)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF5046E5),
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                elevation: 0,
+              ),
+              icon: const Icon(Icons.refresh, color: Colors.white),
+              label: const Text('Try Again', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             ),
           ],
         ),
@@ -336,91 +720,313 @@ class _SwapScreenState extends State<SwapScreen> {
   }
 
   Widget _buildEmptyState() {
-     return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: const BoxDecoration(
-                color: Color(0xFFF3F4F6),
-                shape: BoxShape.circle,
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(28),
+            decoration: const BoxDecoration(
+              color: Color(0xFFEEF2FF),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.people_alt_outlined, size: 64, color: Color(0xFF5046E5)),
+          ),
+          const SizedBox(height: 24),
+          const Text(
+            "You're all caught up!",
+            style: TextStyle(color: Color(0xFF0A0B1E), fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            "Check back later for new matches.",
+            style: TextStyle(color: Color(0xFF6B7280), fontSize: 14),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 32),
+          ElevatedButton(
+            onPressed: _fetchProfiles,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF5046E5),
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              elevation: 0,
+            ),
+            child: const Text('Refresh Discovery', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Supplementary Widgets ──────────────────────────────────────────────────
+
+class _PreferencesSheet extends StatefulWidget {
+  @override
+  State<_PreferencesSheet> createState() => _PreferencesSheetState();
+}
+
+class _PreferencesSheetState extends State<_PreferencesSheet> {
+  double _distance = 50;
+  final List<String> _selectedRoles = ['Student', 'Junior'];
+  final List<String> _availableRoles = ['Student', 'Junior', 'Senior', 'Alumni'];
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Preferences', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+              TextButton(
+                onPressed: () => Navigator.pop(context), 
+                child: const Text('Save', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))
               ),
-              child: const Icon(Icons.people_outline, size: 64, color: Color(0xFF9CA3AF)),
+            ],
+          ),
+          const SizedBox(height: 24),
+          const Text('Search Distance', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          Slider(
+            value: _distance,
+            max: 150,
+            activeColor: const Color(0xFF5046E5),
+            onChanged: (v) => setState(() => _distance = v),
+          ),
+          Text('${_distance.round()} km', style: const TextStyle(color: Color(0xFF6B7280))),
+          const SizedBox(height: 24),
+          const Text('Collaborator Roles', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: _availableRoles.map((role) {
+              final isSelected = _selectedRoles.contains(role);
+              return GestureDetector(
+                onTap: () {
+                  setState(() {
+                    if (isSelected) {
+                      _selectedRoles.remove(role);
+                    } else {
+                      _selectedRoles.add(role);
+                    }
+                  });
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: isSelected ? const Color(0xFF5046E5) : Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: isSelected ? const Color(0xFF5046E5) : const Color(0xFFE5E7EB),
+                      width: 1.5,
+                    ),
+                  ),
+                  child: Text(
+                    role,
+                    style: TextStyle(
+                      color: isSelected ? Colors.white : const Color(0xFF374151),
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 32),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () => Navigator.pop(context),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF5046E5),
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: const Text('Apply Selection', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             ),
-            const SizedBox(height: 24),
-            Text(
-              'No more profiles around you.',
-              style: AppTextStyles.h3.copyWith(color: const Color(0xFF374151)),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Try adjusting your filters or check back later.',
-              style: AppTextStyles.bodyMedium,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 32),
-            ElevatedButton(
-               onPressed: _fetchProfiles,
-               style: ElevatedButton.styleFrom(
-                 backgroundColor: const Color(0xFF8B5CF6),
-                 padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-               ),
-               child: Text('Refresh Discovery', style: AppTextStyles.button),
-            ),
-          ],
-        ),
-      );
+          ),
+          const SizedBox(height: 16),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProfileDetailSheet extends StatefulWidget {
+  final Map<String, dynamic> profile;
+  const _ProfileDetailSheet({required this.profile});
+
+  @override
+  State<_ProfileDetailSheet> createState() => _ProfileDetailSheetState();
+}
+
+class _ProfileDetailSheetState extends State<_ProfileDetailSheet> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  List<Map<String, dynamic>> _userEvents = [];
+  bool _loadingEvents = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 3, vsync: this);
+    _fetchUserEvents();
   }
 
-  Widget _buildActionButtonsRow() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        // Dislike Button (X)
-        _buildActionButton(
-          icon: const Icon(Icons.close, color: Color(0xFF6B7280), size: 28),
-          borderColor: const Color(0xFFE5E7EB),
-          onPressed: () => _onSwipe(false),
+  void _fetchUserEvents() async {
+    final events = await SwapService.getUserEvents(widget.profile['user_id'] ?? widget.profile['id']);
+    if (mounted) {
+      setState(() {
+        _userEvents = events;
+        _loadingEvents = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DraggableScrollableSheet(
+      initialChildSize: 0.9,
+      minChildSize: 0.5,
+      maxChildSize: 0.95,
+      builder: (context, scrollController) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
         ),
-        // Rewind Button (Undo)
-        _buildActionButton(
-          icon: Icon(
-            Icons.replay, 
-            color: _history.isEmpty ? const Color(0xFFD1D5DB) : const Color(0xFF8B5CF6), 
-            size: 24
-          ),
-          borderColor: const Color(0xFFE5E7EB),
-          size: 48.0,
-          onPressed: _history.isEmpty ? () {} : _undoSwipe,
-        ),
-        // Super Like Button (Star)
-        _buildActionButton(
-          icon: const Icon(Icons.star, color: Color(0xFFF59E0B), size: 28),
-          borderColor: const Color(0xFFFDE68A),
-          onPressed: () => _onSwipe(true, isSuperLike: true),
-        ),
-        // Like Button (Heart - Primary Gradient)
-        _buildActionButton(
-          icon: const Icon(Icons.favorite, color: Colors.white, size: 32),
-          borderColor: Colors.transparent,
-          size: 68.0,
-          gradient: const LinearGradient(
-            colors: [Color(0xFF8B5CF6), Color(0xFF6366F1)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          extraShadows: [
-            BoxShadow(
-              color: const Color(0xFF8B5CF6).withOpacity(0.4),
-              blurRadius: 20,
-              offset: const Offset(0, 8),
+        child: Column(
+          children: [
+            const SizedBox(height: 12),
+            Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2))),
+            const SizedBox(height: 24),
+            Expanded(
+              child: ListView(
+                controller: scrollController,
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                children: [
+                   Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 30,
+                        backgroundColor: const Color(0xFFEEF2FF),
+                        child: Text(widget.profile['initials'] ?? 'U', style: const TextStyle(color: Color(0xFF5046E5), fontWeight: FontWeight.bold)),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('${widget.profile['name']}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                            Text(widget.profile['title'] ?? 'Collaborator', style: const TextStyle(color: Color(0xFF6B7280))),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  TabBar(
+                    controller: _tabController,
+                    labelColor: const Color(0xFF5046E5),
+                    unselectedLabelColor: const Color(0xFF6B7280),
+                    indicatorColor: const Color(0xFF5046E5),
+                    tabs: const [
+                      Tab(text: 'About'),
+                      Tab(text: 'Posts'),
+                      Tab(text: 'Connection'),
+                    ],
+                  ),
+                  SizedBox(
+                    height: 500,
+                    child: TabBarView(
+                      controller: _tabController,
+                      children: [
+                        _buildAboutTab(),
+                        _buildPostsTab(),
+                        _buildConnectionTab(),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
-          onPressed: () => _onSwipe(true),
         ),
-      ],
+      ),
     );
+  }
+
+  Widget _buildAboutTab() {
+    final skills = widget.profile['skills'] as List? ?? [];
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(vertical: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Experience', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          Text(widget.profile['description'] ?? 'No experience info', style: const TextStyle(color: Color(0xFF4B5563))),
+          const SizedBox(height: 20),
+          const Text('Skills', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: skills.map((s) {
+              final skillName = s is Map ? (s['name'] ?? '') : s.toString();
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEEF2FF),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(skillName, style: const TextStyle(color: Color(0xFF5046E5), fontSize: 13)),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 20),
+          const Text('Education', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          Text(widget.profile['degree'] ?? 'Not provided', style: const TextStyle(color: Color(0xFF4B5563))),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPostsTab() {
+    if (_loadingEvents) return const Center(child: CircularProgressIndicator());
+    if (_userEvents.isEmpty) return const Center(child: Text('No posts yet'));
+    
+    return ListView.separated(
+      padding: const EdgeInsets.symmetric(vertical: 20),
+      itemCount: _userEvents.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      itemBuilder: (context, index) {
+        final event = _userEvents[index];
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            border: Border.all(color: const Color(0xFFE5E7EB)),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(event['title'] ?? 'Untitled Event', style: const TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 4),
+              Text(event['date'] ?? '', style: const TextStyle(color: Color(0xFF5046E5), fontSize: 13)),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildConnectionTab() {
+    return const Center(child: Text('Coming soon!'));
   }
 }
