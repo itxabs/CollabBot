@@ -7,10 +7,10 @@ class SwapService {
   /// Your PC's local Wi-Fi IP. Update if your IP changes.
   static String get baseUrl {
     if (Platform.isAndroid) {
-      return 'http://192.168.10.5:8000';
+      return 'http://192.168.10.6:8000';
     }
     if (Platform.isIOS) {
-      return 'http://192.168.10.5:8000';
+      return 'http://192.168.10.6:8000';
     }
     return 'http://127.0.0.1:8000';
   }
@@ -23,6 +23,8 @@ class SwapService {
     double? lat,
     double? lng,
     String? filterType = "Meet",
+    List<String>? roles,
+    double? maxDist,
   }) async {
     try {
       final user = Supabase.instance.client.auth.currentUser;
@@ -36,6 +38,14 @@ class SwapService {
       }
       if (filterType != null) {
         urlStr += '&filter_type=$filterType';
+      }
+      if (roles != null && roles.isNotEmpty) {
+        for (var role in roles) {
+          urlStr += '&roles=$role';
+        }
+      }
+      if (maxDist != null) {
+        urlStr += '&max_dist=$maxDist';
       }
 
       final url = Uri.parse(urlStr);
@@ -136,7 +146,6 @@ class SwapService {
       await Supabase.instance.client.from('users').update({
         'latitude': lat,
         'longitude': lng,
-        'last_location_update': DateTime.now().toIso8601String(),
       }).eq('id', user.id);
     } catch (e) {
       print('SwapService: Error updating location: $e');
@@ -150,8 +159,8 @@ class SwapService {
           .from('events')
           .select()
           .eq('creator_id', userId)
-          .eq('status_id', 'approved') // Updated from 'status' to 'status_id'
-          .order('date', ascending: false);
+          .eq('status_id', 2) // Changed from 'approved' (string) to 2 (integer/smallint)
+          .order('event_date', ascending: false);
       
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
@@ -161,6 +170,28 @@ class SwapService {
   }
 
   /// Saves a profile to bookmarks/saved list
+  static Future<bool> recordProfileView(String targetUserId) async {
+    try {
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user == null) return false;
+
+      final url = Uri.parse('$baseUrl/swap/view');
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'viewer_id': user.id,
+          'target_id': targetUserId,
+        }),
+      );
+      
+      return response.statusCode == 200;
+    } catch (e) {
+      print('SwapService: Error recording view: $e');
+      return false;
+    }
+  }
+
   static Future<bool> saveProfile(String targetUserId) async {
     try {
       final user = Supabase.instance.client.auth.currentUser;

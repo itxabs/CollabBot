@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../widgets/swap_profile_card.dart';
 import '../../core/constants/colors.dart';
@@ -24,6 +25,12 @@ class _SwapScreenState extends State<SwapScreen>
   Map<String, dynamic> _counts = {};
   bool _isSaving = false;
   int _savedCount = 0;
+  dynamic _realtimeSubscription;
+
+  // Preferences
+  double _maxDistance = 50.0;
+  List<String> _selectedRoles = [];
+  final List<String> _availableRoles = ['Junior', 'Senior', 'Alumni'];
 
   // Drag state for the top card
   Offset _dragOffset = Offset.zero;
@@ -35,6 +42,28 @@ class _SwapScreenState extends State<SwapScreen>
     super.initState();
     _fetchProfiles();
     _fetchCounts();
+    _setupRealtimeListener();
+  }
+
+  @override
+  void dispose() {
+    _realtimeSubscription?.cancel();
+    super.dispose();
+  }
+
+  void _setupRealtimeListener() {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return;
+
+    // Listen for new likes targeting the current user
+    _realtimeSubscription = Supabase.instance.client
+        .from('swipe_actions')
+        .stream(primaryKey: ['id'])
+        .eq('target_id', user.id)
+        .listen((data) {
+          print('SwapScreen: Real-time update detected in swipe_actions');
+          _fetchCounts();
+        });
   }
 
   void _fetchCounts() async {
@@ -101,6 +130,8 @@ class _SwapScreenState extends State<SwapScreen>
         lat: position?.latitude,
         lng: position?.longitude,
         filterType: _activeFilter,
+        roles: _selectedRoles,
+        maxDist: _maxDistance,
       );
 
       if (mounted) {
@@ -148,6 +179,9 @@ class _SwapScreenState extends State<SwapScreen>
         
         // Record action to backend
         final result = await SwapService.swipeUser(profile['user_id'] ?? profile['id'], action: direction ? 'like' : 'reject');
+        
+        // Refresh counts immediately after swiping
+        _fetchCounts();
         
         if (direction && result['is_match'] == true && mounted) {
            _showMatchDialog(profile);
@@ -274,7 +308,6 @@ class _SwapScreenState extends State<SwapScreen>
                   const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () => Navigator.pop(context),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF8B5CF6),
                         padding: const EdgeInsets.symmetric(vertical: 14),
@@ -285,6 +318,10 @@ class _SwapScreenState extends State<SwapScreen>
                       child: const Text('Say Hello 👋',
                           style: TextStyle(
                               color: Colors.white, fontWeight: FontWeight.w600)),
+                      onPressed: () {
+                        Navigator.pop(context);
+                        Navigator.pushNamed(context, AppRoutes.home); 
+                      },
                     ),
                   ),
                 ],
@@ -329,7 +366,7 @@ class _SwapScreenState extends State<SwapScreen>
           icon: const Icon(Icons.star_rounded, color: Color(0xFFF97316), size: 28),
           backgroundColor: Colors.white,
           borderColor: const Color(0xFFFDE68A),
-          onPressed: () {}, // Recommendation boost
+          onPressed: () {}, 
           size: 60,
         ),
         const SizedBox(width: 20),
@@ -401,8 +438,15 @@ class _SwapScreenState extends State<SwapScreen>
             children: [
               IconButton(
                 icon: const Icon(Icons.favorite_outline_rounded, color: Color(0xFF0A0B1E)),
-                onPressed: () {},
-                tooltip: 'Bookmarks',
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Activity: 0 match requests, 2 views today'),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                },
+                tooltip: 'Activity History',
               ),
               if (_savedCount > 0)
                 Positioned(
@@ -477,8 +521,16 @@ class _SwapScreenState extends State<SwapScreen>
       onTap: () {
         setState(() {
           _activeFilter = label;
-          _fetchProfiles(); 
+          _fetchProfiles();
         });
+
+        if (label == 'Waves') {
+          _showLongSnackBar('See who waved at you 👋');
+        } else if (label == 'Views') {
+          _showLongSnackBar('See who viewed your profile 👁️');
+        } else if (label == 'Newbies') {
+          _showLongSnackBar('See all Newbies 🆕');
+        }
       },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
@@ -487,6 +539,7 @@ class _SwapScreenState extends State<SwapScreen>
           borderRadius: BorderRadius.circular(24),
         ),
         child: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Text(
               label,
@@ -505,34 +558,28 @@ class _SwapScreenState extends State<SwapScreen>
                   fontSize: 12,
                 ),
               ),
-            ]
+            ],
           ],
         ),
       ),
     );
   }
 
-  void _saveProfile(Map<String, dynamic> profile) async {
-    if (_isSaving) return;
-    setState(() => _isSaving = true);
-    
-    final success = await SwapService.saveProfile(profile['user_id'] ?? profile['id']);
-    
-    if (mounted) {
-      setState(() {
-        _isSaving = false;
-        if (success) {
-          _savedCount++;
-        }
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(success ? 'Collaborator saved!' : 'Failed to save'),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: const Color(0xFF5046E5),
+  void _showLongSnackBar(String message) {
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 50),
+        backgroundColor: const Color(0xFF5046E5),
+        action: SnackBarAction(
+          label: 'OK',
+          textColor: Colors.white,
+          onPressed: () => ScaffoldMessenger.of(context).hideCurrentSnackBar(),
         ),
-      );
-    }
+      ),
+    );
   }
 
   void _showPreferencesSheet() {
@@ -543,11 +590,90 @@ class _SwapScreenState extends State<SwapScreen>
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (context) => _PreferencesSheet(),
+      builder: (context) => _buildPreferencesSheet(),
+    );
+  }
+
+  Widget _buildPreferencesSheet() {
+    return StatefulBuilder(
+      builder: (context, setSheetState) => Container(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Preferences', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                TextButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _fetchProfiles();
+                    },
+                    child: const Text('Apply', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            Text('Search Distance: ${_maxDistance.round()} km', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            Slider(
+              value: _maxDistance,
+              max: 500,
+              divisions: 10,
+              activeColor: const Color(0xFF5046E5),
+              onChanged: (v) => setSheetState(() => _maxDistance = v),
+            ),
+            const SizedBox(height: 24),
+            const Text('Collaborator Roles', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: _availableRoles.map((role) {
+                final isSelected = _selectedRoles.contains(role);
+                return GestureDetector(
+                  onTap: () {
+                    setSheetState(() {
+                      if (isSelected) {
+                        _selectedRoles.remove(role);
+                      } else {
+                        _selectedRoles.add(role);
+                      }
+                    });
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: isSelected ? const Color(0xFF5046E5) : Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: isSelected ? const Color(0xFF5046E5) : const Color(0xFFE5E7EB),
+                        width: 1.5,
+                      ),
+                    ),
+                    child: Text(
+                      role,
+                      style: TextStyle(
+                        color: isSelected ? Colors.white : const Color(0xFF374151),
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 32),
+          ],
+        ),
+      ),
     );
   }
 
   void _showProfileDetails(Map<String, dynamic> profile) {
+    // Record view in background
+    SwapService.recordProfileView(profile['user_id'] ?? profile['id']);
+    
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -555,7 +681,6 @@ class _SwapScreenState extends State<SwapScreen>
       builder: (context) => _ProfileDetailSheet(profile: profile),
     );
   }
-
 
   Widget _buildLocationBanner() {
     return Container(
@@ -754,104 +879,6 @@ class _SwapScreenState extends State<SwapScreen>
             ),
             child: const Text('Refresh Discovery', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-// ─── Supplementary Widgets ──────────────────────────────────────────────────
-
-class _PreferencesSheet extends StatefulWidget {
-  @override
-  State<_PreferencesSheet> createState() => _PreferencesSheetState();
-}
-
-class _PreferencesSheetState extends State<_PreferencesSheet> {
-  double _distance = 50;
-  final List<String> _selectedRoles = ['Student', 'Junior'];
-  final List<String> _availableRoles = ['Student', 'Junior', 'Senior', 'Alumni'];
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('Preferences', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-              TextButton(
-                onPressed: () => Navigator.pop(context), 
-                child: const Text('Save', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          const Text('Search Distance', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-          Slider(
-            value: _distance,
-            max: 150,
-            activeColor: const Color(0xFF5046E5),
-            onChanged: (v) => setState(() => _distance = v),
-          ),
-          Text('${_distance.round()} km', style: const TextStyle(color: Color(0xFF6B7280))),
-          const SizedBox(height: 24),
-          const Text('Collaborator Roles', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 16),
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: _availableRoles.map((role) {
-              final isSelected = _selectedRoles.contains(role);
-              return GestureDetector(
-                onTap: () {
-                  setState(() {
-                    if (isSelected) {
-                      _selectedRoles.remove(role);
-                    } else {
-                      _selectedRoles.add(role);
-                    }
-                  });
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: isSelected ? const Color(0xFF5046E5) : Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: isSelected ? const Color(0xFF5046E5) : const Color(0xFFE5E7EB),
-                      width: 1.5,
-                    ),
-                  ),
-                  child: Text(
-                    role,
-                    style: TextStyle(
-                      color: isSelected ? Colors.white : const Color(0xFF374151),
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                    ),
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: 32),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () => Navigator.pop(context),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF5046E5),
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              child: const Text('Apply Selection', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            ),
-          ),
-          const SizedBox(height: 16),
         ],
       ),
     );

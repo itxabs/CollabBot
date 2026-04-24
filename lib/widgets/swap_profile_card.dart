@@ -9,9 +9,7 @@ class SwapProfileCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final name = profile['name'] ?? 'Collaborator';
     final title = profile['title'] ?? 'Full Stack Developer';
-    final distance = (profile['distance_km'] != null) 
-        ? '${(profile['distance_km'] as double).toStringAsFixed(1)} km' 
-        : 'Nearby';
+    final distance = profile['distance'] ?? 'Location Hidden';
     
     final description = profile['description'] ?? 'No bio provided.';
     final initials = (name.isNotEmpty) ? name.substring(0, 1).toUpperCase() : 'U';
@@ -51,26 +49,7 @@ class SwapProfileCard extends StatelessWidget {
                   ),
                 ),
                 
-                // Star Rating
-                Positioned(
-                  top: 16,
-                  left: 16,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.9),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.star, color: Color(0xFFF97316), size: 16),
-                        const SizedBox(width: 4),
-                        Text(starRating, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                      ],
-                    ),
-                  ),
-                ),
+
 
                 // Distance Badge
                 Positioned(
@@ -146,7 +125,7 @@ class SwapProfileCard extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        const Icon(Icons.verified_user_rounded, color: Color(0xFF5046E5), size: 20),
+
                       ],
                     ),
                     Text(
