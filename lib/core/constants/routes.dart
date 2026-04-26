@@ -8,4 +8,9 @@ class AppRoutes {
   static const String home = '/home';
   static const String events = '/events';
   static const String profile = '/profile';
+  static const String chatList = '/chat_list';
+  static const String newChat = '/new_chat';
+  static const String chat = '/chat';
+  static const String questions = '/questions';
+  static const String askQuestion = '/ask_question';
 }

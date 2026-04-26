@@ -4,6 +4,7 @@ import '../core/constants/routes.dart';
 import '../data/models/profile_models.dart';
 import '../data/repositories/profile_repository.dart';
 import '../data/services/profile_service.dart';
+import 'auth_view_model.dart';
 
 class ProfileViewModel extends ChangeNotifier {
   final ProfileRepository _profileRepository;
@@ -12,7 +13,7 @@ class ProfileViewModel extends ChangeNotifier {
   UserProfile? _user;
   List<UserSkill> _skills = [];
   List<Experience> _experiences = [];
-  
+
   bool _isLoading = false;
   String? _errorMessage;
 
@@ -29,7 +30,7 @@ class ProfileViewModel extends ChangeNotifier {
     final now = DateTime.now();
     final joinDate = _user!.createdAt;
     final difference = now.difference(joinDate);
-    
+
     if (difference.inDays > 365) {
       final years = (difference.inDays / 365).floor();
       return 'Joined $years year${years > 1 ? 's' : ''} ago';
@@ -42,9 +43,9 @@ class ProfileViewModel extends ChangeNotifier {
   }
 
   ProfileViewModel()
-      : _profileRepository = ProfileRepositoryImpl(
-          ProfileService(Supabase.instance.client),
-        ) {
+    : _profileRepository = ProfileRepositoryImpl(
+        ProfileService(Supabase.instance.client),
+      ) {
     _loadData();
   }
 
@@ -64,7 +65,7 @@ class ProfileViewModel extends ChangeNotifier {
 
     try {
       final userId = currentUser.id;
-      
+
       // Parallel fetching for performance
       final results = await Future.wait([
         _profileRepository.getUserProfile(userId),
@@ -75,7 +76,6 @@ class ProfileViewModel extends ChangeNotifier {
       _user = results[0] as UserProfile;
       _skills = results[1] as List<UserSkill>;
       _experiences = results[2] as List<Experience>;
-      
     } catch (e) {
       _errorMessage = e.toString();
     } finally {
@@ -84,10 +84,14 @@ class ProfileViewModel extends ChangeNotifier {
     }
   }
 
-  void logout(BuildContext context) async {
-    await Supabase.instance.client.auth.signOut();
+  void logout(BuildContext context, AuthViewModel authViewModel) async {
+    await authViewModel.logout();
     if (context.mounted) {
-      Navigator.pushNamedAndRemoveUntil(context, AppRoutes.login, (route) => false);
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        AppRoutes.login,
+        (route) => false,
+      );
     }
   }
 }

@@ -129,7 +129,7 @@ class _SkillsListContent extends StatelessWidget {
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                     decoration: BoxDecoration(
-                                      color: skill.isVerified ? AppColors.success.withOpacity(0.1) : AppColors.border.withOpacity(0.5),
+                                      color: skill.isVerified ? AppColors.success.withValues(alpha: 0.1) : AppColors.border.withOpacity(0.5),
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: Text(

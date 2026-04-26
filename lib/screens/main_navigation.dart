@@ -3,9 +3,12 @@ import 'package:geolocator/geolocator.dart';
 import '../core/constants/colors.dart';
 import 'home/home_screen.dart';
 import 'swap/swap_screen.dart';
-import 'chat/chat_screen.dart';
+import 'chat/chat_list_screen.dart'; // ✅ from main
 import 'events/events_screen.dart';
 import 'profile/profile_screen.dart';
+
+final GlobalKey<_MainNavigationState> mainNavigationKey =
+    GlobalKey<_MainNavigationState>();
 
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
@@ -20,23 +23,29 @@ class _MainNavigationState extends State<MainNavigation> {
   @override
   void initState() {
     super.initState();
-    _requestLocationPermission();
+    _requestLocationPermission(); // ✅ from swap
   }
 
   Future<void> _requestLocationPermission() async {
     LocationPermission permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
+      await Geolocator.requestPermission();
     }
   }
 
   final List<Widget> _screens = [
     const HomeScreen(),
     const SwapScreen(),
-    const ChatScreen(),
+    const ChatListScreen(), // ✅ correct screen
     const EventsScreen(),
     const ProfileScreen(),
   ];
+
+  void switchToTab(int index) {
+    setState(() {
+      _currentIndex = index;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -65,37 +74,30 @@ class _MainNavigationState extends State<MainNavigation> {
           showSelectedLabels: true,
           showUnselectedLabels: true,
           type: BottomNavigationBarType.fixed,
-          items: [
+          items: const [
             BottomNavigationBarItem(
-              icon: const Icon(Icons.home_outlined),
-              activeIcon: const Icon(Icons.home),
+              icon: Icon(Icons.home_outlined),
+              activeIcon: Icon(Icons.home),
               label: 'Home',
             ),
             BottomNavigationBarItem(
-              icon: const Icon(Icons.people_outline),
-              activeIcon: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(Icons.people, color: AppColors.primary),
-              ),
+              icon: Icon(Icons.people_outline),
+              activeIcon: Icon(Icons.people),
               label: 'Swap',
             ),
             BottomNavigationBarItem(
-              icon: const Icon(Icons.chat_bubble_outline),
-              activeIcon: const Icon(Icons.chat_bubble),
+              icon: Icon(Icons.chat_bubble_outline),
+              activeIcon: Icon(Icons.chat_bubble),
               label: 'Chat',
             ),
             BottomNavigationBarItem(
-              icon: const Icon(Icons.calendar_today_outlined),
-              activeIcon: const Icon(Icons.calendar_today),
+              icon: Icon(Icons.calendar_today_outlined),
+              activeIcon: Icon(Icons.calendar_today),
               label: 'Events',
             ),
             BottomNavigationBarItem(
-              icon: const Icon(Icons.person_outline),
-              activeIcon: const Icon(Icons.person),
+              icon: Icon(Icons.person_outline),
+              activeIcon: Icon(Icons.person),
               label: 'Profile',
             ),
           ],

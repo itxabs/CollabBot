@@ -49,3 +49,5 @@ app.*.map.json
 .env
 **/.env
 scratch/
+linux/flutter/
+windows/flutter/

@@ -139,6 +139,18 @@ CREATE TABLE messages (
     CONSTRAINT fk_messages_sender FOREIGN KEY (sender_id) REFERENCES users(id)
 );
 
+-- =========================
+-- MESSAGE ATTACHMENTS
+-- =========================
+CREATE TABLE message_attachments (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    message_id UUID NOT NULL,
+    file_url TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT now(),
+    CONSTRAINT fk_message_attachments_message 
+        FOREIGN KEY (message_id) REFERENCES messages(id)
+);
+
 CREATE INDEX idx_messages_chat_time ON messages(chat_id, created_at DESC)
 WHERE deleted_at IS NULL;
 
