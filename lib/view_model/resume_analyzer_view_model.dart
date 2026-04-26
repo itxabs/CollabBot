@@ -25,7 +25,7 @@ class ResumeAnalyzerViewModel extends ChangeNotifier {
   // iOS/Web/Windows: 127.0.0.1
   String get _baseUrl {
     if (Platform.isAndroid || Platform.isIOS) {
-      return 'http://10.69.51.70:8000';
+      return 'http://10.69.48.133:8000';
     }
     return 'http://127.0.0.1:8000';
   } 

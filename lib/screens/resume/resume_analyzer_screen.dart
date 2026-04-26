@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import '../../view_model/resume_analyzer_view_model.dart';
 
 class ResumeAnalyzerScreen extends StatelessWidget {
-  const ResumeAnalyzerScreen({Key? key}) : super(key: key);
+  const ResumeAnalyzerScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

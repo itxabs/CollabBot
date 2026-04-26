@@ -47,4 +47,7 @@ app.*.map.json
 /android/app/release
 
 .env
-linux/flutter/generated_plugins.cmake
+**/.env
+scratch/
+linux/flutter/
+windows/flutter/

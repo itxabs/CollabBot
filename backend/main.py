@@ -1,10 +1,24 @@
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 import uuid
 import os
 from resume_analyzer import analyze_resume, extract_text_from_pdf, extract_text_from_docx
 from storage import save_resume_file
+from swap_controller import router as swap_router
 
 app = FastAPI()
+
+# Add CORS middleware if needed by the Flutter app
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Register routers
+app.include_router(swap_router)
 
 @app.post("/analyze-resume")
 async def analyze_resume_api(

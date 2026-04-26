@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import '../core/constants/colors.dart';
 import 'home/home_screen.dart';
 import 'swap/swap_screen.dart';
-import 'chat/chat_list_screen.dart';
+import 'chat/chat_list_screen.dart'; // ✅ from main
 import 'events/events_screen.dart';
 import 'profile/profile_screen.dart';
 
@@ -19,10 +20,23 @@ class MainNavigation extends StatefulWidget {
 class _MainNavigationState extends State<MainNavigation> {
   int _currentIndex = 0;
 
+  @override
+  void initState() {
+    super.initState();
+    _requestLocationPermission(); // ✅ from swap
+  }
+
+  Future<void> _requestLocationPermission() async {
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      await Geolocator.requestPermission();
+    }
+  }
+
   final List<Widget> _screens = [
     const HomeScreen(),
     const SwapScreen(),
-    const ChatListScreen(),
+    const ChatListScreen(), // ✅ correct screen
     const EventsScreen(),
     const ProfileScreen(),
   ];
@@ -41,7 +55,7 @@ class _MainNavigationState extends State<MainNavigation> {
         decoration: BoxDecoration(
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
+              color: Colors.black.withOpacity(0.05),
               blurRadius: 10,
               offset: const Offset(0, -5),
             ),
