@@ -3,6 +3,7 @@ class UserProfile {
   final String fullName;
   final String email;
   final String role;
+  final String? avatarUrl;
   final DateTime createdAt;
 
   UserProfile({
@@ -10,6 +11,7 @@ class UserProfile {
     required this.fullName,
     required this.email,
     required this.role,
+    this.avatarUrl,
     required this.createdAt,
   });
 
@@ -19,6 +21,7 @@ class UserProfile {
       fullName: json['full_name'] as String,
       email: json['email'] as String,
       role: json['role'] as String,
+      avatarUrl: json['avatar_url'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
     );
   }
@@ -96,6 +99,32 @@ class SkillLevel {
     return SkillLevel(
       id: json['id'].toString(),
       name: json['name'] as String,
+    );
+  }
+}
+
+class UserSocialLink {
+  final String id;
+  final String userId;
+  final String platform;
+  final String url;
+  final DateTime createdAt;
+
+  UserSocialLink({
+    required this.id,
+    required this.userId,
+    required this.platform,
+    required this.url,
+    required this.createdAt,
+  });
+
+  factory UserSocialLink.fromJson(Map<String, dynamic> json) {
+    return UserSocialLink(
+      id: json['id'] as String,
+      userId: json['user_id'] as String,
+      platform: json['platform'] as String,
+      url: json['url'] as String,
+      createdAt: DateTime.parse(json['created_at'] as String),
     );
   }
 }

@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import '../../core/constants/routes.dart';
 import '../../view_model/chat_list_view_model.dart';
 import '../../data/models/chat_model.dart';
+import '../../widgets/user_avatar_widget.dart';
+import '../../widgets/user_role_icon.dart';
 
 class ChatListScreen extends StatelessWidget {
   const ChatListScreen({super.key});
@@ -134,6 +136,7 @@ class ChatTile extends StatelessWidget {
           'chatId': chat.chatId,
           'otherName': chat.otherUserName,
           'otherUserId': chat.otherUserId,
+          'otherUserRole': chat.otherUserRole,
         },
       ),
       onLongPress: () async {
@@ -188,23 +191,32 @@ class ChatTile extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         child: Row(
           children: [
-            CircleAvatar(
-              backgroundColor: Colors.blue.shade100,
-              child: Text(
-                chat.otherUserName.isNotEmpty ? chat.otherUserName[0] : 'U',
-              ),
+            UserAvatarWidget(
+              name: chat.otherUserName,
+              avatarUrl: chat.otherUserAvatarUrl,
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    chat.otherUserName,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 15,
-                    ),
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          chat.otherUserName,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 15,
+                          ),
+                        ),
+                      ),
+                      if ((chat.otherUserRole ?? '').trim().isNotEmpty) ...[
+                        const SizedBox(width: 4),
+                        UserRoleIcon(role: chat.otherUserRole),
+                      ],
+                    ],
                   ),
                   const SizedBox(height: 4),
                   Text(

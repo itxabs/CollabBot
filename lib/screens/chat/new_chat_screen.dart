@@ -76,6 +76,7 @@ class _NewChatContentState extends State<_NewChatContent> {
                           'chatId': chatId,
                           'otherName': user['full_name'] as String? ?? 'Chat',
                           'otherUserId': user['id'] as String,
+                          'otherUserRole': user['role'] as String?,
                         });
                       } catch (e) {
                         if (!mounted) return;

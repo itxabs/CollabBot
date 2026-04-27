@@ -53,6 +53,12 @@ dependencies:
   geolocator: ^14.0.2
   flutter_map: ^8.2.2
   latlong2: ^0.9.1
+  dotted_border: ^3.1.0
+  image_picker: ^1.2.1
+  url_launcher: ^6.3.2
+  font_awesome_flutter: ^11.0.0
+  webview_flutter: ^4.13.1
+  flutter_local_notifications: ^21.0.0
 
 dev_dependencies:
   flutter_best_practices_lints: ^0.3.0

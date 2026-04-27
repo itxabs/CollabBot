@@ -87,10 +87,10 @@ class SignupViewModel extends ChangeNotifier {
       if (context.mounted) {
          _isLoading = false;
         notifyListeners();
-        // Go to Login
-        Navigator.pushReplacementNamed(context, AppRoutes.login);
+        // Go to Profile Setup
+        Navigator.pushReplacementNamed(context, AppRoutes.profileSetup);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Account created! Please login.')),
+          const SnackBar(content: Text('Account created! Please complete your profile.')),
         );
       }
     } catch (e) {

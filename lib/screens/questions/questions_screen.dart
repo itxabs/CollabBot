@@ -4,6 +4,7 @@ import '../../core/constants/colors.dart';
 import '../../core/constants/text_styles.dart';
 import '../../view_model/questions/questions_view_model.dart';
 import '../../data/models/question_model.dart';
+import '../../widgets/user_role_icon.dart';
 import 'question_detail_screen.dart';
 
 class QuestionsScreen extends StatelessWidget {
@@ -239,12 +240,25 @@ class _QuestionCard extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              question.authorName,
-                              style: AppTextStyles.bodyMedium.copyWith(
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.textPrimary,
-                              ),
+                            Row(
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    question.authorName,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: AppTextStyles.bodyMedium.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.textPrimary,
+                                    ),
+                                  ),
+                                ),
+                                if ((question.authorRole ?? '')
+                                    .trim()
+                                    .isNotEmpty) ...[
+                                  const SizedBox(width: 4),
+                                  UserRoleIcon(role: question.authorRole),
+                                ],
+                              ],
                             ),
                             Text(
                               _formatTimeAgo(question.createdAt),

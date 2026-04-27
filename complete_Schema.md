@@ -268,6 +268,22 @@ CREATE TABLE issue_attachments (
 );
 
 -- =========================
+-- SOCIAL LINKS
+-- =========================
+CREATE TABLE user_social_links (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL,
+    platform TEXT NOT NULL,
+    url TEXT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT now(),
+    updated_at TIMESTAMP NOT NULL DEFAULT now(),
+    deleted_at TIMESTAMP,
+    CONSTRAINT fk_user_social_links_user FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+CREATE INDEX idx_user_social_links_user ON user_social_links(user_id) WHERE deleted_at IS NULL;
+
+-- =========================
 -- MATCHES
 -- =========================
 CREATE TABLE matches (
@@ -295,5 +311,6 @@ ALTER TABLE quiz_attempts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE jobs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE issues ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_social_links ENABLE ROW LEVEL SECURITY;
 
 COMMIT;

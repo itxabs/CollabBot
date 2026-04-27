@@ -9,7 +9,7 @@ class QuestionService {
       final response = await _client
           .from('questions')
           .select(
-            '*, users(full_name), question_tags(tags(name)), answers(count)',
+            '*, users(full_name, role), question_tags(tags(name)), answers(count)',
           )
           .order('created_at', ascending: false);
 
@@ -48,7 +48,7 @@ class QuestionService {
     try {
       final response = await _client
           .from('answers')
-          .select('*, users(full_name)')
+          .select('*, users(full_name, role)')
           .eq('question_id', questionId)
           .order('created_at', ascending: true);
 

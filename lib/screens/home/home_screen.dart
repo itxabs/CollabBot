@@ -4,7 +4,6 @@ import '../../core/constants/colors.dart';
 import '../../core/constants/text_styles.dart';
 import '../../view_model/home_view_model.dart';
 import '../../view_model/auth_view_model.dart';
-import '../../core/widgets/primary_button.dart';
 import '../main_navigation.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -15,7 +14,8 @@ class HomeScreen extends StatelessWidget {
     return Consumer<AuthViewModel>(
       builder: (context, authViewModel, _) {
         return ChangeNotifierProvider(
-          create: (_) => HomeViewModel(),
+          create: (_) =>
+              HomeViewModel(currentUserId: authViewModel.currentUser?.userId),
           child: _HomeContent(authViewModel: authViewModel),
         );
       },
@@ -54,10 +54,29 @@ class _HomeContent extends StatelessWidget {
                       ),
                     ],
                   ),
-                  CircleAvatar(
-                    radius: 24,
-                    backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-                    child: const Icon(Icons.person, color: AppColors.primary),
+                  Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppColors.primary.withOpacity(0.1), width: 1.5),
+                    ),
+                    child: CircleAvatar(
+                      radius: 24,
+                      backgroundColor: AppColors.primary.withOpacity(0.05),
+                      backgroundImage: authViewModel.currentUser?.avatarUrl != null && 
+                                      authViewModel.currentUser!.avatarUrl!.isNotEmpty
+                          ? NetworkImage(authViewModel.currentUser!.avatarUrl!)
+                          : null,
+                      child: authViewModel.currentUser?.avatarUrl == null || 
+                             authViewModel.currentUser!.avatarUrl!.isEmpty
+                          ? Text(
+                              (authViewModel.currentUser?.name.isNotEmpty ?? false)
+                                  ? authViewModel.currentUser!.name[0].toUpperCase()
+                                  : '',
+                              style: AppTextStyles.h3.copyWith(color: AppColors.primary, fontSize: 18),
+                            )
+                          : null,
+                    ),
                   ),
                 ],
               ),
@@ -124,7 +143,9 @@ class _HomeContent extends StatelessWidget {
                     Icons.search,
                     'Find Match',
                     Colors.blue,
-                    () {},
+                    () {
+                      mainNavigationKey.currentState?.switchToTab(1);
+                    },
                   ),
                   _buildQuickAction(
                     context,
@@ -174,6 +195,59 @@ class _HomeContent extends StatelessWidget {
                     final mentor = viewModel.suggestedMentors[index];
                     return _buildMentorCard(mentor);
                   },
+                ),
+              const SizedBox(height: 28),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Upcoming Events', style: AppTextStyles.h3),
+                  GestureDetector(
+                    onTap: () {
+                      mainNavigationKey.currentState?.switchToTab(3);
+                    },
+                    child: Row(
+                      children: [
+                        Text('See all', style: AppTextStyles.link),
+                        const SizedBox(width: 4),
+                        const Icon(
+                          Icons.arrow_forward,
+                          size: 16,
+                          color: AppColors.primary,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              if (viewModel.upcomingEvents.isEmpty)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Text(
+                    'No upcoming events right now.',
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                )
+              else
+                SizedBox(
+                  height: 128,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: viewModel.upcomingEvents.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 12),
+                    itemBuilder: (context, index) {
+                      final event = viewModel.upcomingEvents[index];
+                      return _buildEventPreviewCard(event);
+                    },
+                  ),
                 ),
             ],
           ),
@@ -262,6 +336,70 @@ class _HomeContent extends StatelessWidget {
             ),
           ),
           Icon(Icons.chevron_right, color: AppColors.textSecondary),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEventPreviewCard(HomeEventPreview event) {
+    return Container(
+      width: 182,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.calendar_today_outlined,
+                size: 14,
+                color: AppColors.textSecondary,
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  event.dateTimeLabel,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            event.title,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: AppTextStyles.bodyLarge.copyWith(
+              fontWeight: FontWeight.w700,
+              height: 1.25,
+            ),
+          ),
+          const Spacer(),
+          Row(
+            children: [
+              const Icon(
+                Icons.people_outline,
+                size: 14,
+                color: AppColors.textSecondary,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                '${event.attendingCount} attending',
+                style: AppTextStyles.bodySmall.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );

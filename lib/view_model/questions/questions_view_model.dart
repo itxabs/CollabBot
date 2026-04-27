@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../data/models/question_model.dart';
+import '../../data/repositories/question_repository.dart';
 import '../../data/services/question_service.dart';
 
 enum QuestionFilter { newest, mostVotes, mostViewed, unanswered }
 
 class QuestionsViewModel extends ChangeNotifier {
-  final QuestionService _service = QuestionService();
+  final QuestionRepository _repository = QuestionRepository(QuestionService());
   final SupabaseClient _client = Supabase.instance.client;
 
   List<QuestionModel> _questions = [];
@@ -58,7 +59,7 @@ class QuestionsViewModel extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
     try {
-      _questions = await _service.getQuestions();
+      _questions = await _repository.getQuestions();
     } catch (e) {
       debugPrint('Fetch Questions Error: $e');
     } finally {
@@ -71,8 +72,8 @@ class QuestionsViewModel extends ChangeNotifier {
     _isLoadingAnswers = true;
     notifyListeners();
     try {
-      await _service.incrementViewCount(questionId);
-      _answers = await _service.getAnswers(questionId);
+      await _repository.incrementViewCount(questionId);
+      _answers = await _repository.getAnswers(questionId);
     } catch (e) {
       debugPrint('Fetch Answers Error: $e');
     } finally {
@@ -88,7 +89,7 @@ class QuestionsViewModel extends ChangeNotifier {
   ) async {
     final user = _client.auth.currentUser;
     if (user != null) {
-      await _service.createQuestion(user.id, title, content, tags);
+      await _repository.createQuestion(user.id, title, content, tags);
       await fetchQuestions();
     }
   }
@@ -96,14 +97,14 @@ class QuestionsViewModel extends ChangeNotifier {
   Future<void> postAnswer(String questionId, String content) async {
     final user = _client.auth.currentUser;
     if (user != null) {
-      await _service.postAnswer(questionId, user.id, content);
+      await _repository.postAnswer(questionId, user.id, content);
       await fetchAnswers(questionId);
       await fetchQuestions();
     }
   }
 
   Future<void> deleteAnswer(String answerId, String questionId) async {
-    await _service.deleteAnswer(answerId);
+    await _repository.deleteAnswer(answerId);
     await fetchAnswers(questionId);
     await fetchQuestions();
   }
@@ -113,7 +114,7 @@ class QuestionsViewModel extends ChangeNotifier {
     String questionId,
     String content,
   ) async {
-    await _service.updateAnswer(answerId, content);
+    await _repository.updateAnswer(answerId, content);
     await fetchAnswers(questionId);
   }
 
@@ -131,7 +132,7 @@ class QuestionsViewModel extends ChangeNotifier {
       return false;
     }
 
-    await _service.vote(targetId, user.id, isQuestion, voteValue);
+    await _repository.vote(targetId, user.id, isQuestion, voteValue);
     if (isQuestion) {
       await fetchQuestions();
     } else if (questionId != null) {

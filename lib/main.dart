@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/constants/routes.dart';
+import 'core/constants/app_globals.dart';
+import 'core/services/notification_service.dart';
 import 'view_model/splash_view_model.dart';
 import 'screens/splash/splash_screen.dart';
 import 'screens/onboarding/onboarding_screen.dart';
@@ -20,7 +22,11 @@ import 'screens/questions/ask_question_screen.dart';
 import 'view_model/auth_view_model.dart';
 import 'view_model/events_view_model.dart';
 import 'view_model/questions/questions_view_model.dart';
-
+import 'view_model/profile_setup_view_model.dart';
+import 'view_model/experience_view_model.dart';
+import 'view_model/skills_view_model.dart';
+import 'view_model/message_notification_view_model.dart';
+import 'screens/screens.dart'; // ✅ Use this to access all screens
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 void main() async {
@@ -32,6 +38,7 @@ void main() async {
     anonKey: 'sb_publishable_E_cRI60_IKr9jBLfGmpdmQ_3B9ih8K0',
   );
   await LocalMessageDb.instance.init();
+  await NotificationService.instance.initialize();
   runApp(const MyApp());
 }
 
@@ -46,10 +53,15 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => SplashViewModel()),
         ChangeNotifierProvider(create: (_) => EventsViewModel()),
         ChangeNotifierProvider(create: (_) => QuestionsViewModel()),
+        ChangeNotifierProvider(create: (_) => ProfileSetupViewModel()),
+        ChangeNotifierProvider(create: (_) => ExperienceViewModel()),
+        ChangeNotifierProvider(create: (_) => SkillsViewModel()),
+        ChangeNotifierProvider(create: (_) => MessageNotificationViewModel()),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         title: 'Collab Bot',
+        scaffoldMessengerKey: rootScaffoldMessengerKey,
         theme: ThemeData(
           useMaterial3: true,
           primarySwatch: Colors.indigo, // Fallback
@@ -74,6 +86,7 @@ class MyApp extends StatelessWidget {
             final chatId = args?['chatId'] as String?;
             final otherName = args?['otherName'] as String? ?? 'Chat';
             final otherUserId = args?['otherUserId'] as String?;
+            final otherUserRole = args?['otherUserRole'] as String?;
             if (chatId == null) {
               return const Scaffold(
                 body: Center(child: Text('Chat id missing')),
@@ -83,6 +96,7 @@ class MyApp extends StatelessWidget {
               chatId: chatId,
               otherName: otherName,
               otherUserId: otherUserId,
+              otherUserRole: otherUserRole,
             );
           },
           AppRoutes.questions: (context) => const QuestionsScreen(),
@@ -98,6 +112,7 @@ class MyApp extends StatelessWidget {
               body: Center(child: Text('Question not found')),
             );
           },
+          AppRoutes.profileSetup: (context) => const ProfileSetupScreen(),
         },
       ),
     );

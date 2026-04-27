@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/text_styles.dart';
 import '../../view_model/profile_view_model.dart';
@@ -9,6 +11,8 @@ import '../../data/models/profile_models.dart';
 import '../skills/skills_list_screen.dart';
 import '../experience/experience_list_screen.dart';
 import '../resume/resume_analyzer_screen.dart';
+import 'social_media_screen.dart';
+import '../../view_model/social_media_view_model.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -70,7 +74,7 @@ class _ProfileContent extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // 1. Header Section
-                _buildHeader(viewModel.user),
+                _buildHeader(viewModel),
 
                 const SizedBox(height: 24),
 
@@ -112,7 +116,27 @@ class _ProfileContent extends StatelessWidget {
 
                       const SizedBox(height: 32),
 
-                      // 4. Additional Sections (Resume & Leaderboard)
+                      // 4. Social Media Section
+                      _buildSectionHeader(
+                        title: 'Social Media',
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => ChangeNotifierProvider(
+                                create: (_) => SocialMediaViewModel(),
+                                child: const SocialMediaScreen(),
+                              ),
+                            ),
+                          ).then((_) => viewModel.refresh());
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      _buildSocialMediaList(viewModel.socialLinks),
+
+                      const SizedBox(height: 32),
+
+                      // 5. Additional Sections (Resume & Leaderboard)
                       _buildProfileListTile(
                         title: 'Resume Analyzer',
                         icon: Icons.description_outlined,
@@ -134,7 +158,7 @@ class _ProfileContent extends StatelessWidget {
                         },
                       ),
 
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 32),
 
                       // 5. Footer (Date Joined)
                       if (viewModel.user != null)
@@ -172,18 +196,66 @@ class _ProfileContent extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader(UserProfile? user) {
-    if (user == null) return const SizedBox.shrink();
+  Widget _buildHeader(ProfileViewModel viewModel) {
+    if (viewModel.user == null) return const SizedBox.shrink();
+    final user = viewModel.user!;
 
     return Container(
       color: Colors.white,
       padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
       child: Column(
         children: [
-          const CircleAvatar(
-            radius: 40,
-            backgroundColor: AppColors.primary,
-            child: Icon(Icons.person, size: 40, color: Colors.white),
+          Stack(
+            children: [
+              GestureDetector(
+                onTap: viewModel.isUploading ? null : viewModel.pickAndUploadImage,
+                child: Container(
+                  padding: const EdgeInsets.all(3),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppColors.primary.withOpacity(0.1), width: 2),
+                  ),
+                  child: CircleAvatar(
+                    radius: 45,
+                    backgroundColor: AppColors.primary.withOpacity(0.05),
+                    backgroundImage: user.avatarUrl != null && user.avatarUrl!.isNotEmpty
+                        ? NetworkImage(user.avatarUrl!)
+                        : null,
+                    child: user.avatarUrl == null || user.avatarUrl!.isEmpty
+                        ? const Icon(Icons.person, size: 45, color: AppColors.primary)
+                        : null,
+                  ),
+                ),
+              ),
+              if (viewModel.isUploading)
+                Positioned.fill(
+                  child: Container(
+                    decoration: const BoxDecoration(
+                      color: Colors.black26,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Center(
+                      child: SizedBox(
+                        width: 40,
+                        height: 40,
+                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
+                      ),
+                    ),
+                  ),
+                ),
+              Positioned(
+                bottom: 2,
+                right: 2,
+                child: Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: const BoxDecoration(
+                    color: AppColors.primary,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.camera_alt, color: Colors.white, size: 16),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 16),
           Text(user.fullName, style: AppTextStyles.h2),
@@ -379,5 +451,61 @@ class _ProfileContent extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Widget _buildSocialMediaList(List<UserSocialLink> socialLinks) {
+    if (socialLinks.isEmpty) {
+      return const Text(
+        'No social profiles added',
+        style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: socialLinks.map((link) {
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12.0),
+          child: InkWell(
+            onTap: () async {
+              final Uri url = Uri.parse(link.url);
+              if (await canLaunchUrl(url)) {
+                await launchUrl(url, mode: LaunchMode.externalApplication);
+              }
+            },
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _getPlatformIcon(link.platform, size: 20),
+                const SizedBox(width: 12),
+                Flexible(
+                  child: Text(
+                    link.url,
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      color: AppColors.primary,
+                      decoration: TextDecoration.underline,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _getPlatformIcon(String platform, {double size = 24, Color color = AppColors.primary}) {
+    switch (platform.toLowerCase()) {
+      case 'linkedin': return FaIcon(FontAwesomeIcons.linkedin, size: size, color: color);
+      case 'github': return FaIcon(FontAwesomeIcons.github, size: size, color: color);
+      case 'facebook': return FaIcon(FontAwesomeIcons.facebook, size: size, color: color);
+      case 'twitter': return FaIcon(FontAwesomeIcons.xTwitter, size: size, color: color);
+      case 'instagram': return FaIcon(FontAwesomeIcons.instagram, size: size, color: color);
+      case 'website': return Icon(Icons.language, size: size, color: color);
+      default: return Icon(Icons.link, size: size, color: color);
+    }
   }
 }

@@ -5,6 +5,7 @@ import '../../widgets/swap_profile_card.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/text_styles.dart';
 import '../../core/constants/routes.dart';
+import '../../data/services/chat_service.dart';
 import '../../data/services/swap_service.dart';
 
 class SwapScreen extends StatefulWidget {
@@ -318,9 +319,9 @@ class _SwapScreenState extends State<SwapScreen>
                       child: const Text('Say Hello 👋',
                           style: TextStyle(
                               color: Colors.white, fontWeight: FontWeight.w600)),
-                      onPressed: () {
+                      onPressed: () async {
                         Navigator.pop(context);
-                        Navigator.pushNamed(context, AppRoutes.home); 
+                        await _openChatWithMatchedUser(profile);
                       },
                     ),
                   ),
@@ -334,6 +335,54 @@ class _SwapScreenState extends State<SwapScreen>
   }
 
   // ─── UI Helpers ────────────────────────────────────────────────────────────
+
+  Future<void> _openChatWithMatchedUser(Map<String, dynamic> profile) async {
+    final currentUser = Supabase.instance.client.auth.currentUser;
+    if (currentUser == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please login again to start chat.')),
+      );
+      return;
+    }
+
+    final matchedUserId =
+        (profile['user_id'] ?? profile['id'])?.toString().trim();
+    final matchedUserName = (profile['name'] ?? 'Chat').toString().trim();
+
+    if (matchedUserId == null || matchedUserId.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not open chat for this match.')),
+      );
+      return;
+    }
+
+    try {
+      final chatService = ChatService(Supabase.instance.client);
+      final chatId = await chatService.createOrGetChat(
+        currentUser.id,
+        matchedUserId,
+      );
+
+      if (!mounted) return;
+      Navigator.pushNamed(
+        context,
+        AppRoutes.chat,
+        arguments: {
+          'chatId': chatId,
+          'otherName': matchedUserName.isEmpty ? 'Chat' : matchedUserName,
+          'otherUserId': matchedUserId,
+          'otherUserRole': profile['role']?.toString(),
+        },
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Unable to open chat: $e')));
+    }
+  }
 
   double get _overlayOpacity {
     return (_dragOffset.dx.abs() / 120).clamp(0.0, 1.0);

@@ -13,4 +13,5 @@ class AppRoutes {
   static const String chat = '/chat';
   static const String questions = '/questions';
   static const String askQuestion = '/ask_question';
+  static const String profileSetup = '/profile_setup';
 }
