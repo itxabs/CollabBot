@@ -143,43 +143,53 @@ class _EventsContent extends StatelessWidget {
           ),
 
           Expanded(
-            child: viewModel.isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : viewModel.filteredEvents.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.event_busy_rounded,
-                          size: 80,
-                          color: Colors.grey[300],
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'No events found',
-                          style: AppTextStyles.bodyLarge.copyWith(
-                            color: Colors.grey,
-                          ),
-                        ),
-                        if (viewModel.currentTab == 'Upcoming')
-                          Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: Text(
-                              'Check back later for newly approved events!',
-                              textAlign: TextAlign.center,
-                              style: AppTextStyles.bodyMedium.copyWith(
-                                color: Colors.grey,
-                              ),
+            child: RefreshIndicator(
+              onRefresh: () => viewModel.loadEvents(),
+              child: viewModel.isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : viewModel.filteredEvents.isEmpty
+                  ? CustomScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      slivers: [
+                        SliverFillRemaining(
+                          child: Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.event_busy_rounded,
+                                  size: 80,
+                                  color: Colors.grey[300],
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'No events found',
+                                  style: AppTextStyles.bodyLarge.copyWith(
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                                if (viewModel.currentTab == 'Upcoming')
+                                  Padding(
+                                    padding: const EdgeInsets.all(16.0),
+                                    child: Text(
+                                      'Check back later for newly approved events!',
+                                      textAlign: TextAlign.center,
+                                      style: AppTextStyles.bodyMedium.copyWith(
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                  ),
+                              ],
                             ),
                           ),
+                        ),
                       ],
-                    ),
-                  )
-                : ListAnimation(
-                    child: ListView.separated(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: viewModel.filteredEvents.length,
+                    )
+                  : ListAnimation(
+                      child: ListView.separated(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.all(16),
+                        itemCount: viewModel.filteredEvents.length,
                       separatorBuilder: (_, _) => const SizedBox(height: 16),
                       itemBuilder: (_, index) {
                         final event = viewModel.filteredEvents[index];
@@ -289,6 +299,7 @@ class _EventsContent extends StatelessWidget {
                       },
                     ),
                   ),
+            ),
           ),
         ],
       ),

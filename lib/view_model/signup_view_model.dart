@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'auth_view_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../data/repositories/auth_repository.dart';
 import '../data/services/auth_service.dart';
@@ -83,9 +85,13 @@ class SignupViewModel extends ChangeNotifier {
         role: _selectedRole!,
       );
 
+      // Update AuthViewModel with new user
+      final authViewModel = Provider.of<AuthViewModel>(context, listen: false);
+      await authViewModel.initializeCurrentUser();
+
       // Success
       if (context.mounted) {
-         _isLoading = false;
+        _isLoading = false;
         notifyListeners();
         // Go to Profile Setup
         Navigator.pushReplacementNamed(context, AppRoutes.profileSetup);

@@ -1,11 +1,13 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/constants/routes.dart';
 import '../data/models/profile_models.dart';
 import '../data/repositories/profile_repository.dart';
 import '../data/services/profile_service.dart';
+import 'auth_view_model.dart';
 
 class ProfileSetupViewModel extends ChangeNotifier {
   late final ProfileRepository _profileRepository;
@@ -115,7 +117,11 @@ class ProfileSetupViewModel extends ChangeNotifier {
     try {
       final user = _supabase.auth.currentUser;
       if (user == null) throw Exception('User not authenticated');
-      
+
+      // Update AuthViewModel with new user info
+      final authViewModel = Provider.of<AuthViewModel>(context, listen: false);
+      await authViewModel.initializeCurrentUser();
+
       if (context.mounted) {
         Navigator.pushReplacementNamed(context, AppRoutes.home);
       }

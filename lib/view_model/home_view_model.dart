@@ -3,19 +3,8 @@ import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../data/repositories/user_repository.dart';
 
-class Mentor {
-  final String name;
-  final String role;
-  final String company;
-  final String imageUrl;
-
-  Mentor({
-    required this.name,
-    required this.role,
-    required this.company,
-    required this.imageUrl,
-  });
-}
+import '../data/models/question_model.dart';
+import '../data/services/question_service.dart';
 
 class HomeEventPreview {
   final String title;
@@ -37,46 +26,32 @@ class HomeViewModel extends ChangeNotifier {
   int _points = 0;
   int get points => _points;
 
+  int _verifiedSkillsCount = 0;
+  int get verifiedSkillsCount => _verifiedSkillsCount;
+
   bool _isLoading = false;
   bool get isLoading => _isLoading;
 
-  List<Mentor> _suggestedMentors = [];
-  List<Mentor> get suggestedMentors => _suggestedMentors;
+  final QuestionService _questionService = QuestionService();
+
+  List<QuestionModel> _latestQuestions = [];
+  List<QuestionModel> get latestQuestions => _latestQuestions;
 
   List<HomeEventPreview> _upcomingEvents = [];
   List<HomeEventPreview> get upcomingEvents => _upcomingEvents;
 
   HomeViewModel({this.currentUserId}) {
-    _loadData();
+    refresh();
   }
 
-  Future<void> _loadData() async {
+  Future<void> refresh() async {
     _isLoading = true;
     notifyListeners();
 
-    // Keep existing mentor mock data for now.
-    _suggestedMentors = [
-      Mentor(
-        name: 'Sarah Chen',
-        role: 'Product Designer',
-        company: 'Google',
-        imageUrl: '',
-      ),
-      Mentor(
-        name: 'Alex Morgan',
-        role: 'Flutter Expert',
-        company: 'Freelance',
-        imageUrl: '',
-      ),
-      Mentor(
-        name: 'David Kim',
-        role: 'Senior Engineer',
-        company: 'Amazon',
-        imageUrl: '',
-      ),
-    ];
+    _latestQuestions = await _questionService.getLatestQuestions(limit: 5);
 
     await _loadUserReputation();
+    await _loadVerifiedSkillsCount();
     await _loadUpcomingEventsFromDb();
 
     _isLoading = false;
@@ -95,6 +70,25 @@ class HomeViewModel extends ChangeNotifier {
       _points = user?.reputation ?? 0;
     } catch (_) {
       _points = 0;
+    }
+  }
+
+  Future<void> _loadVerifiedSkillsCount() async {
+    final userId = currentUserId ?? _supabase.auth.currentUser?.id;
+    if (userId == null) {
+      _verifiedSkillsCount = 0;
+      return;
+    }
+
+    try {
+      final res = await _supabase
+          .from('user_skills')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('is_verified', true);
+      _verifiedSkillsCount = (res as List).length;
+    } catch (_) {
+      _verifiedSkillsCount = 0;
     }
   }
 

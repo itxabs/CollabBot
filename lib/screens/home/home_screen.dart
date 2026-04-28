@@ -4,6 +4,8 @@ import '../../core/constants/colors.dart';
 import '../../core/constants/text_styles.dart';
 import '../../view_model/home_view_model.dart';
 import '../../view_model/auth_view_model.dart';
+import '../../data/models/question_model.dart';
+import '../questions/question_detail_screen.dart';
 import '../main_navigation.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -36,9 +38,12 @@ class _HomeContent extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
+        child: RefreshIndicator(
+          onRefresh: () => viewModel.refresh(),
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
@@ -96,19 +101,51 @@ class _HomeContent extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'My Points',
-                      style: AppTextStyles.bodyMedium.copyWith(
-                        color: Colors.white70,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '${viewModel.points}',
-                      style: AppTextStyles.h1.copyWith(
-                        color: Colors.white,
-                        fontSize: 36,
-                      ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'My Points',
+                                style: AppTextStyles.bodyMedium.copyWith(
+                                  color: Colors.white70,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '${viewModel.points}',
+                                style: AppTextStyles.h1.copyWith(
+                                  color: Colors.white,
+                                  fontSize: 36,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Verified Skills',
+                                style: AppTextStyles.bodyMedium.copyWith(
+                                  color: Colors.white70,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '${viewModel.verifiedSkillsCount}',
+                                style: AppTextStyles.h1.copyWith(
+                                  color: Colors.white,
+                                  fontSize: 36,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 16),
                     Container(
@@ -177,23 +214,42 @@ class _HomeContent extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Suggested for You', style: AppTextStyles.h3),
-                  Text('See All', style: AppTextStyles.link),
+                  Text('Latest Questions', style: AppTextStyles.h3),
+                  GestureDetector(
+                    onTap: () => Navigator.pushNamed(context, '/questions'),
+                    child: Text('See All', style: AppTextStyles.link),
+                  ),
                 ],
               ),
               const SizedBox(height: 16),
 
               if (viewModel.isLoading)
                 const Center(child: CircularProgressIndicator())
+              else if (viewModel.latestQuestions.isEmpty)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Text(
+                    'No questions asked yet.',
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                )
               else
                 ListView.separated(
                   physics: const NeverScrollableScrollPhysics(),
                   shrinkWrap: true,
-                  itemCount: viewModel.suggestedMentors.length,
+                  itemCount: viewModel.latestQuestions.length,
                   separatorBuilder: (_, __) => const SizedBox(height: 16),
                   itemBuilder: (context, index) {
-                    final mentor = viewModel.suggestedMentors[index];
-                    return _buildMentorCard(mentor);
+                    final question = viewModel.latestQuestions[index];
+                    return _buildQuestionCard(question, context);
                   },
                 ),
               const SizedBox(height: 28),
@@ -252,6 +308,7 @@ class _HomeContent extends StatelessWidget {
             ],
           ),
         ),
+        ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
@@ -299,45 +356,103 @@ class _HomeContent extends StatelessWidget {
     );
   }
 
-  Widget _buildMentorCard(Mentor mentor) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 24,
-            backgroundColor: AppColors.background,
-            child: Text(
-              mentor.name[0],
-              style: AppTextStyles.h3.copyWith(fontSize: 18),
-            ),
+  Widget _buildQuestionCard(QuestionModel question, BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => QuestionDetailScreen(question: question),
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
-                Text(
-                  mentor.name,
-                  style: AppTextStyles.bodyLarge.copyWith(
-                    fontWeight: FontWeight.w600,
+                CircleAvatar(
+                  radius: 16,
+                  backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+                  child: Text(
+                    question.authorName.isNotEmpty ? question.authorName[0].toUpperCase() : '?',
+                    style: AppTextStyles.bodyMedium.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        question.authorName,
+                        style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600),
+                      ),
+                      if (question.authorRole != null && question.authorRole!.isNotEmpty)
+                        Text(
+                          question.authorRole!,
+                          style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary, fontSize: 10),
+                        ),
+                    ],
                   ),
                 ),
                 Text(
-                  '${mentor.role} at ${mentor.company}',
-                  style: AppTextStyles.bodyMedium,
+                  question.formattedDate,
+                  style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
                 ),
               ],
             ),
-          ),
-          Icon(Icons.chevron_right, color: AppColors.textSecondary),
-        ],
+            const SizedBox(height: 12),
+            Text(
+              question.title,
+              style: AppTextStyles.bodyLarge.copyWith(fontWeight: FontWeight.bold),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                _buildStatBadge(Icons.thumb_up_outlined, '${question.upvotes}'),
+                const SizedBox(width: 16),
+                _buildStatBadge(Icons.chat_bubble_outline, '${question.answerCount}'),
+                const Spacer(),
+                if (question.tags.isNotEmpty)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.background,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      question.tags.first,
+                      style: AppTextStyles.bodySmall.copyWith(color: AppColors.primary, fontSize: 10),
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ),
       ),
+    );
+  }
+
+  Widget _buildStatBadge(IconData icon, String value) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: AppColors.textSecondary),
+        const SizedBox(width: 4),
+        Text(
+          value,
+          style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
+        ),
+      ],
     );
   }
 

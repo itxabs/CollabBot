@@ -22,6 +22,25 @@ class QuestionService {
     }
   }
 
+  Future<List<QuestionModel>> getLatestQuestions({int limit = 5}) async {
+    try {
+      final response = await _client
+          .from('questions')
+          .select(
+            '*, users(full_name, role), question_tags(tags(name)), answers(count)',
+          )
+          .order('created_at', ascending: false)
+          .limit(limit);
+
+      return (response as List)
+          .map((json) => QuestionModel.fromJson(json))
+          .toList();
+    } catch (e) {
+      print('Error fetching latest questions: $e');
+      return [];
+    }
+  }
+
   Future<void> incrementViewCount(String questionId) async {
     try {
       await _client.rpc('increment_view_count', params: {'row_id': questionId});
