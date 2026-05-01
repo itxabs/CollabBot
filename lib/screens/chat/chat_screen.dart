@@ -13,6 +13,7 @@ import '../../data/models/message_model.dart';
 import '../../core/services/chat_presence_service.dart';
 import '../../view_model/chat_view_model.dart';
 import '../../widgets/user_role_icon.dart';
+import '../../widgets/report_bottom_sheet.dart';
 
 class ChatScreen extends StatelessWidget {
   final String chatId;
@@ -560,7 +561,36 @@ class _ChatScreenContentState extends State<_ChatScreenContent> {
               ),
             ),
           ],
-        ),
+        actions: [
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            onSelected: (value) {
+              if (value == 'report') {
+                showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  backgroundColor: Colors.transparent,
+                  builder: (context) => ReportBottomSheet(
+                    targetUserId: widget.otherUserId,
+                    contentType: 'user',
+                  ),
+                );
+              }
+            },
+            itemBuilder: (BuildContext context) => [
+              const PopupMenuItem<String>(
+                value: 'report',
+                child: Row(
+                  children: [
+                    Icon(Icons.flag_outlined, color: Colors.red, size: 20),
+                    SizedBox(width: 12),
+                    Text('Report User', style: TextStyle(color: Colors.red)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
         centerTitle: false,
         elevation: 1,
       ),

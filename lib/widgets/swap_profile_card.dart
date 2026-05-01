@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'report_bottom_sheet.dart';
 
 class SwapProfileCard extends StatelessWidget {
   final Map<String, dynamic> profile;
@@ -68,6 +69,33 @@ class SwapProfileCard extends StatelessWidget {
                         const SizedBox(width: 4),
                         Text(distance, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                       ],
+                    ),
+                  ),
+                ),
+
+                // Report Button
+                Positioned(
+                  top: 16,
+                  left: 16,
+                  child: GestureDetector(
+                    onTap: () {
+                      showModalBottomSheet(
+                        context: context,
+                        isScrollControlled: true,
+                        backgroundColor: Colors.transparent,
+                        builder: (context) => ReportBottomSheet(
+                          targetUserId: profile['user_id'],
+                          contentType: 'user',
+                        ),
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.9),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.flag_outlined, color: Color(0xFFEF4444), size: 20),
                     ),
                   ),
                 ),
