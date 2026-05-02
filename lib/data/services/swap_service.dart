@@ -7,10 +7,10 @@ class SwapService {
   /// Your PC's local Wi-Fi IP. Update if your IP changes.
   static String get baseUrl {
     if (Platform.isAndroid) {
-      return 'http://192.168.100.8:8000';
+      return 'http://192.168.10.6:8000';
     }
     if (Platform.isIOS) {
-      return 'http://192.168.100.8:8000';
+      return 'http://192.168.10.6:8000';
     }
     return 'http://127.0.0.1:8000';
   }

@@ -3,6 +3,8 @@ import '../data/models/report_model.dart';
 import '../data/services/report_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../core/constants/colors.dart';
+
 class ReportBottomSheet extends StatefulWidget {
   final String? targetUserId;
   final String? targetContentId;
@@ -26,11 +28,10 @@ class _ReportBottomSheetState extends State<ReportBottomSheet> {
 
   final List<String> reasons = [
     'Fake Profile / Impersonation',
-    'Harassment / Abusive Behavior',
-    'Spam / Irrelevant Content',
-    'Scam / Fraudulent Activity',
     'Academic Dishonesty / Plagiarism',
-    'Off-Platform Payment Request',
+    'Harassment / Abusive Behavior',
+    'Irrelevant Outreach / Spam',
+    'Ghosting / Project Abandonment',
     'Other',
   ];
 
@@ -62,14 +63,14 @@ class _ReportBottomSheetState extends State<ReportBottomSheet> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Report submitted successfully. We will review it.'),
-            backgroundColor: Colors.green,
+            backgroundColor: AppColors.success,
           ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to submit report: $e')),
+          SnackBar(content: Text('Failed to submit report: $e'), backgroundColor: AppColors.error),
         );
       }
     } finally {
@@ -113,7 +114,7 @@ class _ReportBottomSheetState extends State<ReportBottomSheet> {
             const SizedBox(height: 8),
             Text(
               'Why are you reporting this ${widget.contentType}?',
-              style: TextStyle(color: Colors.grey[600]),
+              style: TextStyle(color: AppColors.textSecondary),
             ),
             const SizedBox(height: 16),
             ...reasons.map((reason) => RadioListTile<String>(
@@ -122,7 +123,7 @@ class _ReportBottomSheetState extends State<ReportBottomSheet> {
                   groupValue: selectedReason,
                   onChanged: (value) => setState(() => selectedReason = value),
                   contentPadding: EdgeInsets.zero,
-                  activeColor: const Color(0xFF8B5CF6),
+                  activeColor: AppColors.primary,
                 )),
             const SizedBox(height: 16),
             TextField(
@@ -131,6 +132,10 @@ class _ReportBottomSheetState extends State<ReportBottomSheet> {
                 hintText: 'Additional details (optional)',
                 hintStyle: const TextStyle(fontSize: 14),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppColors.primary),
+                ),
               ),
               maxLines: 2,
             ),
@@ -141,7 +146,7 @@ class _ReportBottomSheetState extends State<ReportBottomSheet> {
               child: ElevatedButton(
                 onPressed: isSubmitting ? null : _submitReport,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFEF4444),
+                  backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   elevation: 0,

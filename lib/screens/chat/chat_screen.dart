@@ -41,6 +41,7 @@ class ChatScreen extends StatelessWidget {
         chatId: chatId,
         otherUserName: otherName,
         otherUserRole: otherUserRole,
+        otherUserId: otherUserId,
       ),
     );
   }
@@ -50,10 +51,12 @@ class _ChatScreenContent extends StatefulWidget {
   final String chatId;
   final String otherUserName;
   final String? otherUserRole;
+  final String? otherUserId;
   const _ChatScreenContent({
     required this.chatId,
     required this.otherUserName,
     this.otherUserRole,
+    this.otherUserId,
   });
 
   @override
@@ -561,6 +564,7 @@ class _ChatScreenContentState extends State<_ChatScreenContent> {
               ),
             ),
           ],
+        ),
         actions: [
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert),
