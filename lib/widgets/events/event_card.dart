@@ -1,5 +1,6 @@
 import 'package:collab_bot/widgets/events/info_row.dart';
 import 'package:flutter/material.dart';
+import '../report_bottom_sheet.dart';
 
 class EventCard extends StatefulWidget {
   final String tag;
@@ -12,6 +13,8 @@ class EventCard extends StatefulWidget {
   final String attendees;
   final String? imageUrl;
   final bool isSaved;
+  final String eventId;
+  final String creatorId;
   final Future<void> Function()? onRegister;
   final VoidCallback? onSave;
 
@@ -25,6 +28,8 @@ class EventCard extends StatefulWidget {
     required this.time,
     required this.location,
     required this.attendees,
+    required this.eventId,
+    required this.creatorId,
     this.imageUrl,
     this.isSaved = false,
     this.onRegister,
@@ -115,11 +120,41 @@ class _EventCardState extends State<EventCard> {
                         constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
                       ),
                     ),
-                  ],
+                      const SizedBox(width: 8),
+                      // Report button
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.9),
+                          shape: BoxShape.circle,
+                          boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4)],
+                        ),
+                        child: IconButton(
+                          icon: const Icon(
+                            Icons.flag_outlined,
+                            color: Colors.redAccent,
+                            size: 20,
+                          ),
+                          onPressed: () {
+                            showModalBottomSheet(
+                              context: context,
+                              isScrollControlled: true,
+                              backgroundColor: Colors.transparent,
+                              builder: (context) => ReportBottomSheet(
+                                targetUserId: widget.creatorId,
+                                targetContentId: widget.eventId,
+                                contentType: 'event',
+                              ),
+                            );
+                          },
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            ),
 
           /// Content
           Container(

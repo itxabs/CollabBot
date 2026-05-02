@@ -239,7 +239,9 @@ class _EventsContent extends StatelessWidget {
                           imageUrl: event.imageUrl,
                           attendees:
                               '${event.enrolledCount} / ${event.totalSeats} spots',
-                          isSaved: viewModel.isEventSaved(event.eventId),
+                          eventId: event.eventId ?? '',
+                          creatorId: event.creatorId,
+                          isSaved: viewModel.isEventSaved(event.eventId ?? ''),
                           onSave: () => viewModel.toggleSaveEvent(event),
                           onRegister: () async {
                             // Check capacity
