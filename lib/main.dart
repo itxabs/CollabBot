@@ -12,6 +12,7 @@ import 'screens/auth/otp_screen.dart';
 import 'screens/auth/forget_pass_screen.dart';
 import 'screens/auth/signup_screen.dart';
 import 'screens/main_navigation.dart';
+import 'data/models/job_model.dart';
 import 'screens/chat/chat_list_screen.dart';
 import 'local_db/local_message_db.dart';
 import 'screens/chat/new_chat_screen.dart';
@@ -26,6 +27,7 @@ import 'view_model/profile_setup_view_model.dart';
 import 'view_model/experience_view_model.dart';
 import 'view_model/skills_view_model.dart';
 import 'view_model/message_notification_view_model.dart';
+import 'view_model/jobs_view_model.dart';
 import 'screens/screens.dart'; // ✅ Use this to access all screens
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
@@ -57,6 +59,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ExperienceViewModel()),
         ChangeNotifierProvider(create: (_) => SkillsViewModel()),
         ChangeNotifierProvider(create: (_) => MessageNotificationViewModel()),
+        ChangeNotifierProvider(create: (_) => JobsViewModel()),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
@@ -113,6 +116,19 @@ class MyApp extends StatelessWidget {
             );
           },
           AppRoutes.profileSetup: (context) => const ProfileSetupScreen(),
+          AppRoutes.profileComplete: (context) => const ProfileCompleteScreen(),
+          AppRoutes.jobListings: (context) => CareerOpportunitiesScreen(),
+          AppRoutes.jobDetail: (context) {
+            final job = ModalRoute.of(context)?.settings.arguments as JobModel;
+            return JobDetailScreen(job: job);
+          },
+          AppRoutes.savedJobs: (context) => const SavedJobsScreen(),
+          AppRoutes.jobApplication: (context) {
+            final job = ModalRoute.of(context)?.settings.arguments as JobModel;
+            return JobApplicationScreen(job: job);
+          },
+          AppRoutes.myApplications: (context) => const MyApplicationsScreen(),
+          AppRoutes.postJob: (context) => const PostJobScreen(),
         },
       ),
     );

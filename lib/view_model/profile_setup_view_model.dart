@@ -123,7 +123,7 @@ class ProfileSetupViewModel extends ChangeNotifier {
       await authViewModel.initializeCurrentUser();
 
       if (context.mounted) {
-        Navigator.pushReplacementNamed(context, AppRoutes.home);
+        Navigator.pushReplacementNamed(context, AppRoutes.profileComplete);
       }
     } catch (e) {
       _errorMessage = e.toString();

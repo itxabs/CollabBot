@@ -472,7 +472,7 @@ class _AnswerCard extends StatelessWidget {
                     children: [
                       CircleAvatar(
                         radius: 14,
-                        backgroundColor: AppColors.secondary,
+                        backgroundColor: AppColors.primary,
                         child: Text(
                           answer.authorName[0].toUpperCase(),
                           style: const TextStyle(

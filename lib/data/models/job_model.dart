@@ -1,54 +1,82 @@
 class JobModel {
-  final String jobId;
+  final String id;
+  final String creatorId;
   final String title;
+  final String company;
   final String description;
-  final String employmentType;
   final String location;
   final String salaryRange;
-  final String experienceRequired;
-  final List<String> skillsRequired;
-  final DateTime postedDate;
+  final String employmentType; // e.g. Full-time, Part-time, Internship
+  final String experienceLevel; // e.g. Junior, Mid, Senior
+  final List<String> requirements;
+  final List<String> skills;
+  final DateTime createdAt;
+  final DateTime? deadline;
+  final String status; // Approved, Pending, Rejected
+  final bool isRemote;
+  
+  // UI State fields (not necessarily in the jobs table)
+  bool isSaved;
+  bool isApplied;
+  String? applicationStatus; // Pending, Viewed, Shortlisted, Rejected
 
   JobModel({
-    required this.jobId,
+    required this.id,
+    required this.creatorId,
     required this.title,
+    required this.company,
     required this.description,
-    required this.employmentType,
     required this.location,
     required this.salaryRange,
-    required this.experienceRequired,
-    required this.skillsRequired,
-    required this.postedDate,
+    required this.employmentType,
+    required this.experienceLevel,
+    required this.requirements,
+    required this.skills,
+    required this.createdAt,
+    this.deadline,
+    required this.status,
+    this.isRemote = false,
+    this.isSaved = false,
+    this.isApplied = false,
+    this.applicationStatus,
   });
 
-  /// JSON → Dart
   factory JobModel.fromJson(Map<String, dynamic> json) {
     return JobModel(
-      jobId: json['job_id'] as String,
-      title: json['title'] as String,
-      description: json['description'] as String,
-      employmentType: json['employment_type'] as String,
-      location: json['location'] as String,
-      salaryRange: json['salary_range'] as String,
-      experienceRequired: json['experience_required'] as String,
-      skillsRequired:
-          List<String>.from(json['skills_required'] ?? []),
-      postedDate: DateTime.parse(json['posted_date']),
+      id: json['id'] as String? ?? json['job_id'] as String? ?? '',
+      creatorId: json['creator_id'] as String? ?? '',
+      title: json['title'] as String? ?? '',
+      company: json['company'] as String? ?? 'Unknown Company',
+      description: json['description'] as String? ?? '',
+      location: json['location'] as String? ?? '',
+      salaryRange: json['salary_range'] as String? ?? '',
+      employmentType: json['employment_type'] as String? ?? 'Full-time',
+      experienceLevel: json['experience_level'] as String? ?? 'Junior',
+      requirements: List<String>.from(json['requirements'] ?? []),
+      skills: List<String>.from(json['skills'] ?? json['skills_required'] ?? []),
+      createdAt: DateTime.tryParse(json['created_at'] ?? json['posted_date'] ?? '') ?? DateTime.now(),
+      deadline: json['deadline'] != null ? DateTime.tryParse(json['deadline']) : null,
+      status: (json['status_info'] as Map?)?['name'] as String? ?? json['status'] as String? ?? 'Approved',
+      isRemote: json['is_remote'] as bool? ?? false,
     );
   }
 
-  /// Dart → JSON (insert / update)
   Map<String, dynamic> toJson() {
     return {
-      'job_id': jobId,
       'title': title,
+      'company': company,
       'description': description,
-      'employment_type': employmentType,
       'location': location,
       'salary_range': salaryRange,
-      'experience_required': experienceRequired,
-      'skills_required': skillsRequired,
-      'posted_date': postedDate.toIso8601String(),
+      'employment_type': employmentType,
+      'experience_level': experienceLevel,
+      'requirements': requirements,
+      'skills': skills,
+      'creator_id': creatorId,
+      'status_id': 1, // 1 = Pending
+      'is_remote': isRemote,
+      'created_at': createdAt.toIso8601String(),
+      'deadline': deadline?.toIso8601String(),
     };
   }
 }
