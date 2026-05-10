@@ -1,3 +1,4 @@
+import 'dart:io';
 import '../models/profile_models.dart';
 import '../services/profile_service.dart';
 
@@ -19,6 +20,11 @@ abstract class ProfileRepository {
   });
   
   Future<void> verifySkill(String userSkillId);
+  Future<void> uploadProfilePicture(String userId, File file);
+  
+  Future<List<UserSocialLink>> getUserSocialLinks(String userId);
+  Future<void> addSocialLink(String userId, String platform, String url);
+  Future<void> deleteSocialLink(String id);
 }
 
 class ProfileRepositoryImpl implements ProfileRepository {
@@ -73,6 +79,27 @@ class ProfileRepositoryImpl implements ProfileRepository {
   @override
   Future<void> verifySkill(String userSkillId) async {
     return await _service.verifySkill(userSkillId);
+  }
+
+  @override
+  Future<void> uploadProfilePicture(String userId, File file) async {
+    final publicUrl = await _service.uploadAvatar(userId, file);
+    await _service.updateAvatarUrl(userId, publicUrl);
+  }
+
+  @override
+  Future<List<UserSocialLink>> getUserSocialLinks(String userId) async {
+    return await _service.getSocialLinks(userId);
+  }
+
+  @override
+  Future<void> addSocialLink(String userId, String platform, String url) async {
+    return await _service.addSocialLink(userId, platform, url);
+  }
+
+  @override
+  Future<void> deleteSocialLink(String id) async {
+    return await _service.deleteSocialLink(id);
   }
 }
 

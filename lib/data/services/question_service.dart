@@ -9,7 +9,7 @@ class QuestionService {
       final response = await _client
           .from('questions')
           .select(
-            '*, users(full_name), question_tags(tags(name)), answers(count)',
+            '*, users(full_name, role), question_tags(tags(name)), answers(count)',
           )
           .order('created_at', ascending: false);
 
@@ -18,6 +18,25 @@ class QuestionService {
           .toList();
     } catch (e) {
       print('Error fetching questions: $e');
+      return [];
+    }
+  }
+
+  Future<List<QuestionModel>> getLatestQuestions({int limit = 5}) async {
+    try {
+      final response = await _client
+          .from('questions')
+          .select(
+            '*, users(full_name, role), question_tags(tags(name)), answers(count)',
+          )
+          .order('created_at', ascending: false)
+          .limit(limit);
+
+      return (response as List)
+          .map((json) => QuestionModel.fromJson(json))
+          .toList();
+    } catch (e) {
+      print('Error fetching latest questions: $e');
       return [];
     }
   }
@@ -48,7 +67,7 @@ class QuestionService {
     try {
       final response = await _client
           .from('answers')
-          .select('*, users(full_name)')
+          .select('*, users(full_name, role)')
           .eq('question_id', questionId)
           .order('created_at', ascending: true);
 

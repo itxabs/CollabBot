@@ -4,6 +4,7 @@ class QuestionModel {
   final String id;
   final String authorId;
   final String authorName;
+  final String? authorRole;
   final String title;
   final String content;
   final DateTime createdAt;
@@ -18,6 +19,7 @@ class QuestionModel {
     required this.id,
     required this.authorId,
     required this.authorName,
+    this.authorRole,
     required this.title,
     required this.content,
     required this.createdAt,
@@ -34,6 +36,7 @@ class QuestionModel {
       id: json['id'] as String,
       authorId: json['author_id'] as String,
       authorName: json['users']?['full_name'] ?? 'Unknown User',
+      authorRole: json['users']?['role'] as String?,
       title: json['title'] as String,
       content: json['content'] as String,
       createdAt: DateTime.parse(json['created_at']),
@@ -69,6 +72,7 @@ class AnswerModel {
   final String questionId;
   final String authorId;
   final String authorName;
+  final String? authorRole;
   final String content;
   final bool isAccepted;
   final int upvotes;
@@ -80,6 +84,7 @@ class AnswerModel {
     required this.questionId,
     required this.authorId,
     required this.authorName,
+    this.authorRole,
     required this.content,
     this.isAccepted = false,
     this.upvotes = 0,
@@ -93,6 +98,7 @@ class AnswerModel {
       questionId: json['question_id'] as String,
       authorId: json['author_id'] as String,
       authorName: json['users']?['full_name'] ?? 'Unknown User',
+      authorRole: json['users']?['role'] as String?,
       content: json['content'] as String,
       isAccepted: json['is_accepted'] ?? false,
       upvotes: json['upvotes'] ?? 0,

@@ -10,18 +10,22 @@ import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../data/models/message_model.dart';
+import '../../core/services/chat_presence_service.dart';
 import '../../view_model/chat_view_model.dart';
+import '../../widgets/user_role_icon.dart';
 
 class ChatScreen extends StatelessWidget {
   final String chatId;
   final String otherName;
   final String? otherUserId;
+  final String? otherUserRole;
 
   const ChatScreen({
     super.key,
     required this.chatId,
     required this.otherName,
     this.otherUserId,
+    this.otherUserRole,
   });
 
   @override
@@ -32,14 +36,24 @@ class ChatScreen extends StatelessWidget {
         otherUserName: otherName,
         otherUserId: otherUserId,
       ),
-      child: _ChatScreenContent(otherUserName: otherName),
+      child: _ChatScreenContent(
+        chatId: chatId,
+        otherUserName: otherName,
+        otherUserRole: otherUserRole,
+      ),
     );
   }
 }
 
 class _ChatScreenContent extends StatefulWidget {
+  final String chatId;
   final String otherUserName;
-  const _ChatScreenContent({required this.otherUserName});
+  final String? otherUserRole;
+  const _ChatScreenContent({
+    required this.chatId,
+    required this.otherUserName,
+    this.otherUserRole,
+  });
 
   @override
   State<_ChatScreenContent> createState() => _ChatScreenContentState();
@@ -54,11 +68,13 @@ class _ChatScreenContentState extends State<_ChatScreenContent> {
   @override
   void initState() {
     super.initState();
+    ChatPresenceService.instance.setActiveChat(widget.chatId);
     _currentPositionFuture = _resolveCurrentPosition();
   }
 
   @override
   void dispose() {
+    ChatPresenceService.instance.clearActiveChat(widget.chatId);
     _controller.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -513,22 +529,35 @@ class _ChatScreenContentState extends State<_ChatScreenContent> {
               ),
             ),
             const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  widget.otherUserName,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          widget.otherUserName,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      if ((widget.otherUserRole ?? '').trim().isNotEmpty) ...[
+                        const SizedBox(width: 4),
+                        UserRoleIcon(role: widget.otherUserRole),
+                      ],
+                    ],
                   ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'Online',
-                  style: TextStyle(fontSize: 12, color: Colors.green.shade200),
-                ),
-              ],
+                  const SizedBox(height: 2),
+                  Text(
+                    'Online',
+                    style: TextStyle(fontSize: 12, color: Colors.green.shade200),
+                  ),
+                ],
+              ),
             ),
           ],
         ),

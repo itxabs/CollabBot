@@ -9,8 +9,10 @@ class UserService {
     try {
       final response = await supabase
           .from('users')
-          .select()
-          .eq('user_id', userId)
+          .select(
+            'id, email, full_name, role, reputation, avatar_url, dob, created_at',
+          )
+          .eq('id', userId)
           .maybeSingle(); // <- updated method
 
       if (response == null) return null;

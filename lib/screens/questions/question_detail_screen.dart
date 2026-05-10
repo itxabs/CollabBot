@@ -4,6 +4,7 @@ import '../../core/constants/colors.dart';
 import '../../core/constants/text_styles.dart';
 import '../../view_model/questions/questions_view_model.dart';
 import '../../data/models/question_model.dart';
+import '../../widgets/user_role_icon.dart';
 
 class QuestionDetailScreen extends StatefulWidget {
   final QuestionModel question;
@@ -287,20 +288,33 @@ class _QuestionHeader extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 10),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    question.authorName,
-                    style: AppTextStyles.bodyMedium.copyWith(
-                      fontWeight: FontWeight.w600,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            question.authorName,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTextStyles.bodyMedium.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        if ((question.authorRole ?? '').trim().isNotEmpty) ...[
+                          const SizedBox(width: 4),
+                          UserRoleIcon(role: question.authorRole),
+                        ],
+                      ],
                     ),
-                  ),
-                  Text(
-                    'asked ${_formatTimeAgo(question.createdAt)}',
-                    style: AppTextStyles.bodySmall,
-                  ),
-                ],
+                    Text(
+                      'asked ${_formatTimeAgo(question.createdAt)}',
+                      style: AppTextStyles.bodySmall,
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -451,11 +465,24 @@ class _AnswerCard extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              answer.authorName,
-                              style: AppTextStyles.bodyMedium.copyWith(
-                                fontWeight: FontWeight.w600,
-                              ),
+                            Row(
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    answer.authorName,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: AppTextStyles.bodyMedium.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                                if ((answer.authorRole ?? '')
+                                    .trim()
+                                    .isNotEmpty) ...[
+                                  const SizedBox(width: 4),
+                                  UserRoleIcon(role: answer.authorRole),
+                                ],
+                              ],
                             ),
                             Text(
                               'answered ${_formatTimeAgo(answer.createdAt)}',

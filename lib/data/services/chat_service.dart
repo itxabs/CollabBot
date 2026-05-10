@@ -8,6 +8,28 @@ class ChatService {
 
   ChatService(this._supabase);
 
+  Stream<List<Map<String, dynamic>>> subscribeToAllMessages() {
+    return _supabase
+        .from('messages')
+        .stream(primaryKey: ['id'])
+        .order('created_at', ascending: true)
+        .map(
+          (rows) => rows
+              .map((row) => Map<String, dynamic>.from(row as Map))
+              .toList(),
+        );
+  }
+
+  Future<String> getUserNameById(String userId) async {
+    final row = await _supabase
+        .from('users')
+        .select('full_name')
+        .eq('id', userId)
+        .maybeSingle();
+    final map = row as Map<String, dynamic>?;
+    return (map?['full_name'] as String?) ?? 'Unknown';
+  }
+
   Future<List<ChatSummary>> getUserChats(String currentUserId) async {
     try {
       final chatParticipantRows = await _supabase
@@ -35,7 +57,7 @@ class ChatService {
 
         final otherUserRow = await _supabase
             .from('users')
-            .select('id, full_name')
+            .select('id, full_name, avatar_url, role')
             .eq('id', otherUserId)
             .maybeSingle();
 
@@ -43,6 +65,8 @@ class ChatService {
         final otherName = otherUserMap != null
             ? otherUserMap['full_name'] as String
             : 'Unknown';
+        final otherAvatarUrl = otherUserMap?['avatar_url'] as String?;
+        final otherRole = otherUserMap?['role'] as String?;
 
         final lastMessageRows = await _supabase
             .from('messages')
@@ -66,6 +90,8 @@ class ChatService {
             chatId: chatId,
             otherUserId: otherUserId,
             otherUserName: otherName,
+            otherUserAvatarUrl: otherAvatarUrl,
+            otherUserRole: otherRole,
             lastMessage: lastMessage,
             lastMessageAt: lastMessageAt,
             hasUnread: false,
@@ -91,7 +117,7 @@ class ChatService {
     try {
       final response = await _supabase
           .from('users')
-          .select('id, full_name, email')
+          .select('id, full_name, email, role')
           .ilike('full_name', '%$query%')
           .neq('id', currentUserId)
           .limit(50);

@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/constants/routes.dart';
 import '../data/models/profile_models.dart';
@@ -13,15 +15,19 @@ class ProfileViewModel extends ChangeNotifier {
   UserProfile? _user;
   List<UserSkill> _skills = [];
   List<Experience> _experiences = [];
+  List<UserSocialLink> _socialLinks = [];
 
   bool _isLoading = false;
+  bool _isUploading = false;
   String? _errorMessage;
 
   // Getters
   UserProfile? get user => _user;
   List<UserSkill> get skills => _skills;
   List<Experience> get experiences => _experiences;
+  List<UserSocialLink> get socialLinks => _socialLinks;
   bool get isLoading => _isLoading;
+  bool get isUploading => _isUploading;
   String? get errorMessage => _errorMessage;
 
   // Computed Properties for UI
@@ -71,11 +77,13 @@ class ProfileViewModel extends ChangeNotifier {
         _profileRepository.getUserProfile(userId),
         _profileRepository.getUserSkills(userId),
         _profileRepository.getUserExperiences(userId),
+        _profileRepository.getUserSocialLinks(userId),
       ]);
 
       _user = results[0] as UserProfile;
       _skills = results[1] as List<UserSkill>;
       _experiences = results[2] as List<Experience>;
+      _socialLinks = results[3] as List<UserSocialLink>;
     } catch (e) {
       _errorMessage = e.toString();
     } finally {
@@ -92,6 +100,36 @@ class ProfileViewModel extends ChangeNotifier {
         AppRoutes.login,
         (route) => false,
       );
+    }
+  }
+
+  // Image Picking and Upload
+  Future<void> pickAndUploadImage() async {
+    final ImagePicker picker = ImagePicker();
+    try {
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 70,
+      );
+
+      if (image == null) return;
+
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user == null) return;
+
+      _isUploading = true;
+      notifyListeners();
+
+      final File file = File(image.path);
+      await _profileRepository.uploadProfilePicture(user.id, file);
+
+      // Refresh data
+      await _loadData();
+    } catch (e) {
+      _errorMessage = 'Failed to upload profile picture: $e';
+    } finally {
+      _isUploading = false;
+      notifyListeners();
     }
   }
 }
