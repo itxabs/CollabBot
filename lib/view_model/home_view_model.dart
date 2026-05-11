@@ -55,8 +55,14 @@ class HomeViewModel extends ChangeNotifier {
     await _loadUpcomingEventsFromDb();
 
     _isLoading = false;
-    notifyListeners();
+    // Safety check before notifying listeners
+    try {
+      notifyListeners();
+    } catch (_) {
+      // ViewModel was likely disposed during async operation
+    }
   }
+
 
   Future<void> _loadUserReputation() async {
     final userId = currentUserId ?? _supabase.auth.currentUser?.id;

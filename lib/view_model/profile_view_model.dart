@@ -17,11 +17,15 @@ class ProfileViewModel extends ChangeNotifier {
   List<Experience> _experiences = [];
   List<UserSocialLink> _socialLinks = [];
 
+  final String? targetUserId;
+
   bool _isLoading = false;
   bool _isUploading = false;
   String? _errorMessage;
 
   // Getters
+  bool get isOwnProfile => targetUserId == null || targetUserId == Supabase.instance.client.auth.currentUser?.id;
+
   UserProfile? get user => _user;
   List<UserSkill> get skills => _skills;
   List<Experience> get experiences => _experiences;
@@ -48,12 +52,13 @@ class ProfileViewModel extends ChangeNotifier {
     }
   }
 
-  ProfileViewModel()
+  ProfileViewModel({this.targetUserId})
     : _profileRepository = ProfileRepositoryImpl(
         ProfileService(Supabase.instance.client),
       ) {
     _loadData();
   }
+
 
   Future<void> refresh() => _loadData();
 
@@ -70,7 +75,8 @@ class ProfileViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final userId = currentUser.id;
+      final userId = targetUserId ?? currentUser.id;
+
 
       // Parallel fetching for performance
       final results = await Future.wait([

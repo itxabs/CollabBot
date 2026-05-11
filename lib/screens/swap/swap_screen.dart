@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:http/http.dart' as http;
 import '../../widgets/swap_profile_card.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/text_styles.dart';
@@ -52,6 +53,8 @@ class _SwapScreenState extends State<SwapScreen>
     super.dispose();
   }
 
+  dynamic _matchesSubscription;
+
   void _setupRealtimeListener() {
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) return;
@@ -62,9 +65,45 @@ class _SwapScreenState extends State<SwapScreen>
         .stream(primaryKey: ['id'])
         .eq('target_id', user.id)
         .listen((data) {
-          print('SwapScreen: Real-time update detected in swipe_actions');
+          print('SwapScreen: Real-time update in swipe_actions');
           _fetchCounts();
         });
+
+    // Listen for new matches
+    _matchesSubscription = Supabase.instance.client
+        .from('matches')
+        .stream(primaryKey: ['id'])
+        .listen((data) {
+          print('SwapScreen: Real-time update in matches');
+          _fetchCounts();
+        });
+
+  }
+
+  void _resetAllSwipes() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return;
+
+    setState(() => _isLoading = true);
+    try {
+      // We'll call a new endpoint or just truncate via Supabase client if permissions allow
+      // For safety, let's assume we need a backend endpoint or a loop
+      // But since we want to avoid SQL, let's just use the 'restore' action in a loop or a new endpoint
+      
+      // I'll add a "reset" endpoint to the backend for convenience
+      final url = Uri.parse('${SwapService.baseUrl}/swap/reset?user_id=${user.id}');
+      final response = await http.post(url);
+      
+      if (response.statusCode == 200) {
+        _fetchProfiles();
+        _fetchCounts();
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Swipes reset successfully!')));
+      }
+    } catch (e) {
+      print('Reset error: $e');
+    } finally {
+      setState(() => _isLoading = false);
+    }
   }
 
   void _fetchCounts() async {
@@ -73,6 +112,7 @@ class _SwapScreenState extends State<SwapScreen>
       setState(() => _counts = counts);
     }
   }
+
 
   // ─── Location ─────────────────────────────────────────────────────────────
 
@@ -713,11 +753,31 @@ class _SwapScreenState extends State<SwapScreen>
               }).toList(),
             ),
             const SizedBox(height: 32),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _resetAllSwipes();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red.shade50,
+                  foregroundColor: Colors.red,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: Colors.red.shade100)),
+                ),
+                icon: const Icon(Icons.refresh_rounded),
+                label: const Text('Reset All Swipes', style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
+            ),
+            const SizedBox(height: 16),
           ],
         ),
       ),
     );
   }
+
 
   void _showProfileDetails(Map<String, dynamic> profile) {
     // Record view in background
@@ -946,12 +1006,15 @@ class _ProfileDetailSheetState extends State<_ProfileDetailSheet> with SingleTic
   late TabController _tabController;
   List<Map<String, dynamic>> _userEvents = [];
   bool _loadingEvents = true;
+  List<Map<String, dynamic>> _matches = [];
+  bool _loadingMatches = true;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     _fetchUserEvents();
+    _fetchMatches();
   }
 
   void _fetchUserEvents() async {
@@ -960,6 +1023,16 @@ class _ProfileDetailSheetState extends State<_ProfileDetailSheet> with SingleTic
       setState(() {
         _userEvents = events;
         _loadingEvents = false;
+      });
+    }
+  }
+
+  void _fetchMatches() async {
+    final matches = await SwapService.getMatches();
+    if (mounted) {
+      setState(() {
+        _matches = matches;
+        _loadingMatches = false;
       });
     }
   }
@@ -990,7 +1063,12 @@ class _ProfileDetailSheetState extends State<_ProfileDetailSheet> with SingleTic
                       CircleAvatar(
                         radius: 30,
                         backgroundColor: const Color(0xFFEEF2FF),
-                        child: Text(widget.profile['initials'] ?? 'U', style: const TextStyle(color: Color(0xFF5046E5), fontWeight: FontWeight.bold)),
+                        backgroundImage: widget.profile['profile_picture_url'] != null && widget.profile['profile_picture_url'].isNotEmpty
+                            ? NetworkImage(widget.profile['profile_picture_url'])
+                            : null,
+                        child: widget.profile['profile_picture_url'] == null || widget.profile['profile_picture_url'].isEmpty
+                            ? Text(widget.profile['initials'] ?? 'U', style: const TextStyle(color: Color(0xFF5046E5), fontWeight: FontWeight.bold))
+                            : null,
                       ),
                       const SizedBox(width: 16),
                       Expanded(
@@ -999,9 +1077,34 @@ class _ProfileDetailSheetState extends State<_ProfileDetailSheet> with SingleTic
                           children: [
                             Text('${widget.profile['name']}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
                             Text(widget.profile['title'] ?? 'Collaborator', style: const TextStyle(color: Color(0xFF6B7280))),
+                            const SizedBox(height: 8),
+                            GestureDetector(
+                              onTap: () {
+                                // For now, navigate to profile or show a placeholder
+                                // Navigator.pushNamed(context, AppRoutes.profile, arguments: {'userId': widget.profile['user_id']});
+                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Resume view coming soon!')));
+                              },
+
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF5046E5).withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.description_outlined, size: 14, color: Color(0xFF5046E5)),
+                                    SizedBox(width: 4),
+                                    Text('View Resume', style: TextStyle(color: Color(0xFF5046E5), fontSize: 12, fontWeight: FontWeight.bold)),
+                                  ],
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                       ),
+
                     ],
                   ),
                   const SizedBox(height: 24),
@@ -1083,19 +1186,25 @@ class _ProfileDetailSheetState extends State<_ProfileDetailSheet> with SingleTic
       separatorBuilder: (_, __) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
         final event = _userEvents[index];
-        return Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            border: Border.all(color: const Color(0xFFE5E7EB)),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(event['title'] ?? 'Untitled Event', style: const TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 4),
-              Text(event['date'] ?? '', style: const TextStyle(color: Color(0xFF5046E5), fontSize: 13)),
-            ],
+        return GestureDetector(
+          onTap: () {
+            // Logic to navigate to event details if needed
+             Navigator.pushNamed(context, AppRoutes.events, arguments: {'eventId': event['id']});
+          },
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              border: Border.all(color: const Color(0xFFE5E7EB)),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(event['title'] ?? 'Untitled Event', style: const TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 4),
+                Text(event['date'] ?? '', style: const TextStyle(color: Color(0xFF5046E5), fontSize: 13)),
+              ],
+            ),
           ),
         );
       },
@@ -1103,6 +1212,33 @@ class _ProfileDetailSheetState extends State<_ProfileDetailSheet> with SingleTic
   }
 
   Widget _buildConnectionTab() {
-    return const Center(child: Text('Coming soon!'));
+    if (_loadingMatches) return const Center(child: CircularProgressIndicator());
+    if (_matches.isEmpty) return const Center(child: Text('No mutual connections yet. Start swiping!'));
+
+    return ListView.separated(
+      padding: const EdgeInsets.symmetric(vertical: 20),
+      itemCount: _matches.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      itemBuilder: (context, index) {
+        final match = _matches[index];
+        return ListTile(
+          leading: CircleAvatar(
+             backgroundImage: match['profile_picture_url'] != null && match['profile_picture_url'].isNotEmpty
+                            ? NetworkImage(match['profile_picture_url'])
+                            : null,
+            child: match['profile_picture_url'] == null || match['profile_picture_url'].isEmpty
+                            ? Text(match['initials'] ?? 'U')
+                            : null,
+          ),
+          title: Text(match['name'] ?? 'User', style: const TextStyle(fontWeight: FontWeight.bold)),
+          subtitle: Text(match['role'] ?? 'Collaborator'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () {
+             // Optional: Navigate to matched user profile
+          },
+        );
+      },
+    );
   }
 }
+

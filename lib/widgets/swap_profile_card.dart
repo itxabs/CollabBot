@@ -112,21 +112,35 @@ class SwapProfileCard extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: const Color(0xFFD8B4FE),
                         shape: BoxShape.circle,
-                        border: Border.all(color: const Color(0xFF8B5CF6).withOpacity(0.3), width: 2),
+                        border: Border.all(
+                            color: const Color(0xFF8B5CF6).withOpacity(0.3),
+                            width: 2),
+                        image: profile['profile_picture_url'] != null &&
+                                profile['profile_picture_url'].isNotEmpty
+                            ? DecorationImage(
+                                image: NetworkImage(
+                                    profile['profile_picture_url']),
+                                fit: BoxFit.cover,
+                              )
+                            : null,
                       ),
-                      child: Center(
-                        child: Text(
-                          initials,
-                          style: const TextStyle(
-                            color: Color(0xFF5B21B6),
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
+                      child: profile['profile_picture_url'] == null ||
+                              profile['profile_picture_url'].isEmpty
+                          ? Center(
+                              child: Text(
+                                initials,
+                                style: const TextStyle(
+                                  color: Color(0xFF5B21B6),
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            )
+                          : null,
                     ),
                   ),
                 ),
+
               ],
             ),
             
@@ -164,6 +178,14 @@ class SwapProfileCard extends StatelessWidget {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        _buildSmallBadge(Icons.people_alt_outlined, "${profile['connections_count'] ?? 0} Connections"),
+                        const SizedBox(width: 8),
+                        _buildSmallBadge(Icons.article_outlined, "${profile['posts_count'] ?? 0} Posts"),
+                      ],
+                    ),
                     const SizedBox(height: 12),
                     Row(
                       children: [
@@ -175,6 +197,7 @@ class SwapProfileCard extends StatelessWidget {
                         ),
                       ],
                     ),
+
                     const SizedBox(height: 16),
                     Text(
                       description,
@@ -232,4 +255,28 @@ class SwapProfileCard extends StatelessWidget {
       ),
     );
   }
+
+  Widget _buildSmallBadge(IconData icon, String text) {
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF3F4F6),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: const Color(0xFF6B7280)),
+          const SizedBox(width: 4),
+          Text(text,
+              style: const TextStyle(
+                  fontSize: 11,
+                  color: Color(0xFF6B7280),
+                  fontWeight: FontWeight.bold)),
+        ],
+      ),
+    );
+  }
 }
+

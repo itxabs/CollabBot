@@ -19,16 +19,18 @@ import '../../core/constants/routes.dart';
 import '../jobs/job_listings_screen.dart'; // This is now CareerOpportunitiesScreen
 
 class ProfileScreen extends StatelessWidget {
-  const ProfileScreen({super.key});
+  final String? userId;
+  const ProfileScreen({super.key, this.userId});
 
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (_) => ProfileViewModel(),
+      create: (_) => ProfileViewModel(targetUserId: userId),
       child: const _ProfileContent(),
     );
   }
 }
+
 
 class _ProfileContent extends StatelessWidget {
   const _ProfileContent();
@@ -102,17 +104,20 @@ class _ProfileContent extends StatelessWidget {
                   const SizedBox(height: 16),
                   _buildExperienceList(viewModel.experiences),
                   const SizedBox(height: 32),
-                  _buildProfileListTile(
-                    title: 'Resume Analyzer',
-                    icon: Icons.description_outlined,
-                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ResumeAnalyzerScreen())),
-                  ),
-                  const SizedBox(height: 32),
-                  TextButton(
-                    onPressed: () => viewModel.logout(context, authViewModel),
-                    child: Text('Log Out', style: AppTextStyles.button.copyWith(color: AppColors.error)),
-                  ),
+                  if (viewModel.isOwnProfile) ...[
+                    _buildProfileListTile(
+                      title: 'Resume Analyzer',
+                      icon: Icons.description_outlined,
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ResumeAnalyzerScreen())),
+                    ),
+                    const SizedBox(height: 32),
+                    TextButton(
+                      onPressed: () => viewModel.logout(context, authViewModel),
+                      child: Text('Log Out', style: AppTextStyles.button.copyWith(color: AppColors.error)),
+                    ),
+                  ],
                   const SizedBox(height: 24),
+
                 ],
               ),
             ),
@@ -131,8 +136,9 @@ class _ProfileContent extends StatelessWidget {
         Stack(
           children: [
             GestureDetector(
-              onTap: viewModel.isUploading ? null : viewModel.pickAndUploadImage,
+              onTap: (viewModel.isUploading || !viewModel.isOwnProfile) ? null : viewModel.pickAndUploadImage,
               child: Container(
+
                 padding: const EdgeInsets.all(3),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,

@@ -129,7 +129,13 @@ class MyApp extends StatelessWidget {
           },
           AppRoutes.myApplications: (context) => const MyApplicationsScreen(),
           AppRoutes.postJob: (context) => const PostJobScreen(),
+          AppRoutes.profile: (context) {
+            final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+            final userId = args?['userId'] as String?;
+            return ProfileScreen(userId: userId);
+          },
         },
+
       ),
     );
   }
