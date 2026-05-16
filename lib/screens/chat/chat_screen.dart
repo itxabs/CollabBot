@@ -508,6 +508,38 @@ class _ChatScreenContentState extends State<_ChatScreenContent> {
     );
   }
 
+  void _showAiBottomMenu(BuildContext context, ChatViewModel vm, LocalMessage message) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (bottomSheetContext) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.auto_awesome, color: Colors.blue),
+                title: const Text('Get answer from AI'),
+                onTap: () async {
+                  Navigator.pop(bottomSheetContext);
+                  if (message.content.trim().isEmpty) return;
+                  final suggestion = await vm.generateAiResponse(message.content);
+                  if (suggestion != null && suggestion.isNotEmpty) {
+                    setState(() {
+                      _controller.text = suggestion;
+                    });
+                  }
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<ChatViewModel>();
@@ -636,9 +668,13 @@ class _ChatScreenContentState extends State<_ChatScreenContent> {
                             ? Alignment.centerRight
                             : Alignment.centerLeft,
                         child: GestureDetector(
-                          onLongPress: isFailed
-                              ? () => _showRetryDialog(context, vm, message)
-                              : null,
+                          onLongPress: () {
+                            if (isFailed) {
+                              _showRetryDialog(context, vm, message);
+                            } else if (!isMine && message.content.isNotEmpty) {
+                              _showAiBottomMenu(context, vm, message);
+                            }
+                          },
                           child: Container(
                             constraints: BoxConstraints(
                               maxWidth:
@@ -853,9 +889,10 @@ class _ChatScreenContentState extends State<_ChatScreenContent> {
                         controller: _controller,
                         maxLines: null,
                         minLines: 1,
+                        readOnly: vm.isGeneratingAi,
                         textAlignVertical: TextAlignVertical.center,
                         decoration: InputDecoration(
-                          hintText: 'Type a message...',
+                          hintText: vm.isGeneratingAi ? 'AI is thinking...' : 'Type a message...',
                           hintMaxLines: 1,
                           border: InputBorder.none,
                           contentPadding: EdgeInsets.zero,

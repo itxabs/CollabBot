@@ -3,14 +3,28 @@ from fastapi.middleware.cors import CORSMiddleware
 import uuid
 import os
 import logging
+from dotenv import load_dotenv
+
+# Load environment variables from ROOT directory
+load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'), override=True)
+
+from pydantic import BaseModel
 from resume_analyzer import analyze_resume, extract_text_from_pdf, extract_text_from_docx
 from storage import save_resume_file
 from swap_controller import router as swap_router
 from linkedin_routes import router as linkedin_router
+from ai_service import get_ai_suggestion, sync_answer_embedding
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+class AiSuggestionRequest(BaseModel):
+    message: str
+
+class VectorizeRequest(BaseModel):
+    answer_id: str
+    content: str
 
 app = FastAPI()
 
@@ -172,6 +186,34 @@ async def debug_extract_html(data: dict):
     logger.info(f"Debug extraction: {len(result.get('skills', []))} skills, {len(result.get('experience', []))} experiences")
     
     return debug_info
+
+
+@app.post("/ai/suggest")
+async def ai_suggest(request: AiSuggestionRequest):
+    """
+    Endpoint to get an AI-powered suggested response for a chat message.
+    Uses RAG with Gemini and Supabase.
+    """
+    try:
+        reply = get_ai_suggestion(request.message)
+        return {"suggestion": reply}
+    except Exception as e:
+        logger.error(f"AI Suggestion Error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/ai/vectorize-answer")
+async def vectorize_answer(request: VectorizeRequest):
+    """
+    Endpoint called by Flutter after a new answer is posted.
+    Generates and saves the 3072-D embedding for RAG.
+    """
+    try:
+        success = sync_answer_embedding(request.answer_id, request.content)
+        return {"success": success}
+    except Exception as e:
+        logger.error(f"Vectorization Error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 if __name__ == "__main__":

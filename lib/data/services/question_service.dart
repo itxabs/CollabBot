@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:io';
+import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/question_model.dart';
 
@@ -122,14 +125,46 @@ class QuestionService {
     String content,
   ) async {
     try {
-      await _client.from('answers').insert({
+      final response = await _client.from('answers').insert({
         'question_id': questionId,
         'author_id': authorId,
         'content': content,
-      });
+      }).select('id').single();
+
+      final answerId = response['id'];
+      
+      // Real-time Vectorization: Call Python Backend to generate embedding
+      _vectorizeNewAnswer(answerId, content);
+
     } catch (e) {
       print('Error posting answer: $e');
       rethrow;
+    }
+  }
+
+  /// Internal helper to notify Python backend about new content
+  Future<void> _vectorizeNewAnswer(String answerId, String content) async {
+    try {
+      final String baseUrl = (Platform.isAndroid || Platform.isIOS) 
+          ? 'http://192.168.100.8:8000' 
+          : 'http://127.0.0.1:8000';
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/ai/vectorize-answer'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'answer_id': answerId,
+          'content': content,
+        }),
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        print('Real-time vectorization successful for answer $answerId');
+      } else {
+        print('Vectorization failed (${response.statusCode}): ${response.body}');
+      }
+    } catch (e) {
+      print('Vectorization trigger error: $e');
     }
   }
 
@@ -204,6 +239,9 @@ class QuestionService {
             'updated_at': DateTime.now().toIso8601String(),
           })
           .eq('id', answerId);
+          
+      // Keep embedding in sync with new content
+      _vectorizeNewAnswer(answerId, content);
     } catch (e) {
       print('Error updating answer: $e');
       rethrow;

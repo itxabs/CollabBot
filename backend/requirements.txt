@@ -8,3 +8,5 @@ python-dotenv
 beautifulsoup4
 pytesseract
 pillow
+google-generativeai
+supabase
