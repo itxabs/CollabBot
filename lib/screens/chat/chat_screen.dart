@@ -824,7 +824,14 @@ class _ChatScreenContentState extends State<_ChatScreenContent> {
                   ),
                 ),
               ),
-            const Divider(height: 1),
+            // AI is thinking - floating icon
+            if (vm.isGeneratingAi)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Center(
+                  child: _AiThinkingFloatingIcon(),
+                ),
+              ),
             Container(
               color: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
@@ -889,10 +896,9 @@ class _ChatScreenContentState extends State<_ChatScreenContent> {
                         controller: _controller,
                         maxLines: null,
                         minLines: 1,
-                        readOnly: vm.isGeneratingAi,
                         textAlignVertical: TextAlignVertical.center,
                         decoration: InputDecoration(
-                          hintText: vm.isGeneratingAi ? 'AI is thinking...' : 'Type a message...',
+                          hintText: 'Type a message...',
                           hintMaxLines: 1,
                           border: InputBorder.none,
                           contentPadding: EdgeInsets.zero,
@@ -958,6 +964,106 @@ class _ChatScreenContentState extends State<_ChatScreenContent> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AiThinkingFloatingIcon extends StatefulWidget {
+  const _AiThinkingFloatingIcon();
+
+  @override
+  State<_AiThinkingFloatingIcon> createState() => _AiThinkingFloatingIconState();
+}
+
+class _AiThinkingFloatingIconState extends State<_AiThinkingFloatingIcon>
+    with TickerProviderStateMixin {
+  late AnimationController _controller1;
+  late AnimationController _controller2;
+  late AnimationController _controller3;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller1 = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    )..repeat(reverse: true);
+
+    _controller2 = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+    Future.delayed(const Duration(milliseconds: 150), () {
+      if (mounted) {
+        _controller2.repeat(reverse: true);
+      }
+    });
+
+    _controller3 = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (mounted) {
+        _controller3.repeat(reverse: true);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller1.dispose();
+    _controller2.dispose();
+    _controller3.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          'AI is thinking',
+          style: TextStyle(
+            fontSize: 13,
+            color: Colors.grey.shade700,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _DotWidget(animation: _controller1),
+            const SizedBox(width: 4),
+            _DotWidget(animation: _controller2),
+            const SizedBox(width: 4),
+            _DotWidget(animation: _controller3),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _DotWidget extends StatelessWidget {
+  final AnimationController animation;
+
+  const _DotWidget({required this.animation});
+
+  @override
+  Widget build(BuildContext context) {
+    return ScaleTransition(
+      scale: Tween<double>(begin: 0.6, end: 1.0).animate(animation),
+      child: Container(
+        width: 8,
+        height: 8,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.blue.shade600,
         ),
       ),
     );
