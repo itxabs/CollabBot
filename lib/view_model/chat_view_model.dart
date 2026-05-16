@@ -8,6 +8,7 @@ import 'package:uuid/uuid.dart';
 import '../data/models/message_model.dart';
 import '../data/models/attachment_model.dart';
 import '../data/services/message_service.dart';
+import '../data/services/ai_rag_service.dart';
 import '../local_db/local_message_db.dart';
 
 class ChatViewModel extends ChangeNotifier {
@@ -20,6 +21,7 @@ class ChatViewModel extends ChangeNotifier {
 
   bool isLoading = false;
   bool isDownloadingAttachment = false;
+  bool isGeneratingAi = false;
   String? errorMessage;
   List<LocalMessage> messages = [];
   final Set<String> _messageIds = {};
@@ -418,6 +420,22 @@ class ChatViewModel extends ChangeNotifier {
     final currentUser = _supabase.auth.currentUser;
     if (currentUser == null) return;
     await LocalMessageDb.instance.setLastReadAt(chatId, currentUser.id, DateTime.now());
+  }
+
+  Future<String?> generateAiResponse(String incomingMessage) async {
+    isGeneratingAi = true;
+    notifyListeners();
+    try {
+      final aiService = AiRagService();
+      return await aiService.generateAiResponse(incomingMessage);
+    } catch (e) {
+      errorMessage = 'AI Suggestion failed: $e';
+      notifyListeners();
+      return null;
+    } finally {
+      isGeneratingAi = false;
+      notifyListeners();
+    }
   }
 
   @override

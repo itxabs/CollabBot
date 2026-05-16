@@ -13,6 +13,7 @@ import '../../data/models/message_model.dart';
 import '../../core/services/chat_presence_service.dart';
 import '../../view_model/chat_view_model.dart';
 import '../../widgets/user_role_icon.dart';
+import '../../widgets/report_bottom_sheet.dart';
 
 class ChatScreen extends StatelessWidget {
   final String chatId;
@@ -40,6 +41,7 @@ class ChatScreen extends StatelessWidget {
         chatId: chatId,
         otherUserName: otherName,
         otherUserRole: otherUserRole,
+        otherUserId: otherUserId,
       ),
     );
   }
@@ -49,10 +51,12 @@ class _ChatScreenContent extends StatefulWidget {
   final String chatId;
   final String otherUserName;
   final String? otherUserRole;
+  final String? otherUserId;
   const _ChatScreenContent({
     required this.chatId,
     required this.otherUserName,
     this.otherUserRole,
+    this.otherUserId,
   });
 
   @override
@@ -504,6 +508,38 @@ class _ChatScreenContentState extends State<_ChatScreenContent> {
     );
   }
 
+  void _showAiBottomMenu(BuildContext context, ChatViewModel vm, LocalMessage message) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (bottomSheetContext) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.auto_awesome, color: Colors.blue),
+                title: const Text('Get answer from AI'),
+                onTap: () async {
+                  Navigator.pop(bottomSheetContext);
+                  if (message.content.trim().isEmpty) return;
+                  final suggestion = await vm.generateAiResponse(message.content);
+                  if (suggestion != null && suggestion.isNotEmpty) {
+                    setState(() {
+                      _controller.text = suggestion;
+                    });
+                  }
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<ChatViewModel>();
@@ -561,6 +597,36 @@ class _ChatScreenContentState extends State<_ChatScreenContent> {
             ),
           ],
         ),
+        actions: [
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            onSelected: (value) {
+              if (value == 'report') {
+                showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  backgroundColor: Colors.transparent,
+                  builder: (context) => ReportBottomSheet(
+                    targetUserId: widget.otherUserId,
+                    contentType: 'user',
+                  ),
+                );
+              }
+            },
+            itemBuilder: (BuildContext context) => [
+              const PopupMenuItem<String>(
+                value: 'report',
+                child: Row(
+                  children: [
+                    Icon(Icons.flag_outlined, color: Colors.red, size: 20),
+                    SizedBox(width: 12),
+                    Text('Report User', style: TextStyle(color: Colors.red)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
         centerTitle: false,
         elevation: 1,
       ),
@@ -602,9 +668,13 @@ class _ChatScreenContentState extends State<_ChatScreenContent> {
                             ? Alignment.centerRight
                             : Alignment.centerLeft,
                         child: GestureDetector(
-                          onLongPress: isFailed
-                              ? () => _showRetryDialog(context, vm, message)
-                              : null,
+                          onLongPress: () {
+                            if (isFailed) {
+                              _showRetryDialog(context, vm, message);
+                            } else if (!isMine && message.content.isNotEmpty) {
+                              _showAiBottomMenu(context, vm, message);
+                            }
+                          },
                           child: Container(
                             constraints: BoxConstraints(
                               maxWidth:
@@ -754,7 +824,14 @@ class _ChatScreenContentState extends State<_ChatScreenContent> {
                   ),
                 ),
               ),
-            const Divider(height: 1),
+            // AI is thinking - floating icon
+            if (vm.isGeneratingAi)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Center(
+                  child: _AiThinkingFloatingIcon(),
+                ),
+              ),
             Container(
               color: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
@@ -887,6 +964,106 @@ class _ChatScreenContentState extends State<_ChatScreenContent> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AiThinkingFloatingIcon extends StatefulWidget {
+  const _AiThinkingFloatingIcon();
+
+  @override
+  State<_AiThinkingFloatingIcon> createState() => _AiThinkingFloatingIconState();
+}
+
+class _AiThinkingFloatingIconState extends State<_AiThinkingFloatingIcon>
+    with TickerProviderStateMixin {
+  late AnimationController _controller1;
+  late AnimationController _controller2;
+  late AnimationController _controller3;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller1 = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    )..repeat(reverse: true);
+
+    _controller2 = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+    Future.delayed(const Duration(milliseconds: 150), () {
+      if (mounted) {
+        _controller2.repeat(reverse: true);
+      }
+    });
+
+    _controller3 = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (mounted) {
+        _controller3.repeat(reverse: true);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller1.dispose();
+    _controller2.dispose();
+    _controller3.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          'AI is thinking',
+          style: TextStyle(
+            fontSize: 13,
+            color: Colors.grey.shade700,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _DotWidget(animation: _controller1),
+            const SizedBox(width: 4),
+            _DotWidget(animation: _controller2),
+            const SizedBox(width: 4),
+            _DotWidget(animation: _controller3),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _DotWidget extends StatelessWidget {
+  final AnimationController animation;
+
+  const _DotWidget({required this.animation});
+
+  @override
+  Widget build(BuildContext context) {
+    return ScaleTransition(
+      scale: Tween<double>(begin: 0.6, end: 1.0).animate(animation),
+      child: Container(
+        width: 8,
+        height: 8,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.blue.shade600,
         ),
       ),
     );

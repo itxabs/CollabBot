@@ -14,4 +14,13 @@ class AppRoutes {
   static const String questions = '/questions';
   static const String askQuestion = '/ask_question';
   static const String profileSetup = '/profile_setup';
+  static const String profileComplete = '/profile_complete';
+  
+  // Job Feature Routes
+  static const String jobListings = '/job_listings';
+  static const String jobDetail = '/job_detail';
+  static const String savedJobs = '/saved_jobs';
+  static const String jobApplication = '/job_application';
+  static const String myApplications = '/my_applications';
+  static const String postJob = '/post_job';
 }

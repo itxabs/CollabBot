@@ -38,10 +38,21 @@ class AuthService {
     required String email,
     required String password,
   }) async {
-    return await _supabase.auth.signInWithPassword(
+    final response = await _supabase.auth.signInWithPassword(
       email: email,
       password: password,
     );
+
+    if (response.user != null) {
+      // Check if user is banned in 'users' table
+      final userProfile = await getUserProfile(response.user!.id);
+      if (userProfile != null && userProfile['status'] == 'Banned') {
+        await _supabase.auth.signOut();
+        throw Exception('Your account has been banned due to community violations.');
+      }
+    }
+
+    return response;
   }
 
   Future<void> resetPasswordForEmail(String email) async {

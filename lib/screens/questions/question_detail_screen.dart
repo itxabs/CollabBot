@@ -5,6 +5,7 @@ import '../../core/constants/text_styles.dart';
 import '../../view_model/questions/questions_view_model.dart';
 import '../../data/models/question_model.dart';
 import '../../widgets/user_role_icon.dart';
+import '../../widgets/report_bottom_sheet.dart';
 
 class QuestionDetailScreen extends StatefulWidget {
   final QuestionModel question;
@@ -264,11 +265,32 @@ class _QuestionHeader extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 16),
-              _ThumbsVotingColumn(
-                id: question.id,
-                score: question.score,
-                isQuestion: true,
-                authorId: question.authorId,
+              Column(
+                children: [
+                  _ThumbsVotingColumn(
+                    id: question.id,
+                    score: question.score,
+                    isQuestion: true,
+                    authorId: question.authorId,
+                  ),
+                  const SizedBox(height: 12),
+                  IconButton(
+                    icon: const Icon(Icons.flag_outlined, color: Colors.redAccent, size: 20),
+                    onPressed: () {
+                      showModalBottomSheet(
+                        context: context,
+                        isScrollControlled: true,
+                        backgroundColor: Colors.transparent,
+                        builder: (context) => ReportBottomSheet(
+                          targetUserId: question.authorId,
+                          targetContentId: question.id,
+                          contentType: 'question',
+                        ),
+                      );
+                    },
+                    tooltip: 'Report Question',
+                  ),
+                ],
               ),
             ],
           ),
@@ -450,7 +472,7 @@ class _AnswerCard extends StatelessWidget {
                     children: [
                       CircleAvatar(
                         radius: 14,
-                        backgroundColor: AppColors.secondary,
+                        backgroundColor: AppColors.primary,
                         child: Text(
                           answer.authorName[0].toUpperCase(),
                           style: const TextStyle(
@@ -495,6 +517,25 @@ class _AnswerCard extends StatelessWidget {
                         _buildEditButton(context, viewModel),
                         const SizedBox(width: 4),
                         _buildDeleteButton(context, viewModel),
+                      ] else ...[
+                        IconButton(
+                          icon: const Icon(Icons.flag_outlined, color: Colors.redAccent, size: 18),
+                          onPressed: () {
+                            showModalBottomSheet(
+                              context: context,
+                              isScrollControlled: true,
+                              backgroundColor: Colors.transparent,
+                              builder: (context) => ReportBottomSheet(
+                                targetUserId: answer.authorId,
+                                targetContentId: answer.id,
+                                contentType: 'answer',
+                              ),
+                            );
+                          },
+                          constraints: const BoxConstraints(),
+                          padding: const EdgeInsets.all(4),
+                          tooltip: 'Report Answer',
+                        ),
                       ],
                     ],
                   ),

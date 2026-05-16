@@ -12,6 +12,8 @@ class EventCard extends StatefulWidget {
   final String attendees;
   final String? imageUrl;
   final bool isSaved;
+  final String eventId;
+  final String creatorId;
   final Future<void> Function()? onRegister;
   final VoidCallback? onSave;
 
@@ -25,6 +27,8 @@ class EventCard extends StatefulWidget {
     required this.time,
     required this.location,
     required this.attendees,
+    required this.eventId,
+    required this.creatorId,
     this.imageUrl,
     this.isSaved = false,
     this.onRegister,
@@ -115,11 +119,11 @@ class _EventCardState extends State<EventCard> {
                         constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
                       ),
                     ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            ),
 
           /// Content
           Container(
