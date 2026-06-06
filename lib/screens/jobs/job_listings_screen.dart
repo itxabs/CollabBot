@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/routes.dart';
 import '../../view_model/jobs_view_model.dart';
@@ -15,12 +16,21 @@ class CareerOpportunitiesScreen extends StatefulWidget {
 }
 
 class _CareerOpportunitiesScreenState extends State<CareerOpportunitiesScreen> {
-  String _filter = 'All'; // 'All', 'Active', 'Expired'
-
   @override
   void initState() {
     super.initState();
     Future.microtask(() => context.read<JobsViewModel>().fetchJobs());
+  }
+
+  Future<void> _launchUrl(String urlString) async {
+    final Uri url = Uri.parse(urlString);
+    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not launch URL')),
+        );
+      }
+    }
   }
 
   @override
@@ -32,17 +42,6 @@ class _CareerOpportunitiesScreenState extends State<CareerOpportunitiesScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         automaticallyImplyLeading: false,
-        actions: [
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.filter_list, color: AppColors.primary),
-            onSelected: (val) => setState(() => _filter = val),
-            itemBuilder: (context) => [
-              const PopupMenuItem(value: 'All', child: Text('Show All')),
-              const PopupMenuItem(value: 'Active', child: Text('Active Only')),
-              const PopupMenuItem(value: 'Expired', child: Text('Expired Only')),
-            ],
-          ),
-        ],
       ),
       body: _buildJobsList(),
       floatingActionButton: _buildPostJobFAB(context),
@@ -72,12 +71,6 @@ class _CareerOpportunitiesScreenState extends State<CareerOpportunitiesScreen> {
         
         var filteredJobs = vm.allJobs.where((j) => j.status == 'Approved').toList();
         
-        if (_filter == 'Active') {
-          filteredJobs = filteredJobs.where((j) => j.deadline == null || j.deadline!.isAfter(DateTime.now())).toList();
-        } else if (_filter == 'Expired') {
-          filteredJobs = filteredJobs.where((j) => j.deadline != null && j.deadline!.isBefore(DateTime.now())).toList();
-        }
-        
         if (filteredJobs.isEmpty) {
           return Center(
             child: Column(
@@ -85,7 +78,7 @@ class _CareerOpportunitiesScreenState extends State<CareerOpportunitiesScreen> {
               children: [
                 const Icon(Icons.work_outline, size: 64, color: AppColors.textSecondary),
                 const SizedBox(height: 16),
-                Text(_filter == 'All' ? 'No career opportunities yet.' : 'No $_filter jobs found.', style: const TextStyle(color: AppColors.textSecondary)),
+                const Text('No career opportunities yet.', style: TextStyle(color: AppColors.textSecondary)),
               ],
             ),
           );
@@ -98,11 +91,11 @@ class _CareerOpportunitiesScreenState extends State<CareerOpportunitiesScreen> {
             final job = filteredJobs[index];
             return JobCard(
               job: job,
-              onTap: () => Navigator.pushNamed(
-                context, 
-                AppRoutes.jobDetail, 
-                arguments: job
-              ),
+              onTap: () {
+                if (job.jobUrl.isNotEmpty) {
+                  _launchUrl(job.jobUrl);
+                }
+              },
               onReport: () {
                 showModalBottomSheet(
                   context: context,

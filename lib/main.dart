@@ -118,16 +118,7 @@ class MyApp extends StatelessWidget {
           AppRoutes.profileSetup: (context) => const ProfileSetupScreen(),
           AppRoutes.profileComplete: (context) => const ProfileCompleteScreen(),
           AppRoutes.jobListings: (context) => CareerOpportunitiesScreen(),
-          AppRoutes.jobDetail: (context) {
-            final job = ModalRoute.of(context)?.settings.arguments as JobModel;
-            return JobDetailScreen(job: job);
-          },
           AppRoutes.savedJobs: (context) => const SavedJobsScreen(),
-          AppRoutes.jobApplication: (context) {
-            final job = ModalRoute.of(context)?.settings.arguments as JobModel;
-            return JobApplicationScreen(job: job);
-          },
-          AppRoutes.myApplications: (context) => const MyApplicationsScreen(),
           AppRoutes.postJob: (context) => const PostJobScreen(),
           AppRoutes.profile: (context) {
             final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;

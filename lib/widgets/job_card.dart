@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../core/constants/colors.dart';
 import '../data/models/job_model.dart';
-import 'package:intl/intl.dart';
 
 class JobCard extends StatelessWidget {
   final JobModel job;
@@ -42,8 +41,6 @@ class JobCard extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildCompanyAvatar(),
-                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -55,16 +52,19 @@ class JobCard extends StatelessWidget {
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
                         ),
-                        maxLines: 1,
+                        maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 8),
                       Text(
-                        '${job.company} • ${job.location}',
+                        job.jobUrl,
                         style: const TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: 12,
+                          color: Colors.blueAccent,
+                          fontSize: 14,
+                          decoration: TextDecoration.underline,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
@@ -82,22 +82,8 @@ class JobCard extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Row(
+              mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                _buildChip(job.employmentType),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  job.salaryRange,
-                  style: const TextStyle(
-                    color: AppColors.tealAccent,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
                 Text(
                   timeAgo,
                   style: const TextStyle(
@@ -108,46 +94,6 @@ class JobCard extends StatelessWidget {
               ],
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCompanyAvatar() {
-    final String initials = job.company.isNotEmpty ? job.company.substring(0, 1).toUpperCase() : '?';
-    return Container(
-      width: 48,
-      height: 48,
-      decoration: BoxDecoration(
-        color: AppColors.primary.withOpacity(0.1),
-        shape: BoxShape.circle,
-      ),
-      child: Center(
-        child: Text(
-          initials,
-          style: const TextStyle(
-            color: AppColors.primary,
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildChip(String label) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: AppColors.background,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        label,
-        style: const TextStyle(
-          color: AppColors.textPrimary,
-          fontSize: 10,
-          fontWeight: FontWeight.w500,
         ),
       ),
     );
