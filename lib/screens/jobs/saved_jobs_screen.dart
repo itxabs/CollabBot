@@ -61,10 +61,13 @@ class _SavedJobsScreenState extends State<SavedJobsScreen> {
                 onDismissed: (direction) => vm.toggleSaveJob(job),
                 child: JobCard(
                   job: job,
-                  onTap: () {
+                  onApply: () {
                     if (job.jobUrl.isNotEmpty) {
                       _launchUrl(job.jobUrl);
                     }
+                  },
+                  onSave: () {
+                    context.read<JobsViewModel>().toggleSaveJob(job);
                   },
                   onReport: () {
                     // Reporting from saved list

@@ -16,10 +16,18 @@ class CareerOpportunitiesScreen extends StatefulWidget {
 }
 
 class _CareerOpportunitiesScreenState extends State<CareerOpportunitiesScreen> {
+  final TextEditingController _searchController = TextEditingController();
+  bool _showSavedOnly = false;
   @override
   void initState() {
     super.initState();
     Future.microtask(() => context.read<JobsViewModel>().fetchJobs());
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _launchUrl(String urlString) async {
@@ -43,7 +51,81 @@ class _CareerOpportunitiesScreenState extends State<CareerOpportunitiesScreen> {
         elevation: 0,
         automaticallyImplyLeading: false,
       ),
-      body: _buildJobsList(),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Search jobs by title...',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: PopupMenuButton<bool>(
+                  icon: const Icon(Icons.tune, color: AppColors.textSecondary),
+                  onSelected: (bool showSaved) {
+                    setState(() {
+                      _showSavedOnly = showSaved;
+                    });
+                  },
+                  itemBuilder: (BuildContext context) => <PopupMenuEntry<bool>>[
+                    PopupMenuItem<bool>(
+                      value: false,
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.access_time,
+                            color: !_showSavedOnly ? AppColors.primary : AppColors.textSecondary,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Newest Jobs',
+                            style: TextStyle(
+                              color: !_showSavedOnly ? AppColors.primary : AppColors.textPrimary,
+                              fontWeight: !_showSavedOnly ? FontWeight.bold : FontWeight.normal,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem<bool>(
+                      value: true,
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.bookmark,
+                            color: _showSavedOnly ? AppColors.primary : AppColors.textSecondary,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Saved Jobs',
+                            style: TextStyle(
+                              color: _showSavedOnly ? AppColors.primary : AppColors.textPrimary,
+                              fontWeight: _showSavedOnly ? FontWeight.bold : FontWeight.normal,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                filled: true,
+                fillColor: Colors.white,
+                contentPadding: const EdgeInsets.symmetric(vertical: 0),
+              ),
+              onChanged: (value) {
+                context.read<JobsViewModel>().filterJobs(query: value);
+              },
+            ),
+          ),
+          Expanded(
+            child: _buildJobsList(),
+          ),
+        ],
+      ),
       floatingActionButton: _buildPostJobFAB(context),
     );
   }
@@ -69,9 +151,10 @@ class _CareerOpportunitiesScreenState extends State<CareerOpportunitiesScreen> {
           return const Center(child: CircularProgressIndicator(color: AppColors.primary));
         }
         
-        var filteredJobs = vm.allJobs.where((j) => j.status == 'Approved').toList();
+        final filteredJobs = vm.filteredJobs;
+        final jobsToShow = _showSavedOnly ? vm.savedJobs : filteredJobs;
         
-        if (filteredJobs.isEmpty) {
+        if (jobsToShow.isEmpty) {
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -86,15 +169,18 @@ class _CareerOpportunitiesScreenState extends State<CareerOpportunitiesScreen> {
         
         return ListView.builder(
           padding: const EdgeInsets.all(16),
-          itemCount: filteredJobs.length,
+          itemCount: jobsToShow.length,
           itemBuilder: (context, index) {
-            final job = filteredJobs[index];
+            final job = jobsToShow[index];
             return JobCard(
               job: job,
-              onTap: () {
+              onApply: () {
                 if (job.jobUrl.isNotEmpty) {
                   _launchUrl(job.jobUrl);
                 }
+              },
+              onSave: () {
+                context.read<JobsViewModel>().toggleSaveJob(job);
               },
               onReport: () {
                 showModalBottomSheet(

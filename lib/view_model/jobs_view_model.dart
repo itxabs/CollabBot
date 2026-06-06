@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../data/models/job_model.dart';
 import '../data/repositories/job_repository.dart';
 
@@ -7,7 +8,7 @@ class JobsViewModel extends ChangeNotifier {
   
   List<JobModel> _allJobs = [];
   List<JobModel> _filteredJobs = [];
-  List<JobModel> _savedJobs = [];
+  final List<JobModel> _savedJobs = [];
   bool _isLoading = false;
 
   List<JobModel> get allJobs => _allJobs;
@@ -27,12 +28,34 @@ class JobsViewModel extends ChangeNotifier {
       final dbJobs = await _repository.getJobs();
       _allJobs = dbJobs;
       _filteredJobs = List.from(_allJobs);
+      await _loadSavedJobs();
     } catch (e) {
       debugPrint('Error fetching jobs: $e');
     } finally {
       _isLoading = false;
       notifyListeners();
     }
+  }
+
+  Future<void> _loadSavedJobs() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedIds = prefs.getStringList('saved_jobs') ?? [];
+    
+    _savedJobs.clear();
+    for (var job in _allJobs) {
+      if (savedIds.contains(job.id)) {
+        job.isSaved = true;
+        _savedJobs.add(job);
+      } else {
+        job.isSaved = false;
+      }
+    }
+  }
+
+  Future<void> _saveSavedJobsToPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedIds = _savedJobs.map((j) => j.id).toList();
+    await prefs.setStringList('saved_jobs', savedIds);
   }
 
   void filterJobs({String? query}) {
@@ -55,6 +78,7 @@ class JobsViewModel extends ChangeNotifier {
     } else {
       _savedJobs.removeWhere((j) => j.id == job.id);
     }
+    _saveSavedJobsToPrefs();
     notifyListeners();
   }
 
