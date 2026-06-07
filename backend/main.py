@@ -14,6 +14,8 @@ from storage import save_resume_file
 from swap_controller import router as swap_router
 from linkedin_routes import router as linkedin_router
 from ai_service import get_ai_suggestion, sync_answer_embedding
+import requests
+import time
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -213,6 +215,107 @@ async def vectorize_answer(request: VectorizeRequest):
         return {"success": success}
     except Exception as e:
         logger.error(f"Vectorization Error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post('/agora/token')
+async def agora_token(payload: dict):
+    """
+    Generate a short-lived Agora RTC token for a given chat.
+    Expects JSON: { "chat_id": "<chat_id>", "user_id": "<user_id>", "uid": <numeric_uid optional> }
+
+    Validates that `user_id` is a participant in the chat via Supabase REST, then
+    builds and returns an Agora token and metadata.
+    """
+    try:
+        AGORA_APP_ID = os.getenv('AGORA_APP_ID')
+        AGORA_APP_CERT = os.getenv('AGORA_APP_CERT')
+        SUPABASE_URL = os.getenv('SUPABASE_URL')
+        SUPABASE_KEY = os.getenv('SUPABASE_KEY')
+
+        if not AGORA_APP_ID or not AGORA_APP_CERT:
+            raise HTTPException(status_code=500, detail='Agora credentials not configured')
+
+        chat_id = payload.get('chat_id')
+        user_id = payload.get('user_id')
+        uid = payload.get('uid', 0)
+
+        if not chat_id or not user_id:
+            raise HTTPException(status_code=400, detail='chat_id and user_id are required')
+
+        try:
+            uuid.UUID(str(chat_id))
+            uuid.UUID(str(user_id))
+        except ValueError:
+            raise HTTPException(status_code=400, detail='chat_id and user_id must be valid UUID values')
+
+        logger.info(f'Agora token requested for chat_id={chat_id}, user_id={user_id}, uid={uid}')
+
+        # Validate participant via Supabase REST
+        if not SUPABASE_URL or not SUPABASE_KEY:
+            raise HTTPException(status_code=500, detail='Supabase configuration missing')
+
+        headers = {
+            'apikey': SUPABASE_KEY,
+            'Authorization': f'Bearer {SUPABASE_KEY}',
+        }
+        part_url = f"{SUPABASE_URL}/rest/v1/chat_participants"
+        params = {'chat_id': f'eq.{chat_id}'}
+        resp = requests.get(part_url, headers=headers, params=params)
+        if resp.status_code != 200:
+            detail = f'Failed to validate chat participants: Supabase returned {resp.status_code} {resp.text[:200]}'
+            logger.error(detail)
+            raise HTTPException(status_code=502, detail=detail)
+
+        participants = resp.json()
+        user_ids = [p.get('user_id') for p in participants]
+        if str(user_id) not in [str(x) for x in user_ids]:
+            raise HTTPException(status_code=403, detail='User not a participant of the chat')
+
+        # Generate Agora token
+        # Try importing token builder from agora-access-token package
+        try:
+            from agora_token_builder import RtcTokenBuilder
+        except Exception as import_error:
+            try:
+                from agora_access_token import RtcTokenBuilder
+            except Exception as fallback_error:
+                logger.error(
+                    'Agora token builder import failed. '
+                    f'agora_token_builder={import_error}; agora_access_token={fallback_error}'
+                )
+                raise HTTPException(status_code=500, detail='Agora token builder library is not installed on server')
+
+        # role: 1 = publisher, 2 = subscriber in some libs; adapt to builder API
+        role = 1
+        expire_seconds = 3600  # 1 hour
+        current_ts = int(time.time())
+        privilege_expired_ts = current_ts + expire_seconds
+
+        try:
+            token = RtcTokenBuilder.buildTokenWithUid(
+                AGORA_APP_ID,
+                AGORA_APP_CERT,
+                str(chat_id),
+                int(uid),
+                role,
+                privilege_expired_ts,
+            )
+        except Exception as e:
+            logger.error(f'Agora token build error: {e}')
+            raise HTTPException(status_code=500, detail='Failed to build Agora token')
+
+        return {
+            'appId': AGORA_APP_ID,
+            'channel': str(chat_id),
+            'uid': int(uid),
+            'token': token,
+            'expiresAt': privilege_expired_ts,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f'Agora token endpoint error: {e}')
         raise HTTPException(status_code=500, detail=str(e))
 
 

@@ -158,13 +158,17 @@ WHERE deleted_at IS NULL;
 -- CALLS
 -- =========================
 CREATE TABLE calls (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    chat_id UUID NOT NULL,
-    call_type_id SMALLINT NOT NULL,
-    started_at TIMESTAMP NOT NULL,
-    ended_at TIMESTAMP,
-    CONSTRAINT fk_calls_chat FOREIGN KEY (chat_id) REFERENCES chats(id),
-    CONSTRAINT fk_calls_type FOREIGN KEY (call_type_id) REFERENCES call_types(id)
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  chat_id uuid REFERENCES chats(id) ON DELETE CASCADE,
+  caller_id uuid REFERENCES users(id),
+  callee_id uuid REFERENCES users(id),
+  channel_name text,
+  call_type text CHECK (call_type IN ('audio', 'video')),
+  status text CHECK (
+    status IN ('ringing', 'ongoing', 'ended', 'missed', 'rejected')
+  ) DEFAULT 'ringing',
+  started_at timestamp DEFAULT now(),
+  ended_at timestamp
 );
 
 -- =========================

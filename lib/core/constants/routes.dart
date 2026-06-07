@@ -23,4 +23,7 @@ class AppRoutes {
   static const String jobApplication = '/job_application';
   static const String myApplications = '/my_applications';
   static const String postJob = '/post_job';
+  static const String incomingCall = '/incoming_call';
+  static const String activeCall = '/active_call';
+  static const String callEnded = '/call_ended';
 }

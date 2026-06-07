@@ -8,6 +8,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../core/services/call_helper.dart';
 
 import '../../data/models/message_model.dart';
 import '../../core/services/chat_presence_service.dart';
@@ -598,6 +599,16 @@ class _ChatScreenContentState extends State<_ChatScreenContent> {
           ],
         ),
         actions: [
+          IconButton(
+            tooltip: 'Audio call',
+            icon: const Icon(Icons.call, color: Colors.black),
+            onPressed: () => CallHelper.startCall(context, widget.chatId, widget.otherUserName, widget.otherUserRole, widget.otherUserId, false),
+          ),
+          IconButton(
+            tooltip: 'Video call',
+            icon: const Icon(Icons.videocam, color: Colors.black),
+            onPressed: () => CallHelper.startCall(context, widget.chatId, widget.otherUserName, widget.otherUserRole, widget.otherUserId, true),
+          ),
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert),
             onSelected: (value) {

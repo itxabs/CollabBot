@@ -13,7 +13,12 @@ import 'package:http/http.dart' as http;
 
 class LinkedInExtractionService {
   // Backend URL - Update this to match your server URL
-  static const String baseUrl = 'http://localhost:8000';
+  static String get baseUrl {
+    if (Platform.isAndroid || Platform.isIOS) {
+      return 'http://192.168.100.8:8000';
+    }
+    return 'http://127.0.0.1:8000';
+  }
   
   static const String htmlExtractEndpoint = '/linkedin/extract/html';
   static const String imageExtractEndpoint = '/linkedin/extract/image';
