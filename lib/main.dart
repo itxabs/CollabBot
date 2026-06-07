@@ -30,6 +30,7 @@ import 'view_model/message_notification_view_model.dart';
 import 'view_model/jobs_view_model.dart';
 import 'screens/screens.dart'; // ✅ Use this to access all screens
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'core/services/call_signaling_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -41,6 +42,8 @@ void main() async {
   );
   await LocalMessageDb.instance.init();
   await NotificationService.instance.initialize();
+  // Start call signaling service (polling fallback)
+  CallSignalingService.instance.start();
   runApp(const MyApp());
 }
 
@@ -64,6 +67,7 @@ class MyApp extends StatelessWidget {
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         title: 'Collab Bot',
+        navigatorKey: appNavigatorKey,
         scaffoldMessengerKey: rootScaffoldMessengerKey,
         theme: ThemeData(
           useMaterial3: true,
@@ -129,6 +133,52 @@ class MyApp extends StatelessWidget {
           },
           AppRoutes.myApplications: (context) => const MyApplicationsScreen(),
           AppRoutes.postJob: (context) => const PostJobScreen(),
+          AppRoutes.incomingCall: (context) {
+            final args =
+                ModalRoute.of(context)?.settings.arguments
+                    as Map<String, dynamic>?;
+            return IncomingCallScreen(
+              callerName: args?['callerName'] as String? ?? 'Caller',
+              callerRole: args?['callerRole'] as String? ?? '',
+              avatarUrl: args?['avatarUrl'] as String?,
+              callType: args?['callType'] as String? ?? 'audio',
+            );
+          },
+          AppRoutes.activeCall: (context) {
+            final args =
+                ModalRoute.of(context)?.settings.arguments
+                    as Map<String, dynamic>?;
+            if (args == null) {
+              return const Scaffold(
+                body: Center(child: Text('Missing agora params')),
+              );
+            }
+            return ActiveCallScreen(
+              appId: args['appId'] as String,
+              token: args['token'] as String,
+              channel: args['channel'] as String,
+              uid: args['uid'] as int? ?? 0,
+              enableVideo: args['enableVideo'] as bool? ?? false,
+              callerName: args['callerName'] as String? ?? 'Participant',
+              callerRole: args['callerRole'] as String? ?? '',
+              avatarUrl: args['avatarUrl'] as String?,
+              chatId: args['chatId'] as String?,
+              otherUserId: args['otherUserId'] as String?,
+              callId: args['callId'] as String?,
+            );
+          },
+          AppRoutes.callEnded: (context) {
+            final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+            return CallEndedScreen(
+              callerName: args?['callerName'] as String? ?? 'Participant',
+              callerRole: args?['callerRole'] as String? ?? '',
+              avatarUrl: args?['avatarUrl'] as String?,
+              chatId: args?['chatId'] as String?,
+              otherUserId: args?['otherUserId'] as String?,
+              callDuration: args?['callDuration'] as String? ?? '00:00',
+              statusLabel: args?['statusLabel'] as String? ?? 'Call ended',
+            );
+          },
         },
       ),
     );
