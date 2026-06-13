@@ -247,29 +247,7 @@ def fetch_recommendations(
     if filter_type == "Meet":
         scored_users.sort(key=lambda x: x['match_score_raw'], reverse=True)
     
-    # FALLBACK: If Meet mode returns nothing (due to threshold), return all candidates without threshold
-    if filter_type == "Meet" and not scored_users and candidates:
-        print("DEBUG: Meet mode empty, returning all candidates as fallback")
-        for other in candidates[:10]:
-             # Re-run a simplified version without threshold
-             full_name = other.get('full_name') or 'User'
-             dp_url = other.get('profile_picture_url') or other.get('avatar_url')
-             scored_users.append({
-                "user_id": other.get('id'),
-                "name": full_name,
-                "title": other.get('role', 'Collaborator'),
-                "description": "Recommended for you",
-                "degree": other.get('role', 'Junior'),
-                "skills": [{"name": s.get('skill_name', ''), "is_verified": False} for s in other.get('skills', []) if s.get('skill_name')][:3],
-                "distance": "Nearby",
-                "initials": full_name[0].upper() if full_name else 'U',
-                "profile_picture_url": dp_url,
-                "posts_count": 0,
-                "connections_count": 0,
-                "reputation": other.get('reputation', 0),
-                "match_score": 50,
-                "match_score_raw": 0.5
-            })
+
 
     return scored_users[:20]
 
@@ -290,7 +268,25 @@ def record_swipe(actor_id: str, target_id: str, action: str) -> tuple:
 
         # 2. Record Swipe Action (like/reject)
         payload = {"actor_id": actor_id, "target_id": target_id, "action": action}
-        success = _upsert_table_data("swipe_actions", payload, "actor_id,target_id")
+        
+        # Check if exists
+        existing = _fetch_table_data("swipe_actions", {
+            "actor_id": f"eq.{actor_id}",
+            "target_id": f"eq.{target_id}"
+        })
+
+        if existing:
+            url = f"{SUPABASE_URL}/rest/v1/swipe_actions"
+            params = {
+                "actor_id": f"eq.{actor_id}",
+                "target_id": f"eq.{target_id}"
+            }
+            res = requests.patch(url, headers=HEADERS, json={"action": action}, params=params)
+            success = res.status_code in (200, 204)
+        else:
+            url = f"{SUPABASE_URL}/rest/v1/swipe_actions"
+            res = requests.post(url, headers=HEADERS, json=payload)
+            success = res.status_code in (200, 201)
         
         if not success: return False, False
 

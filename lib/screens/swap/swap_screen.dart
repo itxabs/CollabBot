@@ -432,41 +432,27 @@ class _SwapScreenState extends State<SwapScreen>
   bool get _isDraggingLeft => _dragOffset.dx < -10;
 
   Widget _buildActionButtonsRow() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        _buildActionButton(
-          icon: const Icon(Icons.close_rounded, color: Color(0xFF6B7280), size: 28),
-          backgroundColor: Colors.white,
-          borderColor: const Color(0xFFE5E7EB),
-          onPressed: () => _handleSwipe(false),
-          size: 60,
-        ),
-        const SizedBox(width: 20),
-        _buildActionButton(
-          icon: const Icon(Icons.refresh_rounded, color: Color(0xFF6B7280), size: 28),
-          backgroundColor: Colors.white,
-          borderColor: const Color(0xFFE5E7EB),
-          onPressed: _undoSwipe,
-          size: 60,
-        ),
-        const SizedBox(width: 20),
-        _buildActionButton(
-          icon: const Icon(Icons.star_rounded, color: Color(0xFFF97316), size: 28),
-          backgroundColor: Colors.white,
-          borderColor: const Color(0xFFFDE68A),
-          onPressed: () {}, 
-          size: 60,
-        ),
-        const SizedBox(width: 20),
-        _buildActionButton(
-          icon: const Icon(Icons.favorite_rounded, color: Colors.white, size: 32),
-          backgroundColor: const Color(0xFF5046E5),
-          borderColor: Colors.transparent,
-          onPressed: () => _handleSwipe(true),
-          size: 76,
-        ),
-      ],
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          _buildActionButton(
+            icon: const Icon(Icons.close_rounded, color: Colors.redAccent, size: 36),
+            backgroundColor: Colors.white,
+            borderColor: Colors.red.shade100,
+            onPressed: () => _handleSwipe(false),
+            size: 72,
+          ),
+          _buildActionButton(
+            icon: const Icon(Icons.favorite_rounded, color: Color(0xFF5046E5), size: 36),
+            backgroundColor: Colors.white,
+            borderColor: const Color(0xFFE0E7FF),
+            onPressed: () => _handleSwipe(true),
+            size: 72,
+          ),
+        ],
+      ),
     );
   }
 
@@ -522,39 +508,10 @@ class _SwapScreenState extends State<SwapScreen>
         ),
         centerTitle: true,
         actions: [
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              IconButton(
-                icon: const Icon(Icons.favorite_outline_rounded, color: Color(0xFF0A0B1E)),
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Activity: 0 match requests, 2 views today'),
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
-                },
-                tooltip: 'Activity History',
-              ),
-              if (_savedCount > 0)
-                Positioned(
-                  right: 8,
-                  top: 8,
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: const BoxDecoration(color: Color(0xFF5046E5), shape: BoxShape.circle),
-                    child: Text('$_savedCount', style: const TextStyle(color: Colors.white, fontSize: 10)),
-                  ),
-                ),
-            ],
-          ),
           IconButton(
-            icon: const Icon(Icons.send_rounded, color: Color(0xFF0A0B1E)),
-            onPressed: () {
-              Navigator.pushNamed(context, AppRoutes.home);
-            },
-            tooltip: 'Messages',
+            icon: const Icon(Icons.notifications_none_rounded, color: Color(0xFF0A0B1E)),
+            onPressed: _showHistorySheet,
+            tooltip: 'Swipe History',
           ),
           const SizedBox(width: 8),
         ],
@@ -686,35 +643,70 @@ class _SwapScreenState extends State<SwapScreen>
   Widget _buildPreferencesSheet() {
     return StatefulBuilder(
       builder: (context, setSheetState) => Container(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.only(left: 24, right: 24, bottom: 32, top: 12),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 24),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Preferences', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                const Text('Preferences', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF111827))),
                 TextButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      _fetchProfiles();
-                    },
-                    child: const Text('Apply', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _fetchProfiles();
+                  },
+                  style: TextButton.styleFrom(
+                    backgroundColor: const Color(0xFFEEF2FF),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  ),
+                  child: const Text('Apply', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF5046E5))),
                 ),
               ],
             ),
-            const SizedBox(height: 24),
-            Text('Search Distance: ${_maxDistance.round()} km', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            Slider(
-              value: _maxDistance,
-              max: 500,
-              divisions: 10,
-              activeColor: const Color(0xFF5046E5),
-              onChanged: (v) => setSheetState(() => _maxDistance = v),
+            const SizedBox(height: 32),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Search Distance', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF374151))),
+                Text('${_maxDistance.round()} km', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF5046E5))),
+              ],
             ),
-            const SizedBox(height: 24),
-            const Text('Collaborator Roles', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            SliderTheme(
+              data: SliderTheme.of(context).copyWith(
+                activeTrackColor: const Color(0xFF5046E5),
+                inactiveTrackColor: const Color(0xFFEEF2FF),
+                thumbColor: Colors.white,
+                overlayColor: const Color(0xFF5046E5).withOpacity(0.1),
+                trackHeight: 6.0,
+              ),
+              child: Slider(
+                value: _maxDistance,
+                max: 500,
+                divisions: 10,
+                onChanged: (v) => setSheetState(() => _maxDistance = v),
+              ),
+            ),
+            const SizedBox(height: 32),
+            const Text('Collaborator Roles', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF374151))),
             const SizedBox(height: 16),
             Wrap(
               spacing: 12,
@@ -731,50 +723,60 @@ class _SwapScreenState extends State<SwapScreen>
                       }
                     });
                   },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                     decoration: BoxDecoration(
-                      color: isSelected ? const Color(0xFF5046E5) : Colors.white,
-                      borderRadius: BorderRadius.circular(20),
+                      color: isSelected ? const Color(0xFF5046E5) : const Color(0xFFF9FAFB),
+                      borderRadius: BorderRadius.circular(24),
                       border: Border.all(
                         color: isSelected ? const Color(0xFF5046E5) : const Color(0xFFE5E7EB),
                         width: 1.5,
                       ),
+                      boxShadow: isSelected ? [BoxShadow(color: const Color(0xFF5046E5).withOpacity(0.2), blurRadius: 8, offset: const Offset(0, 2))] : [],
                     ),
                     child: Text(
                       role,
                       style: TextStyle(
-                        color: isSelected ? Colors.white : const Color(0xFF374151),
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                        color: isSelected ? Colors.white : const Color(0xFF4B5563),
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                        fontSize: 14,
                       ),
                     ),
                   ),
                 );
               }).toList(),
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 40),
             SizedBox(
               width: double.infinity,
-              child: ElevatedButton.icon(
+              child: OutlinedButton.icon(
                 onPressed: () {
                   Navigator.pop(context);
                   _resetAllSwipes();
                 },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red.shade50,
+                style: OutlinedButton.styleFrom(
                   foregroundColor: Colors.red,
-                  elevation: 0,
+                  side: const BorderSide(color: Colors.red),
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: Colors.red.shade100)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 ),
-                icon: const Icon(Icons.refresh_rounded),
-                label: const Text('Reset All Swipes', style: TextStyle(fontWeight: FontWeight.bold)),
+                icon: const Icon(Icons.restart_alt_rounded),
+                label: const Text('Reset All Swipes', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
               ),
             ),
-            const SizedBox(height: 16),
           ],
         ),
       ),
+    );
+  }
+
+  void _showHistorySheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const _HistorySheet(),
     );
   }
 
@@ -1077,30 +1079,7 @@ class _ProfileDetailSheetState extends State<_ProfileDetailSheet> with SingleTic
                           children: [
                             Text('${widget.profile['name']}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
                             Text(widget.profile['title'] ?? 'Collaborator', style: const TextStyle(color: Color(0xFF6B7280))),
-                            const SizedBox(height: 8),
-                            GestureDetector(
-                              onTap: () {
-                                // For now, navigate to profile or show a placeholder
-                                // Navigator.pushNamed(context, AppRoutes.profile, arguments: {'userId': widget.profile['user_id']});
-                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Resume view coming soon!')));
-                              },
 
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF5046E5).withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: const Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(Icons.description_outlined, size: 14, color: Color(0xFF5046E5)),
-                                    SizedBox(width: 4),
-                                    Text('View Resume', style: TextStyle(color: Color(0xFF5046E5), fontSize: 12, fontWeight: FontWeight.bold)),
-                                  ],
-                                ),
-                              ),
-                            ),
                           ],
                         ),
                       ),
@@ -1242,3 +1221,150 @@ class _ProfileDetailSheetState extends State<_ProfileDetailSheet> with SingleTic
   }
 }
 
+class _HistorySheet extends StatefulWidget {
+  const _HistorySheet();
+
+  @override
+  State<_HistorySheet> createState() => _HistorySheetState();
+}
+
+class _HistorySheetState extends State<_HistorySheet> {
+  bool _isLoading = true;
+  List<Map<String, dynamic>> _liked = [];
+  List<Map<String, dynamic>> _passed = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchHistory();
+  }
+
+  Future<void> _fetchHistory() async {
+    try {
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user == null) return;
+      
+      final response = await Supabase.instance.client
+          .from('swipe_actions')
+          .select('action, created_at, target_id')
+          .eq('actor_id', user.id)
+          .order('created_at', ascending: false);
+
+      if (response.isEmpty) {
+        if (mounted) setState(() { _isLoading = false; });
+        return;
+      }
+
+      final targetIds = response.map((r) => r['target_id'].toString()).toSet().toList();
+      
+      final usersResponse = await Supabase.instance.client
+          .from('users')
+          .select()
+          .filter('id', 'in', targetIds);
+
+      final usersMap = {for (var u in usersResponse) u['id'].toString(): u};
+
+      final List<Map<String, dynamic>> liked = [];
+      final List<Map<String, dynamic>> passed = [];
+
+      for (var row in response) {
+        final targetId = row['target_id'].toString();
+        final target = usersMap[targetId];
+        if (target == null) continue;
+        
+        final data = {
+          'id': target['id'],
+          'name': target['full_name'] ?? 'User',
+          'role': target['role'] ?? 'Collaborator',
+          'avatar_url': target['profile_picture_url'] ?? target['avatar_url'],
+          'action': row['action'],
+          'date': row['created_at'],
+        };
+        
+        if (row['action'] == 'like') {
+          liked.add(data);
+        } else {
+          passed.add(data);
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _liked = liked;
+          _passed = passed;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('Error fetching history: $e');
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DefaultTabController(
+      length: 2,
+      child: Container(
+        height: MediaQuery.of(context).size.height * 0.75,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          children: [
+            const SizedBox(height: 12),
+            Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2))),
+            const SizedBox(height: 16),
+            const Text('Swipe History', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 16),
+            const TabBar(
+              labelColor: Color(0xFF5046E5),
+              unselectedLabelColor: Colors.grey,
+              indicatorColor: Color(0xFF5046E5),
+              tabs: [
+                Tab(text: 'Liked'),
+                Tab(text: 'Passed'),
+              ],
+            ),
+            Expanded(
+              child: _isLoading 
+                ? const Center(child: CircularProgressIndicator())
+                : TabBarView(
+                    children: [
+                      _buildList(_liked, Icons.favorite, Colors.pink),
+                      _buildList(_passed, Icons.close, Colors.grey),
+                    ],
+                  ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildList(List<Map<String, dynamic>> items, IconData icon, Color iconColor) {
+    if (items.isEmpty) {
+      return Center(child: Text('No history found.', style: TextStyle(color: Colors.grey.shade600)));
+    }
+    return ListView.separated(
+      padding: const EdgeInsets.all(16),
+      itemCount: items.length,
+      separatorBuilder: (context, index) => const Divider(),
+      itemBuilder: (context, index) {
+        final item = items[index];
+        final initials = (item['name'] as String).isNotEmpty ? (item['name'] as String)[0].toUpperCase() : 'U';
+        return ListTile(
+          leading: CircleAvatar(
+            backgroundColor: const Color(0xFFEEF2FF),
+            backgroundImage: (item['avatar_url'] != null && (item['avatar_url'] as String).isNotEmpty) ? NetworkImage(item['avatar_url']) : null,
+            child: (item['avatar_url'] == null || (item['avatar_url'] as String).isEmpty) ? Text(initials, style: const TextStyle(color: Color(0xFF5046E5), fontWeight: FontWeight.bold)) : null,
+          ),
+          title: Text(item['name'], style: const TextStyle(fontWeight: FontWeight.bold)),
+          subtitle: Text(item['role']),
+          trailing: Icon(icon, color: iconColor, size: 20),
+        );
+      },
+    );
+  }
+}
