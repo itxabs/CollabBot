@@ -7,6 +7,7 @@ import '../../view_model/events_view_model.dart';
 import '../../view_model/auth_view_model.dart';
 import '../../data/models/event_model.dart';
 import '../../widgets/events/event_card.dart';
+import '../../widgets/custom_search_bar.dart';
 
 class EventsScreen extends StatelessWidget {
   const EventsScreen({super.key});
@@ -47,68 +48,64 @@ class _EventsContent extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      body: SafeArea(
+        child: Column(
           children: [
-            Text('Events Hub', style: AppTextStyles.h2),
-            Text(
-              'Signed in as: ${authViewModel.currentUser?.name ?? "User"}',
-              style: const TextStyle(fontSize: 10, color: Colors.grey),
-            ),
-          ],
-        ),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        centerTitle: false,
-        automaticallyImplyLeading: false,
-        actions: [
-          if (canCreate)
+            // Custom Top Bar
             Padding(
-              padding: const EdgeInsets.only(right: 16.0),
-              child: ElevatedButton.icon(
-                onPressed: () =>
-                    _showCreateEventDialog(context, viewModel, authViewModel),
-                icon: const Icon(Icons.add_rounded, size: 20),
-                label: const Text('New Event'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
+              padding: const EdgeInsets.only(
+                left: 24.0,
+                right: 24.0,
+                top: 24.0,
+                bottom: 12.0,
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Events Hub', style: AppTextStyles.h2),
+                      Text(
+                        'Discover and join local events!',
+                        style: AppTextStyles.bodyMedium,
+                      ),
+                    ],
                   ),
-                ),
+                  if (canCreate)
+                    ElevatedButton.icon(
+                      onPressed: () => _showCreateEventDialog(
+                        context,
+                        viewModel,
+                        authViewModel,
+                      ),
+                      icon: const Icon(Icons.add_rounded, size: 20),
+                      label: const Text('New Event'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 10,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
-        ],
-      ),
 
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 16.0,
-              vertical: 8.0,
-            ),
-            child: TextField(
+            CustomSearchBar(
+              hintText: 'Search for workshops, seminars...',
               onChanged: viewModel.setSearchQuery,
-              decoration: InputDecoration(
-                hintText: 'Search for workshops, seminars...',
-                prefixIcon: const Icon(
-                  Icons.search_rounded,
-                  color: AppColors.textSecondary,
-                ),
-                filled: true,
-                fillColor: Colors.grey[100],
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(15),
-                  borderSide: BorderSide.none,
-                ),
-                contentPadding: const EdgeInsets.symmetric(vertical: 0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 12.0,
               ),
             ),
-          ),
 
           // Tabs
           Container(
@@ -305,6 +302,7 @@ class _EventsContent extends StatelessWidget {
           ),
         ],
       ),
+    ),
     );
   }
 

@@ -4,6 +4,7 @@ class UserProfile {
   final String email;
   final String role;
   final String? avatarUrl;
+  final DateTime? dob;
   final DateTime createdAt;
 
   UserProfile({
@@ -12,9 +13,10 @@ class UserProfile {
     required this.email,
     required this.role,
     this.avatarUrl,
+    this.dob,
     required this.createdAt,
   });
-
+ 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
     return UserProfile(
       id: json['id'] as String,
@@ -22,6 +24,7 @@ class UserProfile {
       email: json['email'] as String,
       role: json['role'] as String,
       avatarUrl: json['avatar_url'] as String?,
+      dob: json['dob'] != null ? DateTime.parse(json['dob'] as String) : null,
       createdAt: DateTime.parse(json['created_at'] as String),
     );
   }

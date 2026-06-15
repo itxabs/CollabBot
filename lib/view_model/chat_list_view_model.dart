@@ -105,6 +105,23 @@ class ChatListViewModel extends ChangeNotifier {
         chat.chatId,
         currentUserId,
       );
+      final localLast = await LocalMessageDb.instance.getLastMessage(chat.chatId);
+      
+      String? displayLastMessage = chat.lastMessage;
+      DateTime? displayLastMessageAt = chat.lastMessageAt;
+      String? displayLastMessageSenderId = chat.lastMessageSenderId;
+
+      if (localLast != null) {
+        if (displayLastMessageAt == null || 
+            localLast.createdAt.isAfter(displayLastMessageAt)) {
+          displayLastMessage = localLast.content;
+          displayLastMessageAt = localLast.createdAt;
+          displayLastMessageSenderId = localLast.senderId;
+        }
+      }
+
+      final isMine = displayLastMessageSenderId == currentUserId;
+
       enriched.add(
         ChatSummary(
           chatId: chat.chatId,
@@ -112,8 +129,10 @@ class ChatListViewModel extends ChangeNotifier {
           otherUserName: chat.otherUserName,
           otherUserAvatarUrl: chat.otherUserAvatarUrl,
           otherUserRole: chat.otherUserRole,
-          lastMessage: chat.lastMessage,
-          lastMessageAt: chat.lastMessageAt,
+          lastMessage: displayLastMessage,
+          lastMessageAt: displayLastMessageAt,
+          lastMessageSenderId: displayLastMessageSenderId,
+          isLastMessageMine: isMine,
           hasUnread: unread > 0,
         ),
       );
@@ -148,7 +167,7 @@ class ChatListViewModel extends ChangeNotifier {
 
           final senderId = row['sender_id'] as String?;
           final chatId = row['chat_id'] as String?;
-          if (senderId == null || chatId == null || senderId == currentUserId) {
+          if (senderId == null || chatId == null) {
             continue;
           }
 

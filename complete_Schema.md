@@ -301,6 +301,22 @@ CREATE TABLE matches (
 );
 
 -- =========================
+-- LEADERBOARD
+-- =========================
+
+
+create table leaderboard_scores_log (
+  id uuid primary key default gen_random_uuid(),
+
+  user_id uuid references public.users(id),
+  points int not null,
+  action_type text not null,
+  -- e.g. 'add_skill', 'complete_profile', 'invite_friend'
+  created_at timestamp default now()
+);
+
+
+-- =========================
 -- RLS ENABLE
 -- =========================
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;

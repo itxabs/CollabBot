@@ -6,6 +6,8 @@ class ChatSummary {
   final String? otherUserRole;
   final String? lastMessage;
   final DateTime? lastMessageAt;
+  final String? lastMessageSenderId;
+  final bool isLastMessageMine;
   final bool hasUnread;
 
   ChatSummary({
@@ -16,6 +18,8 @@ class ChatSummary {
     this.otherUserRole,
     this.lastMessage,
     this.lastMessageAt,
+    this.lastMessageSenderId,
+    this.isLastMessageMine = false,
     this.hasUnread = false,
   });
 
@@ -30,7 +34,9 @@ class ChatSummary {
       lastMessageAt: json['last_message_at'] != null
           ? DateTime.parse(json['last_message_at'] as String)
           : null,
-      hasUnread: (json['has_unread'] as bool?) ?? false,
+      lastMessageSenderId: json['last_message_sender_id'] as String?,
+      isLastMessageMine: json['is_last_message_mine'] == true,
+      hasUnread: json['has_unread'] == true,
     );
   }
 
@@ -43,6 +49,8 @@ class ChatSummary {
       'other_user_role': otherUserRole,
       'last_message': lastMessage,
       'last_message_at': lastMessageAt?.toIso8601String(),
+      'last_message_sender_id': lastMessageSenderId,
+      'is_last_message_mine': isLastMessageMine,
       'has_unread': hasUnread,
     };
   }

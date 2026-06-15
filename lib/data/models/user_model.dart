@@ -27,7 +27,7 @@ class UserModel {
       role: json['role'] as String,
       reputation: _toInt(json['reputation']),
       avatarUrl: json['avatar_url'] as String?,
-      dob: json['dob'] != null ? DateTime.parse(json['dob']) : null,
+      dob: json['dob'] == null ? null : (json['dob'] is DateTime ? json['dob'] : DateTime.tryParse(json['dob'].toString())),
       createdAt: DateTime.parse(json['created_at']),
     );
   }

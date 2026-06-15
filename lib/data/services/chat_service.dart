@@ -70,16 +70,18 @@ class ChatService {
 
         final lastMessageRows = await _supabase
             .from('messages')
-            .select('content, created_at')
+            .select('content, created_at, sender_id')
             .eq('chat_id', chatId)
             .order('created_at', ascending: false)
             .limit(1);
 
         String? lastMessage;
         DateTime? lastMessageAt;
+        String? lastMessageSenderId;
         if (lastMessageRows is List && lastMessageRows.isNotEmpty) {
           final msgMap = lastMessageRows.first as Map<String, dynamic>;
           lastMessage = msgMap['content'] as String?;
+          lastMessageSenderId = msgMap['sender_id'] as String?;
           if (msgMap['created_at'] != null) {
             lastMessageAt = DateTime.parse(msgMap['created_at'] as String);
           }
@@ -94,6 +96,7 @@ class ChatService {
             otherUserRole: otherRole,
             lastMessage: lastMessage,
             lastMessageAt: lastMessageAt,
+            lastMessageSenderId: lastMessageSenderId,
             hasUnread: false,
           ),
         );
@@ -117,9 +120,10 @@ class ChatService {
     try {
       final response = await _supabase
           .from('users')
-          .select('id, full_name, email, role')
+          .select('id, full_name, email, role, avatar_url')
           .ilike('full_name', '%$query%')
           .neq('id', currentUserId)
+          .neq('role', 'Admin')
           .limit(50);
 
       return List<Map<String, dynamic>>.from(response as List<dynamic>);

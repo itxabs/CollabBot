@@ -6,6 +6,7 @@ class AppRoutes {
   static const String forgotPassword = '/forgot_password';
   static const String otp = '/otp';
   static const String home = '/home';
+  static const String leaderboard = '/leaderboard';
   static const String events = '/events';
   static const String profile = '/profile';
   static const String chatList = '/chat_list';
@@ -15,6 +16,8 @@ class AppRoutes {
   static const String askQuestion = '/ask_question';
   static const String profileSetup = '/profile_setup';
   static const String profileComplete = '/profile_complete';
+  static const String settings = '/settings';
+  static const String editProfile = '/edit_profile';
   
   // Job Feature Routes
   static const String jobListings = '/job_listings';
@@ -23,6 +26,8 @@ class AppRoutes {
   static const String jobApplication = '/job_application';
   static const String myApplications = '/my_applications';
   static const String postJob = '/post_job';
+  static const String changePassword = '/change_password';
+  static const String privacyPolicy = '/privacy_policy';
   static const String incomingCall = '/incoming_call';
   static const String activeCall = '/active_call';
   static const String callEnded = '/call_ended';

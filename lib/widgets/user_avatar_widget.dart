@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../core/constants/colors.dart';
 
 class UserAvatarWidget extends StatelessWidget {
   final String? name;
@@ -22,7 +23,7 @@ class UserAvatarWidget extends StatelessWidget {
     final size = radius * 2;
     return CircleAvatar(
       radius: radius,
-      backgroundColor: Colors.blue.shade100,
+      backgroundColor: AppColors.primaryLight,
       child: ClipOval(
         child: Image.network(
           normalizedUrl,
@@ -54,7 +55,7 @@ class UserAvatarWidget extends StatelessWidget {
   Widget _buildInitialsAvatar() {
     return CircleAvatar(
       radius: radius,
-      backgroundColor: Colors.blue.shade100,
+      backgroundColor: AppColors.primaryLight,
       child: _buildInitialsContent(),
     );
   }
@@ -63,7 +64,7 @@ class UserAvatarWidget extends StatelessWidget {
     return Text(
       _initials(name),
       style: TextStyle(
-        color: Colors.blue.shade700,
+        color: AppColors.primary,
         fontWeight: FontWeight.w700,
       ),
     );

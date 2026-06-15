@@ -132,4 +132,41 @@ class ProfileViewModel extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  Future<void> updateProfile({
+    required String name,
+    required String email,
+    DateTime? dob,
+    AuthViewModel? authViewModel,
+  }) async {
+    final currentUser = Supabase.instance.client.auth.currentUser;
+    if (currentUser == null) return;
+
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      await _profileRepository.updateProfile(
+        currentUser.id,
+        name: name,
+        email: email,
+        dob: dob,
+      );
+      
+      // Refresh local data
+      await _loadData();
+
+      // Refresh AuthViewModel to sync across app
+      if (authViewModel != null) {
+        await authViewModel.fetchUserProfile(currentUser.id);
+      }
+    } catch (e) {
+      _errorMessage = e.toString();
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
 }

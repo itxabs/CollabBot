@@ -16,7 +16,7 @@ import 'data/models/job_model.dart';
 import 'screens/chat/chat_list_screen.dart';
 import 'local_db/local_message_db.dart';
 import 'screens/chat/new_chat_screen.dart';
-import 'screens/chat/chat_screen.dart';
+// import 'screens/chat/chat_screen.dart';
 import 'screens/questions/questions_screen.dart';
 import 'screens/questions/question_detail_screen.dart';
 import 'screens/questions/ask_question_screen.dart';
@@ -28,6 +28,8 @@ import 'view_model/experience_view_model.dart';
 import 'view_model/skills_view_model.dart';
 import 'view_model/message_notification_view_model.dart';
 import 'view_model/jobs_view_model.dart';
+import 'view_model/social_media_view_model.dart';
+import 'view_model/profile_view_model.dart';
 import 'screens/screens.dart'; // ✅ Use this to access all screens
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'core/services/call_signaling_service.dart';
@@ -63,6 +65,8 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => SkillsViewModel()),
         ChangeNotifierProvider(create: (_) => MessageNotificationViewModel()),
         ChangeNotifierProvider(create: (_) => JobsViewModel()),
+        ChangeNotifierProvider(create: (_) => SocialMediaViewModel()),
+        ChangeNotifierProvider(create: (_) => ProfileViewModel()),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
@@ -84,6 +88,7 @@ class MyApp extends StatelessWidget {
           AppRoutes.otp: (context) =>
               const OtpScreen(), // Note: OtpScreen is reused but navigation logic inside VM handles context.
           AppRoutes.home: (context) => MainNavigation(key: mainNavigationKey),
+          AppRoutes.leaderboard: (context) => const LeaderboardScreen(),
           AppRoutes.chatList: (context) => const ChatListScreen(),
           AppRoutes.newChat: (context) => const NewChatScreen(),
           AppRoutes.chat: (context) {
@@ -108,7 +113,7 @@ class MyApp extends StatelessWidget {
           },
           AppRoutes.questions: (context) => const QuestionsScreen(),
           AppRoutes.askQuestion: (context) => const AskQuestionScreen(),
-          AppRoutes.questions + '/detail': (context) {
+          '${AppRoutes.questions}/detail': (context) {
             final args = ModalRoute.of(context)?.settings.arguments;
             if (args != null &&
                 args is Map<String, dynamic> &&
@@ -133,6 +138,10 @@ class MyApp extends StatelessWidget {
           },
           AppRoutes.myApplications: (context) => const MyApplicationsScreen(),
           AppRoutes.postJob: (context) => const PostJobScreen(),
+          AppRoutes.settings: (context) => const SettingsScreen(),
+          AppRoutes.editProfile: (context) => const EditProfileScreen(),
+          AppRoutes.changePassword: (context) => const ChangePasswordScreen(),
+          AppRoutes.privacyPolicy: (context) => const PrivacyPolicyScreen(),
           AppRoutes.incomingCall: (context) {
             final args =
                 ModalRoute.of(context)?.settings.arguments

@@ -3,6 +3,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../data/models/profile_models.dart';
 import '../data/repositories/profile_repository.dart';
 import '../data/services/profile_service.dart';
+import '../core/constants/colors.dart';
+import '../core/constants/text_styles.dart';
 
 class SocialMediaViewModel extends ChangeNotifier {
   final ProfileRepository _profileRepository;
@@ -39,6 +41,13 @@ class SocialMediaViewModel extends ChangeNotifier {
     {'id': 'instagram', 'name': 'Instagram'},
     {'id': 'website', 'name': 'Website'},
   ];
+
+  void clearForm() {
+    _selectedPlatform = null;
+    urlController.clear();
+    _errorMessage = null;
+    notifyListeners();
+  }
 
   Future<void> loadSocialLinks() async {
     final user = Supabase.instance.client.auth.currentUser;
@@ -86,6 +95,8 @@ class SocialMediaViewModel extends ChangeNotifier {
         urlController.text,
       );
       
+      await _profileRepository.addLeaderboardPoints(user.id, 3, 'add_social_link');
+      
       // Reset form
       _selectedPlatform = null;
       urlController.clear();
@@ -93,8 +104,37 @@ class SocialMediaViewModel extends ChangeNotifier {
       await loadSocialLinks();
       
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Social link added successfully')),
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(
+            SnackBar(
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: AppColors.primary,
+              margin: const EdgeInsets.all(16),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              content: Row(
+                children: [
+                   Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.16),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.celebration_outlined, color: Colors.white, size: 18),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      '+3 Points Earned 🎉 Link Added Successfully',
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
         );
       }
     } catch (e) {

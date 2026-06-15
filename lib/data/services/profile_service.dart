@@ -68,6 +68,31 @@ class ProfileService {
     }
   }
 
+  Future<void> deleteUserSkill(String userId, String userSkillId) async {
+    try {
+      await _supabase
+          .from('user_skills')
+          .delete()
+          .eq('id', userSkillId)
+          .eq('user_id', userId);
+    } catch (e) {
+      throw Exception('Failed to delete skill: $e');
+    }
+  }
+
+  Future<void> addLeaderboardPoints(String userId, int points, String actionType) async {
+    try {
+      await _supabase.from('leaderboard_scores_log').insert({
+        'user_id': userId,
+        'points': points,
+        'action_type': actionType,
+        'created_at': DateTime.now().toIso8601String(),
+      });
+    } catch (e) {
+      throw Exception('Failed to add leaderboard points: $e');
+    }
+  }
+
   // Add User Experience
   Future<void> addExperience({
     required String userId,
@@ -107,6 +132,19 @@ class ProfileService {
       throw Exception('Failed to load experiences: $e');
     }
   }
+
+  Future<void> deleteExperience(String userId, String experienceId) async {
+    try {
+      await _supabase
+          .from('experiences')
+          .delete()
+          .eq('id', experienceId)
+          .eq('user_id', userId);
+    } catch (e) {
+      throw Exception('Failed to delete experience: $e');
+    }
+  }
+
   // Verify Skill
   Future<void> verifySkill(String userSkillId) async {
     try {
@@ -132,6 +170,18 @@ class ProfileService {
       return publicUrl;
     } catch (e) {
       throw Exception('Failed to upload image: $e');
+    }
+  }
+
+  // Update User Profile
+  Future<void> updateProfile(String userId, Map<String, dynamic> data) async {
+    try {
+      await _supabase
+          .from('users')
+          .update(data)
+          .eq('id', userId);
+    } catch (e) {
+      throw Exception('Failed to update profile: $e');
     }
   }
 

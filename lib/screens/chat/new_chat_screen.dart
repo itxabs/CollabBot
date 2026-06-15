@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/routes.dart';
+import '../../core/constants/colors.dart';
+import '../../core/constants/text_styles.dart';
 import '../../view_model/new_chat_view_model.dart';
+import '../../widgets/user_avatar_widget.dart';
+import '../../widgets/user_role_icon.dart';
+import '../../widgets/custom_search_bar.dart';
 
 class NewChatScreen extends StatelessWidget {
   const NewChatScreen({super.key});
@@ -35,60 +40,145 @@ class _NewChatContentState extends State<_NewChatContent> {
   Widget build(BuildContext context) {
     final vm = context.watch<NewChatViewModel>();
     return Scaffold(
-      appBar: AppBar(title: const Text('Start New Chat')),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: TextField(
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Custom Premium Header
+            Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Row(
+                children: [
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.arrow_back_rounded,
+                        color: AppColors.textPrimary),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                  const SizedBox(width: 16),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Start New Chat', style: AppTextStyles.h2),
+                      Text(
+                        'Find someone to collaborate with!',
+                        style: AppTextStyles.bodyMedium,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            // Enhanced Search Bar
+            CustomSearchBar(
               controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Search users',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.search),
-                  onPressed: () => vm.search(_searchController.text.trim()),
+              hintText: 'Search for collaborators...',
+              onChanged: vm.search,
+            ),
+            const SizedBox(height: 16),
+
+            if (vm.isLoading)
+              const Expanded(child: Center(child: CircularProgressIndicator()))
+            else if (vm.errorMessage != null)
+              Expanded(child: Center(child: Text(vm.errorMessage!)))
+            else
+              Expanded(
+                child: ListView.separated(
+                  padding: const EdgeInsets.all(24),
+                  itemCount: vm.users.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 12),
+                  itemBuilder: (context, index) {
+                    final user = vm.users[index];
+                    return _buildUserCard(context, user, vm);
+                  },
                 ),
               ),
-              onSubmitted: (value) => vm.search(value.trim()),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildUserCard(
+      BuildContext context, Map<String, dynamic> user, NewChatViewModel vm) {
+    final String name = user['full_name'] as String? ?? 'Unknown';
+    final String email = user['email'] as String? ?? '';
+    final String? role = user['role'] as String?;
+    final String? avatarUrl = user['avatar_url'] as String?;
+
+    return GestureDetector(
+      onTap: () async {
+        try {
+          final chatId = await vm.createChatWithUser(user['id'] as String);
+          if (!mounted) return;
+          Navigator.pushReplacementNamed(context, AppRoutes.chat, arguments: {
+            'chatId': chatId,
+            'otherName': name,
+            'otherUserId': user['id'] as String,
+            'otherUserRole': role,
+          });
+        } catch (e) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Could not open chat: $e')));
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppColors.border),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.02),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
-          ),
-          if (vm.isLoading)
-            const Expanded(child: Center(child: CircularProgressIndicator()))
-          else if (vm.errorMessage != null)
-            Expanded(child: Center(child: Text(vm.errorMessage!)))
-          else
+          ],
+        ),
+        child: Row(
+          children: [
+            UserAvatarWidget(
+              name: name,
+              avatarUrl: avatarUrl,
+              radius: 28,
+            ),
+            const SizedBox(width: 16),
             Expanded(
-              child: ListView.separated(
-                itemCount: vm.users.length,
-                separatorBuilder: (_, __) => const Divider(height: 0),
-                itemBuilder: (context, index) {
-                  final user = vm.users[index];
-                  return ListTile(
-                    title: Text(user['full_name'] as String? ?? 'Unknown'),
-                    subtitle: Text(user['email'] as String? ?? ''),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () async {
-                      try {
-                        final chatId = await vm.createChatWithUser(user['id'] as String);
-                        if (!mounted) return;
-                        Navigator.pushReplacementNamed(context, AppRoutes.chat, arguments: {
-                          'chatId': chatId,
-                          'otherName': user['full_name'] as String? ?? 'Chat',
-                          'otherUserId': user['id'] as String,
-                          'otherUserRole': user['role'] as String?,
-                        });
-                      } catch (e) {
-                        if (!mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Could not open chat: $e')));
-                      }
-                    },
-                  );
-                },
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          name,
+                          style: AppTextStyles.bodyLarge
+                              .copyWith(fontWeight: FontWeight.bold),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (role != null) ...[
+                        const SizedBox(width: 8),
+                        UserRoleIcon(role: role),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    role ?? email,
+                    style: AppTextStyles.bodySmall,
+                  ),
+                ],
               ),
             ),
-        ],
+            const Icon(Icons.arrow_forward_ios_rounded,
+                size: 16, color: Colors.grey),
+          ],
+        ),
       ),
     );
   }

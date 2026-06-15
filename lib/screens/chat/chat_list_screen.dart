@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../core/constants/colors.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/routes.dart';
 import '../../view_model/chat_list_view_model.dart';
 import '../../data/models/chat_model.dart';
 import '../../widgets/user_avatar_widget.dart';
 import '../../widgets/user_role_icon.dart';
+import '../../widgets/custom_search_bar.dart';
 
 class ChatListScreen extends StatelessWidget {
   const ChatListScreen({super.key});
@@ -67,33 +70,10 @@ class _ChatListContent extends StatelessWidget {
                 ],
               ),
             ),
-            Padding(
+            CustomSearchBar(
+              hintText: 'Search conversations...',
+              onChanged: vm.updateSearchQuery,
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.blue.shade200),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: TextField(
-                  onChanged: vm.updateSearchQuery,
-                  decoration: InputDecoration(
-                    hintText: 'Search conversations...',
-                    border: InputBorder.none,
-                    prefixIcon: Icon(Icons.search, color: Colors.grey.shade500),
-                    suffixIcon: vm.searchQuery.isNotEmpty
-                        ? IconButton(
-                            icon: Icon(
-                              Icons.clear,
-                              color: Colors.grey.shade500,
-                            ),
-                            onPressed: () => vm.updateSearchQuery(''),
-                          )
-                        : null,
-                  ),
-                ),
-              ),
             ),
             const SizedBox(height: 12),
             Expanded(
@@ -220,10 +200,21 @@ class ChatTile extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    chat.lastMessage ?? 'Say hi!',
+                    chat.lastMessage != null
+                        ? (chat.isLastMessageMine == true
+                            ? 'You: ${chat.lastMessage}'
+                            : chat.lastMessage!)
+                        : 'Say hi! 👋',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: Colors.grey.shade700),
+                    style: TextStyle(
+                      color: chat.hasUnread == true
+                          ? AppColors.textPrimary
+                          : AppColors.textSecondary,
+                      fontSize: 13,
+                      fontWeight:
+                          chat.hasUnread == true ? FontWeight.w600 : FontWeight.w400,
+                    ),
                   ),
                 ],
               ),
@@ -237,7 +228,7 @@ class ChatTile extends StatelessWidget {
                     style: const TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                 const SizedBox(height: 8),
-                if (chat.hasUnread)
+                if (chat.hasUnread == true)
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 8,

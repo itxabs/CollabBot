@@ -1,10 +1,15 @@
 export 'home/home_screen.dart';
+export 'leaderboard/leaderboard_screen.dart';
 export 'swap/swap_screen.dart';
 export 'chat/chat_screen.dart';
 export 'events/events_screen.dart';
 export 'profile/profile_screen.dart';
 export 'profile/profile_setup_screen.dart';
 export 'profile/profile_complete_screen.dart';
+export 'profile/settings_screen.dart';
+export 'profile/edit_profile_screen.dart';
+export 'profile/change_password_screen.dart';
+export 'profile/privacy_policy_screen.dart';
 export 'jobs/job_listings_screen.dart';
 export 'jobs/job_detail_screen.dart';
 export 'jobs/saved_jobs_screen.dart';

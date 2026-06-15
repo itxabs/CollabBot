@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -12,11 +13,7 @@ import '../skills/skills_list_screen.dart';
 import '../experience/experience_list_screen.dart';
 import '../resume/resume_analyzer_screen.dart';
 import 'social_media_screen.dart';
-import '../../view_model/social_media_view_model.dart';
-import '../../view_model/jobs_view_model.dart';
-import '../../widgets/job_card.dart';
 import '../../core/constants/routes.dart';
-import '../jobs/job_listings_screen.dart'; // This is now CareerOpportunitiesScreen
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -45,33 +42,26 @@ class _ProfileContent extends StatelessWidget {
       );
     }
 
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        backgroundColor: AppColors.background,
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          elevation: 0,
-          toolbarHeight: 0, // Hide main toolbar
-          bottom: TabBar(
-            labelColor: AppColors.primary,
-            unselectedLabelColor: AppColors.textSecondary,
-            indicatorColor: AppColors.primary,
-            indicatorWeight: 3,
-            labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-            tabs: const [
-              Tab(text: 'Profile Info'),
-              Tab(text: 'Career Opportunities'),
-            ],
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        systemOverlayStyle: SystemUiOverlayStyle.dark,
+        title: Padding(
+          padding: const EdgeInsets.only(left: 8.0),
+          child: Text('Profile', style: AppTextStyles.h2),
+        ),
+        centerTitle: false,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_outlined, color: AppColors.textSecondary),
+            onPressed: () => Navigator.pushNamed(context, AppRoutes.settings),
           ),
-        ),
-        body: TabBarView(
-          children: [
-            _buildProfileInfoTab(context, viewModel, authViewModel),
-            CareerOpportunitiesScreen(), // Re-using simplified listings screen here
-          ],
-        ),
+          const SizedBox(width: 8),
+        ],
       ),
+      body: _buildProfileInfoTab(context, viewModel, authViewModel),
     );
   }
 
@@ -87,32 +77,43 @@ class _ProfileContent extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24.0),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildSectionHeader(
+                  _buildSectionCard(
                     title: 'Skills',
-                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SkillsListScreen())),
+                    onTap: () async {
+                      await Navigator.push(context, MaterialPageRoute(builder: (_) => const SkillsListScreen()));
+                      if (context.mounted) {
+                        await viewModel.refresh();
+                      }
+                    },
+                    child: _buildSkillsList(viewModel.skills),
                   ),
-                  const SizedBox(height: 16),
-                  _buildSkillsList(viewModel.skills),
-                  const SizedBox(height: 32),
-                  _buildSectionHeader(
+                  const SizedBox(height: 24),
+                  _buildSectionCard(
                     title: 'Experience',
                     onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ExperienceListScreen())),
+                    child: _buildExperienceList(viewModel.experiences),
                   ),
-                  const SizedBox(height: 16),
-                  _buildExperienceList(viewModel.experiences),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 24),
+                  _buildSectionCard(
+                    title: 'Social Links',
+                    onTap: () async {
+                      await Navigator.push(context, MaterialPageRoute(builder: (_) => const SocialMediaScreen()));
+                      if (context.mounted) {
+                        await viewModel.refresh();
+                      }
+                    },
+                    child: _buildSocialLinksList(viewModel.socialLinks),
+                  ),
+                  const SizedBox(height: 24),
                   _buildProfileListTile(
                     title: 'Resume Analyzer',
                     icon: Icons.description_outlined,
                     onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ResumeAnalyzerScreen())),
                   ),
                   const SizedBox(height: 32),
-                  TextButton(
-                    onPressed: () => viewModel.logout(context, authViewModel),
-                    child: Text('Log Out', style: AppTextStyles.button.copyWith(color: AppColors.error)),
-                  ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 16),
                 ],
               ),
             ),
@@ -128,19 +129,19 @@ class _ProfileContent extends StatelessWidget {
 
     return Column(
       children: [
-        Stack(
-          children: [
-            GestureDetector(
-              onTap: viewModel.isUploading ? null : viewModel.pickAndUploadImage,
-              child: Container(
+        GestureDetector(
+          onTap: viewModel.isUploading ? null : viewModel.pickAndUploadImage,
+          child: Stack(
+            children: [
+              Container(
                 padding: const EdgeInsets.all(3),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(color: AppColors.primary.withOpacity(0.1), width: 2),
+                  border: Border.all(color: AppColors.primary.withValues(alpha: 0.1), width: 2),
                 ),
                 child: CircleAvatar(
                   radius: 45,
-                  backgroundColor: AppColors.primary.withOpacity(0.05),
+                  backgroundColor: AppColors.primary.withValues(alpha: 0.05),
                   backgroundImage: user.avatarUrl != null && user.avatarUrl!.isNotEmpty
                       ? NetworkImage(user.avatarUrl!)
                       : null,
@@ -149,12 +150,33 @@ class _ProfileContent extends StatelessWidget {
                       : null,
                 ),
               ),
-            ),
-            if (viewModel.isUploading)
-              const Positioned.fill(
-                child: Center(child: CircularProgressIndicator()),
-              ),
-          ],
+              if (viewModel.isUploading)
+                const Positioned.fill(
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+              if (!viewModel.isUploading)
+                Positioned(
+                  bottom: 0,
+                  right: 0,
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 2),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.1),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(Icons.edit, size: 14, color: Colors.white),
+                  ),
+                ),
+            ],
+          ),
         ),
         const SizedBox(height: 16),
         Text(user.fullName, style: AppTextStyles.h2),
@@ -165,15 +187,34 @@ class _ProfileContent extends StatelessWidget {
   }
 
   Widget _buildSectionHeader({required String title, required VoidCallback onTap}) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(title, style: AppTextStyles.h3.copyWith(fontSize: 18)),
-        IconButton(
-          icon: const Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.textSecondary),
-          onPressed: onTap,
-        ),
-      ],
+    return InkWell(
+      onTap: onTap,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(title, style: AppTextStyles.h3.copyWith(fontSize: 18)),
+          const Icon(Icons.arrow_forward_ios, size: 14, color: AppColors.textSecondary),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionCard({required String title, required VoidCallback onTap, required Widget child}) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.8)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionHeader(title: title, onTap: onTap),
+          const SizedBox(height: 16),
+          child,
+        ],
+      ),
     );
   }
 
@@ -182,23 +223,106 @@ class _ProfileContent extends StatelessWidget {
     return Wrap(
       spacing: 8,
       runSpacing: 8,
-      children: skills.map((skill) => Chip(
-        label: Text(skill.skillName),
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: const BorderSide(color: AppColors.border)),
-      )).toList(),
+      children: skills.map((skill) {
+        final bool isVerified = skill.isVerified;
+        return Chip(
+          avatar: Icon(
+            isVerified ? Icons.check_circle_outline : Icons.access_time,
+            size: 16,
+            color: isVerified ? AppColors.tealDark : AppColors.textSecondary,
+          ),
+          label: Text(
+            skill.skillName,
+            style: TextStyle(
+              color: isVerified ? AppColors.tealDark : AppColors.textSecondary,
+              fontWeight: isVerified ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
+          backgroundColor: isVerified ? AppColors.tealLight : AppColors.background,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: BorderSide(color: isVerified ? AppColors.tealLight : AppColors.border),
+          ),
+        );
+      }).toList(),
     );
   }
 
   Widget _buildExperienceList(List<Experience> experiences) {
     if (experiences.isEmpty) return const Text('No experience added yet', style: TextStyle(color: AppColors.textSecondary));
     return Column(
-      children: experiences.map((exp) => ListTile(
-        leading: const Icon(Icons.work_outline, color: AppColors.primary),
-        title: Text(exp.title, style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Text(exp.organization),
+      children: experiences.map((exp) {
+        final String startDate = DateFormat('MMM yyyy').format(exp.startDate);
+        final String endDate = exp.endDate != null ? DateFormat('MMM yyyy').format(exp.endDate!) : 'Present';
+        
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 16.0),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.background,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.work_outline, color: AppColors.primary, size: 24),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(exp.title, style: AppTextStyles.bodyLarge.copyWith(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 4),
+                    Text(exp.organization, style: AppTextStyles.bodyMedium),
+                    const SizedBox(height: 4),
+                    Text('$startDate - $endDate', style: AppTextStyles.bodySmall),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildSocialLinksList(List<UserSocialLink> links) {
+    if (links.isEmpty) return const Text('No social links added yet', style: TextStyle(color: AppColors.textSecondary));
+    return Wrap(
+      spacing: 12,
+      runSpacing: 12,
+      children: links.map((link) => InkWell(
+        onTap: () async {
+          final uri = Uri.parse(link.url);
+          if (await canLaunchUrl(uri)) {
+            await launchUrl(uri, mode: LaunchMode.externalApplication);
+          }
+        },
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: _getPlatformIcon(link.platform, size: 24),
+        ),
       )).toList(),
     );
+  }
+
+  Widget _getPlatformIcon(String platform, {double size = 24, Color color = AppColors.primary}) {
+    switch (platform.toLowerCase()) {
+      case 'linkedin': return FaIcon(FontAwesomeIcons.linkedin, size: size, color: color);
+      case 'github': return FaIcon(FontAwesomeIcons.github, size: size, color: color);
+      case 'facebook': return FaIcon(FontAwesomeIcons.facebook, size: size, color: color);
+      case 'twitter': return FaIcon(FontAwesomeIcons.xTwitter, size: size, color: color);
+      case 'instagram': return FaIcon(FontAwesomeIcons.instagram, size: size, color: color);
+      case 'website': return Icon(Icons.language, size: size, color: color);
+      default: return Icon(Icons.link, size: size, color: color);
+    }
   }
 
   Widget _buildProfileListTile({required String title, required IconData icon, required VoidCallback onTap}) {

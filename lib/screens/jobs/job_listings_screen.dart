@@ -31,7 +31,6 @@ class _CareerOpportunitiesScreenState extends State<CareerOpportunitiesScreen> {
         title: const Text('Career Opportunities', style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.white,
         elevation: 0,
-        automaticallyImplyLeading: false,
         actions: [
           PopupMenuButton<String>(
             icon: const Icon(Icons.filter_list, color: AppColors.primary),

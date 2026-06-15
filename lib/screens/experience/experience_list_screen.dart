@@ -58,7 +58,7 @@ class _ExperienceListContent extends StatelessWidget {
               child: const Icon(Icons.add, color: Colors.white, size: 20),
             ),
             onPressed: () {
-               Navigator.push(
+              Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder: (_) => ChangeNotifierProvider.value(
@@ -89,9 +89,10 @@ class _ExperienceListContent extends StatelessWidget {
                       separatorBuilder: (_, __) => const SizedBox(height: 12),
                       itemBuilder: (context, index) {
                         final exp = viewModel.experiences[index];
-                        final String startDate = DateFormat('MMM yyyy').format(exp.startDate);
-                        final String endDate = exp.endDate != null 
-                            ? DateFormat('MMM yyyy').format(exp.endDate!) 
+                        final String startDate =
+                            DateFormat('MMM yyyy').format(exp.startDate);
+                        final String endDate = exp.endDate != null
+                            ? DateFormat('MMM yyyy').format(exp.endDate!)
                             : 'Present';
 
                         return Container(
@@ -104,36 +105,66 @@ class _ExperienceListContent extends StatelessWidget {
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                               Container(
-                                 padding: const EdgeInsets.all(10),
-                                 decoration: BoxDecoration(
-                                   color: AppColors.background,
-                                   borderRadius: BorderRadius.circular(8),
-                                 ),
-                                 child: const Icon(Icons.work_outline, color: AppColors.primary, size: 20),
-                               ),
-                               const SizedBox(width: 16),
-                               Expanded(
-                                 child: Column(
-                                   crossAxisAlignment: CrossAxisAlignment.start,
-                                   children: [
-                                     Text(exp.title, style: AppTextStyles.bodyLarge.copyWith(fontWeight: FontWeight.w600)),
-                                     const SizedBox(height: 4),
-                                     Text(exp.organization, style: AppTextStyles.bodyMedium),
-                                     const SizedBox(height: 4),
-                                     Text('$startDate - $endDate', style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary)),
-                                     if (exp.description != null && exp.description!.isNotEmpty) ...[
-                                       const SizedBox(height: 8),
-                                       Text(
-                                         exp.description!,
-                                         style: AppTextStyles.bodySmall,
-                                         maxLines: 2,
-                                         overflow: TextOverflow.ellipsis,
-                                       ),
-                                     ],
-                                   ],
-                                 ),
-                               ),
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: AppColors.background,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Icon(
+                                  Icons.work_outline,
+                                  color: AppColors.primary,
+                                  size: 20,
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      exp.title,
+                                      style: AppTextStyles.bodyLarge.copyWith(
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      exp.organization,
+                                      style: AppTextStyles.bodyMedium,
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      '$startDate - $endDate',
+                                      style: AppTextStyles.bodySmall.copyWith(
+                                        color: AppColors.textSecondary,
+                                      ),
+                                    ),
+                                    if (exp.description != null &&
+                                        exp.description!.isNotEmpty) ...[
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        exp.description!,
+                                        style: AppTextStyles.bodySmall,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                              IconButton(
+                                tooltip: 'Delete experience',
+                                icon: const Icon(
+                                  Icons.delete_outline,
+                                  color: AppColors.error,
+                                ),
+                                onPressed: () => _confirmDelete(
+                                  context,
+                                  viewModel,
+                                  exp.id,
+                                ),
+                              ),
                             ],
                           ),
                         );
@@ -141,5 +172,38 @@ class _ExperienceListContent extends StatelessWidget {
                     ),
             ),
     );
+  }
+
+  Future<void> _confirmDelete(
+    BuildContext context,
+    ExperienceViewModel viewModel,
+    String experienceId,
+  ) async {
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete experience?'),
+        content: const Text(
+          'This experience will be removed from your profile.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text(
+              'Delete',
+              style: TextStyle(color: AppColors.error),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldDelete == true && context.mounted) {
+      await viewModel.deleteExperience(context, experienceId);
+    }
   }
 }

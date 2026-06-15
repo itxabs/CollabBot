@@ -48,6 +48,12 @@ class LocalMessageDb {
     return messages;
   }
 
+  Future<LocalMessage?> getLastMessage(String chatId) async {
+    final messages = await getMessagesForChat(chatId);
+    if (messages.isEmpty) return null;
+    return messages.last;
+  }
+
   Future<int> getUnreadCount(String chatId, String userId) async {
     final lastRead = await getLastReadAt(chatId, userId);
     if (lastRead == null) {

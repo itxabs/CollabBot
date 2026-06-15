@@ -9,6 +9,8 @@ abstract class ProfileRepository {
   
   Future<List<SkillLevel>> getSkillLevels();
   Future<void> addUserSkill(String userId, String skillName, String skillLevelId);
+  Future<void> deleteUserSkill(String userId, String userSkillId);
+  Future<void> addLeaderboardPoints(String userId, int points, String actionType);
   
   Future<void> addExperience({
     required String userId,
@@ -18,8 +20,10 @@ abstract class ProfileRepository {
     required DateTime startDate,
     DateTime? endDate,
   });
+  Future<void> deleteExperience(String userId, String experienceId);
   
   Future<void> verifySkill(String userSkillId);
+  Future<void> updateProfile(String userId, {String? name, String? email, DateTime? dob});
   Future<void> uploadProfilePicture(String userId, File file);
   
   Future<List<UserSocialLink>> getUserSocialLinks(String userId);
@@ -58,6 +62,16 @@ class ProfileRepositoryImpl implements ProfileRepository {
   }
 
   @override
+  Future<void> deleteUserSkill(String userId, String userSkillId) async {
+    return await _service.deleteUserSkill(userId, userSkillId);
+  }
+
+  @override
+  Future<void> addLeaderboardPoints(String userId, int points, String actionType) async {
+    return await _service.addLeaderboardPoints(userId, points, actionType);
+  }
+
+  @override
   Future<void> addExperience({
     required String userId,
     required String organization,
@@ -77,8 +91,25 @@ class ProfileRepositoryImpl implements ProfileRepository {
   }
 
   @override
+  Future<void> deleteExperience(String userId, String experienceId) async {
+    return await _service.deleteExperience(userId, experienceId);
+  }
+
+  @override
   Future<void> verifySkill(String userSkillId) async {
     return await _service.verifySkill(userSkillId);
+  }
+
+  @override
+  Future<void> updateProfile(String userId, {String? name, String? email, DateTime? dob}) async {
+    final Map<String, dynamic> data = {};
+    if (name != null) data['full_name'] = name;
+    if (email != null) data['email'] = email;
+    if (dob != null) data['dob'] = dob.toIso8601String().split('T')[0];
+    
+    if (data.isNotEmpty) {
+      await _service.updateProfile(userId, data);
+    }
   }
 
   @override
@@ -102,4 +133,3 @@ class ProfileRepositoryImpl implements ProfileRepository {
     return await _service.deleteSocialLink(id);
   }
 }
-

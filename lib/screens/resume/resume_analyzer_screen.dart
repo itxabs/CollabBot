@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:dotted_border/dotted_border.dart';
 import '../../view_model/resume_analyzer_view_model.dart';
+import '../../core/constants/colors.dart';
+import '../../core/constants/text_styles.dart';
+import '../../core/widgets/primary_button.dart';
 
 class ResumeAnalyzerScreen extends StatelessWidget {
   const ResumeAnalyzerScreen({super.key});
@@ -16,36 +20,23 @@ class ResumeAnalyzerScreen extends StatelessWidget {
         ),
         body: Consumer<ResumeAnalyzerViewModel>(
           builder: (context, viewModel, child) {
-            return Padding(
+            return SingleChildScrollView(
               padding: const EdgeInsets.all(24.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // --- Header Section ---
-                  const Text(
-                    "Optimize Your Resume",
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    "Upload your PDF or DOCX resume to get an instant ATS score and tailored recommendations.",
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 16),
 
                   // --- Upload Area ---
                   if (viewModel.fileName == null && !viewModel.isLoading)
                     _buildUploadPlaceholder(context, viewModel)
                   else
                     _buildFileStatus(context, viewModel),
+
+                  if (viewModel.score == null && !viewModel.isLoading) ...[
+                    const SizedBox(height: 32),
+                    _buildWhatYouGetSection(),
+                  ],
 
                   const SizedBox(height: 32),
 
@@ -80,31 +71,108 @@ class ResumeAnalyzerScreen extends StatelessWidget {
   }
 
   Widget _buildUploadPlaceholder(BuildContext context, ResumeAnalyzerViewModel viewModel) {
-    return GestureDetector(
-      onTap: viewModel.pickAndAnalyzeFile,
+    return DottedBorder(
+      options: RoundedRectDottedBorderOptions(
+        color: AppColors.primary.withOpacity(0.3),
+        strokeWidth: 2,
+        dashPattern: const [6, 4],
+        radius: const Radius.circular(20),
+      ),
       child: Container(
-        height: 200,
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 40),
         decoration: BoxDecoration(
-          color: Colors.grey[100],
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.grey[300]!, width: 2),
+          color: AppColors.primary.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(20),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.cloud_upload_outlined, size: 64, color: Theme.of(context).primaryColor),
-            const SizedBox(height: 16),
-            const Text(
-              "Tap to Upload Resume",
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: const Icon(Icons.file_upload_outlined, size: 40, color: AppColors.primary),
             ),
-            const SizedBox(height: 4),
-            const Text(
-              "Supports PDF, DOCX (Max 5MB)",
-              style: TextStyle(fontSize: 12, color: Colors.grey),
+            const SizedBox(height: 16),
+            Text("Upload Your Resume", style: AppTextStyles.h3),
+            const SizedBox(height: 8),
+            Text(
+              "Supported formats: PDF, DOCX (Max 5MB)",
+              style: AppTextStyles.bodySmall,
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: 160,
+              child: PrimaryButton(
+                text: 'Choose File',
+                onPressed: viewModel.pickAndAnalyzeFile,
+              ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildWhatYouGetSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text("What you'll get:", style: AppTextStyles.h3),
+        const SizedBox(height: 16),
+        _buildBenefitCard(
+          icon: Icons.trending_up,
+          title: "ATS Score",
+          description: "See how your resume performs with applicant tracking systems",
+        ),
+        _buildBenefitCard(
+          icon: Icons.check_circle_outline,
+          title: "Strength Analysis",
+          description: "Discover what makes your resume stand out",
+        ),
+        _buildBenefitCard(
+          icon: Icons.info_outline,
+          title: "Improvement Tips",
+          description: "Get actionable suggestions to boost your score",
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBenefitCard({required IconData icon, required String title, required String description}) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: AppColors.primary, size: 24),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: AppTextStyles.bodyLarge.copyWith(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 2),
+                Text(description, style: AppTextStyles.bodySmall),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -193,10 +261,10 @@ class ResumeAnalyzerScreen extends StatelessWidget {
            Container(
              padding: const EdgeInsets.all(16),
              decoration: BoxDecoration(color: Colors.green[50], borderRadius: BorderRadius.circular(8)),
-             child: Row(children: const [
-               Icon(Icons.check_circle, color: Colors.green),
-               SizedBox(width: 12),
-               Expanded(child: Text("Great job! Your resume looks strong."))
+             child: Row(children: [
+               const Icon(Icons.check_circle, color: Colors.green),
+               const SizedBox(width: 12),
+               Expanded(child: Text("Great job! Your resume looks strong.")),
              ]),
            )
         else
