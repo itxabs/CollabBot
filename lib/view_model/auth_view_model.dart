@@ -1,5 +1,6 @@
 import 'package:collab_bot/data/models/user_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../data/repositories/auth_repository.dart';
 import '../data/services/auth_service.dart';
 import 'package:flutter/material.dart';
@@ -153,6 +154,12 @@ class AuthViewModel extends ChangeNotifier {
   Future<void> logout() async {
     await Supabase.instance.client.auth.signOut();
     currentUser = null;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('is_logged_in', false);
+    } catch (e) {
+      debugPrint('Error setting logout preference: $e');
+    }
     notifyListeners();
   }
 }

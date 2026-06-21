@@ -1,21 +1,18 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/text_styles.dart';
 import '../../view_model/profile_setup_view_model.dart';
+import '../../view_model/education_view_model.dart';
 import '../../view_model/experience_view_model.dart';
 import '../../view_model/skills_view_model.dart';
+import '../education/add_education_screen.dart';
 import '../experience/add_experience_screen.dart';
 import '../skills/add_skill_screen.dart';
 import 'package:intl/intl.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:url_launcher/url_launcher.dart';
-import '../../data/models/profile_models.dart';
 import '../../view_model/social_media_view_model.dart';
-import '../../view_model/linkedin_import_view_model.dart';
 import 'social_media_screen.dart';
-import 'linkedin_webview_screen.dart';
 
 class ProfileSetupScreen extends StatefulWidget {
   const ProfileSetupScreen({super.key});
@@ -30,6 +27,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<EducationViewModel>(context, listen: false).loadEducation();
       Provider.of<ExperienceViewModel>(context, listen: false).loadExperiences();
       Provider.of<SkillsViewModel>(context, listen: false).loadData();
       Provider.of<ProfileSetupViewModel>(context, listen: false).loadSocialLinks();
@@ -39,6 +37,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   @override
   Widget build(BuildContext context) {
     final viewModel = Provider.of<ProfileSetupViewModel>(context);
+    final eduViewModel = Provider.of<EducationViewModel>(context);
     final expViewModel = Provider.of<ExperienceViewModel>(context);
     final skillsViewModel = Provider.of<SkillsViewModel>(context);
 
@@ -116,60 +115,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 24),
-                    
-                    // LinkedIn Import with Custom Dotted Painter
-                    CustomPaint(
-                      painter: _DashedRectPainter(color: AppColors.border, radius: 16),
-                      child: InkWell(
-                        onTap: () {
-                          final linkedinLink = viewModel.socialLinks.firstWhere(
-                            (link) => link.platform.toLowerCase() == 'linkedin',
-                            orElse: () => UserSocialLink(id: '', userId: '', platform: '', url: '', createdAt: DateTime.now()),
-                          );
-                          
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => ChangeNotifierProvider(
-                                create: (_) => LinkedInImportViewModel(),
-                                child: LinkedInWebViewScreen(
-                                  initialUrl: linkedinLink.url.isNotEmpty ? linkedinLink.url : 'https://www.linkedin.com/login',
-                                ),
-                              ),
-                            ),
-                          ).then((success) {
-                            if (success == true) {
-                              viewModel.loadSocialLinks();
-                              Provider.of<ExperienceViewModel>(context, listen: false).loadExperiences();
-                              Provider.of<SkillsViewModel>(context, listen: false).loadData();
-                            }
-                          });
-                        },
-                        borderRadius: BorderRadius.circular(16),
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(vertical: 20),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Padding(
-                                padding: EdgeInsets.only(bottom: 2),
-                                child: Icon(Icons.auto_awesome, color: AppColors.primary, size: 20),
-                              ),
-                              const SizedBox(width: 12),
-                              Text(
-                                'Import from LinkedIn',
-                                style: AppTextStyles.bodyLarge.copyWith(
-                                  color: AppColors.textPrimary,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
                   ],
                 ),
               ),
@@ -195,10 +140,36 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
               ),
               const SizedBox(height: 8),
               _buildSkillsList(skillsViewModel),
-              
+
               const SizedBox(height: 32),
 
-              // 3. Experience Section
+              // 3. Education Section
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _buildLabel('Education'),
+                  IconButton(
+                    icon: _buildAddIcon(),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ChangeNotifierProvider.value(
+                            value: eduViewModel,
+                            child: const AddEducationScreen(),
+                          ),
+                        ),
+                      ).then((_) => eduViewModel.loadEducation());
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              _buildEducationList(eduViewModel),
+
+              const SizedBox(height: 32),
+
+              // 4. Experience Section
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -339,6 +310,34 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     );
   }
 
+  Widget _buildEducationList(EducationViewModel viewModel) {
+    if (viewModel.isLoading) {
+      return const Center(child: Padding(
+        padding: EdgeInsets.all(16.0),
+        child: CircularProgressIndicator(),
+      ));
+    }
+
+    if (viewModel.education.isEmpty) {
+      return _buildEmptyState('No education added yet');
+    }
+
+    return Column(
+      children: viewModel.education.map((edu) {
+        final parts = [
+          if (edu.degree != null && edu.degree!.isNotEmpty) edu.degree!,
+          if (edu.fieldOfStudy != null && edu.fieldOfStudy!.isNotEmpty) edu.fieldOfStudy!,
+        ];
+        final subtitle = parts.isNotEmpty ? parts.join(' • ') : edu.institution;
+        return _buildListItem(
+          title: edu.institution,
+          subtitle: subtitle,
+          icon: Icons.school_outlined,
+        );
+      }).toList(),
+    );
+  }
+
   Widget _buildExperienceList(ExperienceViewModel viewModel) {
     if (viewModel.isLoading) {
       return const Center(child: Padding(
@@ -455,50 +454,4 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       ),
     );
   }
-}
-
-class _DashedRectPainter extends CustomPainter {
-  final Color color;
-  final double radius;
-  final double strokeWidth;
-  final double gap;
-  final double dash;
-
-  _DashedRectPainter({
-    required this.color,
-    this.radius = 0,
-    this.strokeWidth = 1,
-    this.gap = 5,
-    this.dash = 8,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final Paint paint = Paint()
-      ..color = color
-      ..strokeWidth = strokeWidth
-      ..style = PaintingStyle.stroke;
-
-    final Path path = Path()
-      ..addRRect(RRect.fromRectAndRadius(
-        Rect.fromLTWH(0, 0, size.width, size.height),
-        Radius.circular(radius),
-      ));
-
-    final Path dashedPath = Path();
-    for (final PathMetric metric in path.computeMetrics()) {
-      double distance = 0.0;
-      while (distance < metric.length) {
-        dashedPath.addPath(
-          metric.extractPath(distance, distance + dash),
-          Offset.zero,
-        );
-        distance += dash + gap;
-      }
-    }
-    canvas.drawPath(dashedPath, paint);
-  }
-
-  @override
-  bool shouldRepaint(CustomPainter oldDelegate) => false;
 }

@@ -23,6 +23,7 @@ import 'view_model/auth_view_model.dart';
 import 'view_model/events_view_model.dart';
 import 'view_model/questions/questions_view_model.dart';
 import 'view_model/profile_setup_view_model.dart';
+import 'view_model/education_view_model.dart';
 import 'view_model/experience_view_model.dart';
 import 'view_model/skills_view_model.dart';
 import 'view_model/message_notification_view_model.dart';
@@ -60,6 +61,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => EventsViewModel()),
         ChangeNotifierProvider(create: (_) => QuestionsViewModel()),
         ChangeNotifierProvider(create: (_) => ProfileSetupViewModel()),
+        ChangeNotifierProvider(create: (_) => EducationViewModel()),
         ChangeNotifierProvider(create: (_) => ExperienceViewModel()),
         ChangeNotifierProvider(create: (_) => SkillsViewModel()),
         ChangeNotifierProvider(create: (_) => MessageNotificationViewModel()),

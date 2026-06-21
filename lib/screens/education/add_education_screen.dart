@@ -89,122 +89,131 @@ class _AddEducationScreenState extends State<AddEducationScreen> {
         leading: BackButton(color: AppColors.textPrimary),
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Form(
-             key: _formKey,
-             child: Column(
-               crossAxisAlignment: CrossAxisAlignment.stretch,
-               children: [
-                 _buildLabel('Institution / School'),
-                 _buildTextField(_instController, 'Enter school or university name', isRequired: true),
-                 
-                 const SizedBox(height: 16),
-                 _buildLabel('Degree (Optional)'),
-                 _buildTextField(_degreeController, 'e.g. Bachelor\'s, Master\'s'),
-                 
-                 const SizedBox(height: 16),
-                 _buildLabel('Field of Study (Optional)'),
-                 _buildTextField(_fieldController, 'e.g. Computer Science'),
-                 
-                 const SizedBox(height: 16),
-                 Row(
-                   children: [
-                     Expanded(
-                       child: Column(
-                         crossAxisAlignment: CrossAxisAlignment.start,
-                         children: [
-                           _buildLabel('Start Date'),
-                           GestureDetector(
-                             onTap: () => _selectDate(context, true),
-                             child: Container(
-                               width: double.infinity,
-                               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-                               decoration: BoxDecoration(
-                                 color: Colors.white,
-                                 border: Border.all(color: AppColors.border),
-                                 borderRadius: BorderRadius.circular(8),
-                               ),
-                               child: Text(
-                                 _startDate == null ? 'Select Date' : DateFormat('MMM yyyy').format(_startDate!),
-                                 style: _startDate == null ? AppTextStyles.bodyMedium : AppTextStyles.bodyLarge,
-                               ),
-                             ),
-                           ),
-                         ],
-                       ),
-                     ),
-                     const SizedBox(width: 16),
-                     Expanded(
-                       child: Column(
-                         crossAxisAlignment: CrossAxisAlignment.start,
-                         children: [
-                           _buildLabel('End Date (Optional)'),
-                           GestureDetector(
-                             onTap: () => _selectDate(context, false),
-                             child: Container(
-                               width: double.infinity,
-                               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-                               decoration: BoxDecoration(
-                                 color: Colors.white,
-                                 border: Border.all(color: AppColors.border),
-                                 borderRadius: BorderRadius.circular(8),
-                               ),
-                               child: Text(
-                                 _endDate == null ? 'Present' : DateFormat('MMM yyyy').format(_endDate!),
-                                 style: _endDate == null ? AppTextStyles.bodyMedium : AppTextStyles.bodyLarge,
-                               ),
-                             ),
-                           ),
-                         ],
-                       ),
-                     ),
-                   ],
-                 ),
-                 
-                 const SizedBox(height: 32),
-                 
-                 if (viewModel.errorMessage != null)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 16.0),
-                      child: Text(
-                        viewModel.errorMessage!,
-                        style: const TextStyle(color: Colors.red),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _buildLabel('Institution / School'),
+                      _buildTextField(_instController, 'Enter school or university name', isRequired: true),
 
-                 PrimaryButton(
-                   text: 'Save Education',
-                   isLoading: viewModel.isLoading,
-                   onPressed: () {
-                     if (_formKey.currentState!.validate()) {
-                       if (_startDate == null) {
-                         ScaffoldMessenger.of(context).showSnackBar(
-                           const SnackBar(content: Text('Please select start date')),
-                         );
-                         return;
-                       }
-                       if (_startDate != null && _endDate != null && _endDate!.isBefore(_startDate!)) {
-                         ScaffoldMessenger.of(context).showSnackBar(
-                           const SnackBar(content: Text('End date cannot be before start date')),
-                         );
-                         return;
-                       }
-                       
-                       viewModel.addEducation(
-                         context,
-                         institution: _instController.text.trim(),
-                         degree: _degreeController.text.trim().isEmpty ? null : _degreeController.text.trim(),
-                         fieldOfStudy: _fieldController.text.trim().isEmpty ? null : _fieldController.text.trim(),
-                         startYear: _startDate!.year,
-                         endYear: _endDate?.year,
-                       );
-                     }
-                   },
-                 ),
-               ],
-             ),
+                      const SizedBox(height: 16),
+                      _buildLabel('Degree (Optional)'),
+                      _buildTextField(_degreeController, 'e.g. Bachelor\'s, Master\'s'),
+
+                      const SizedBox(height: 16),
+                      _buildLabel('Field of Study (Optional)'),
+                      _buildTextField(_fieldController, 'e.g. Computer Science'),
+
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildLabel('Start Date'),
+                                GestureDetector(
+                                  onTap: () => _selectDate(context, true),
+                                  child: Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      border: Border.all(color: AppColors.border),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      _startDate == null ? 'Select Date' : DateFormat('MMM yyyy').format(_startDate!),
+                                      style: _startDate == null ? AppTextStyles.bodyMedium : AppTextStyles.bodyLarge,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildLabel('End Date (Optional)'),
+                                GestureDetector(
+                                  onTap: () => _selectDate(context, false),
+                                  child: Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      border: Border.all(color: AppColors.border),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      _endDate == null ? 'Present' : DateFormat('MMM yyyy').format(_endDate!),
+                                      style: _endDate == null ? AppTextStyles.bodyMedium : AppTextStyles.bodyLarge,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (viewModel.errorMessage != null)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 16.0),
+                        child: Text(
+                          viewModel.errorMessage!,
+                          style: const TextStyle(color: Colors.red),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    PrimaryButton(
+                      text: 'Save Education',
+                      isLoading: viewModel.isLoading,
+                      onPressed: () {
+                        if (_formKey.currentState!.validate()) {
+                          if (_startDate == null) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Please select start date')),
+                            );
+                            return;
+                          }
+                          if (_startDate != null && _endDate != null && _endDate!.isBefore(_startDate!)) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('End date cannot be before start date')),
+                            );
+                            return;
+                          }
+                          viewModel.addEducation(
+                            context,
+                            institution: _instController.text.trim(),
+                            degree: _degreeController.text.trim().isEmpty ? null : _degreeController.text.trim(),
+                            fieldOfStudy: _fieldController.text.trim().isEmpty ? null : _fieldController.text.trim(),
+                            startYear: _startDate!.year,
+                            endYear: _endDate?.year,
+                          );
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
       ),

@@ -62,108 +62,117 @@ class _AddExperienceScreenState extends State<AddExperienceScreen> {
         leading: BackButton(color: AppColors.textPrimary),
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Form(
-             key: _formKey,
-             child: Column(
-               crossAxisAlignment: CrossAxisAlignment.stretch,
-               children: [
-                 _buildLabel('Organization'),
-                 _buildTextField(_orgController, 'Enter organization name'),
-                 
-                 const SizedBox(height: 16),
-                 _buildLabel('Job Title'),
-                 _buildTextField(_titleController, 'Enter job title'),
-                 
-                 const SizedBox(height: 16),
-                 Row(
-                   children: [
-                     Expanded(
-                       child: Column(
-                         crossAxisAlignment: CrossAxisAlignment.start,
-                         children: [
-                           _buildLabel('Start Date'),
-                           GestureDetector(
-                             onTap: () => _selectDate(context, true),
-                             child: Container(
-                               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-                               decoration: BoxDecoration(
-                                 color: Colors.white,
-                                 border: Border.all(color: AppColors.border),
-                                 borderRadius: BorderRadius.circular(8),
-                               ),
-                               child: Text(
-                                 _startDate == null ? 'Select Date' : DateFormat('MMM yyyy').format(_startDate!),
-                                 style: _startDate == null ? AppTextStyles.bodyMedium : AppTextStyles.bodyLarge,
-                               ),
-                             ),
-                           ),
-                         ],
-                       ),
-                     ),
-                     const SizedBox(width: 16),
-                     Expanded(
-                       child: Column(
-                         crossAxisAlignment: CrossAxisAlignment.start,
-                         children: [
-                           _buildLabel('End Date (Optional)'),
-                           GestureDetector(
-                             onTap: () => _selectDate(context, false),
-                             child: Container(
-                               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-                               decoration: BoxDecoration(
-                                 color: Colors.white,
-                                 border: Border.all(color: AppColors.border),
-                                 borderRadius: BorderRadius.circular(8),
-                               ),
-                               child: Text(
-                                 _endDate == null ? 'Present' : DateFormat('MMM yyyy').format(_endDate!),
-                                 style: _endDate == null ? AppTextStyles.bodyMedium : AppTextStyles.bodyLarge,
-                               ),
-                             ),
-                           ),
-                         ],
-                       ),
-                     ),
-                   ],
-                 ),
-                 
-                 const SizedBox(height: 16),
-                 _buildLabel('Description (Optional)'),
-                 _buildTextField(_descController, 'Enter description', maxLines: 4),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _buildLabel('Organization'),
+                      _buildTextField(_orgController, 'Enter organization name'),
 
-                 const SizedBox(height: 32),
-                 
-                 if (viewModel.errorMessage != null)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 16.0),
-                      child: Text(viewModel.errorMessage!, style: const TextStyle(color: Colors.red), textAlign: TextAlign.center),
+                      const SizedBox(height: 16),
+                      _buildLabel('Job Title'),
+                      _buildTextField(_titleController, 'Enter job title'),
+
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildLabel('Start Date'),
+                                GestureDetector(
+                                  onTap: () => _selectDate(context, true),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      border: Border.all(color: AppColors.border),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      _startDate == null ? 'Select Date' : DateFormat('MMM yyyy').format(_startDate!),
+                                      style: _startDate == null ? AppTextStyles.bodyMedium : AppTextStyles.bodyLarge,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildLabel('End Date (Optional)'),
+                                GestureDetector(
+                                  onTap: () => _selectDate(context, false),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      border: Border.all(color: AppColors.border),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      _endDate == null ? 'Present' : DateFormat('MMM yyyy').format(_endDate!),
+                                      style: _endDate == null ? AppTextStyles.bodyMedium : AppTextStyles.bodyLarge,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 16),
+                      _buildLabel('Description (Optional)'),
+                      _buildTextField(_descController, 'Enter description', maxLines: 4),
+                    ],
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (viewModel.errorMessage != null)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 16.0),
+                        child: Text(viewModel.errorMessage!, style: const TextStyle(color: Colors.red), textAlign: TextAlign.center),
+                      ),
+                    PrimaryButton(
+                      text: 'Save Experience',
+                      isLoading: viewModel.isLoading,
+                      onPressed: () {
+                        if (_formKey.currentState!.validate()) {
+                          if (_startDate == null) {
+                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select start date')));
+                            return;
+                          }
+                          viewModel.addExperience(
+                            context,
+                            organization: _orgController.text.trim(),
+                            title: _titleController.text.trim(),
+                            description: _descController.text.trim(),
+                            startDate: _startDate!,
+                            endDate: _endDate,
+                          );
+                        }
+                      },
                     ),
-
-                 PrimaryButton(
-                   text: 'Save Experience',
-                   isLoading: viewModel.isLoading,
-                   onPressed: () {
-                     if (_formKey.currentState!.validate()) {
-                       if (_startDate == null) {
-                         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select start date')));
-                         return;
-                       }
-                       
-                       viewModel.addExperience(
-                         context,
-                         organization: _orgController.text.trim(),
-                         title: _titleController.text.trim(),
-                         description: _descController.text.trim(),
-                         startDate: _startDate!,
-                         endDate: _endDate,
-                       );
-                     }
-                   },
-                 ),
-               ],
-             ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
       ),

@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/constants/routes.dart';
 import '../data/repositories/auth_repository.dart';
 import '../data/services/auth_service.dart';
+import '../core/utils/error_handler.dart';
 
 enum ForgotPasswordStep { emailInput, otpInput, passwordUpdate }
 
@@ -56,7 +57,15 @@ class ForgetPassViewModel extends ChangeNotifier {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('OTP sent to your email')));
       }
     } catch (e) {
-      _setError(e.toString());
+      _setError(ErrorHandler.getFriendlyMessage(e));
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(_errorMessage ?? 'Failed to send OTP'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } finally {
       _setLoading(false);
     }
@@ -78,7 +87,15 @@ class ForgetPassViewModel extends ChangeNotifier {
       _currentStep = ForgotPasswordStep.passwordUpdate;
       notifyListeners();
     } catch (e) {
-      _setError(e.toString());
+      _setError(ErrorHandler.getFriendlyMessage(e));
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(_errorMessage ?? 'Verification failed'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } finally {
       _setLoading(false);
     }
@@ -103,7 +120,15 @@ class ForgetPassViewModel extends ChangeNotifier {
         Navigator.pushNamedAndRemoveUntil(context, AppRoutes.login, (route) => false);
       }
     } catch (e) {
-      _setError(e.toString());
+      _setError(ErrorHandler.getFriendlyMessage(e));
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(_errorMessage ?? 'Failed to update password'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } finally {
       _setLoading(false);
     }

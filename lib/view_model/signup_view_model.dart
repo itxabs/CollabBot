@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'auth_view_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../data/repositories/auth_repository.dart';
 import '../data/services/auth_service.dart';
 import '../core/constants/routes.dart';
+import '../core/utils/error_handler.dart';
 
 class SignupViewModel extends ChangeNotifier {
   final AuthRepository _authRepository;
@@ -85,9 +87,19 @@ class SignupViewModel extends ChangeNotifier {
         role: _selectedRole!,
       );
 
+      if (!context.mounted) return;
+
       // Update AuthViewModel with new user
       final authViewModel = Provider.of<AuthViewModel>(context, listen: false);
       await authViewModel.initializeCurrentUser();
+
+      // Save logged-in state to SharedPreferences
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('is_logged_in', true);
+      } catch (e) {
+        debugPrint('Error setting signup login preference: $e');
+      }
 
       // Success
       if (context.mounted) {
@@ -101,8 +113,17 @@ class SignupViewModel extends ChangeNotifier {
       }
     } catch (e) {
       _isLoading = false;
-      _errorMessage = e.toString().replaceAll('Exception: ', '');
+      _errorMessage = ErrorHandler.getFriendlyMessage(e);
       notifyListeners();
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(_errorMessage ?? 'Signup failed'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 

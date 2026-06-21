@@ -99,16 +99,6 @@ class ProfileSetupViewModel extends ChangeNotifier {
     }
   }
 
-  Future<void> importFromLinkedIn() async {
-    debugPrint('Importing from LinkedIn...');
-    _errorMessage = 'LinkedIn import feature coming soon!';
-    notifyListeners();
-    Future.delayed(const Duration(seconds: 2), () {
-      _errorMessage = null;
-      notifyListeners();
-    });
-  }
-
   Future<void> completeProfile(BuildContext context) async {
     _isLoading = true;
     _errorMessage = null;
