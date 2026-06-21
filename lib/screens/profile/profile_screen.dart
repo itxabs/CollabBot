@@ -11,6 +11,7 @@ import '../../view_model/auth_view_model.dart';
 import '../../data/models/profile_models.dart';
 import '../skills/skills_list_screen.dart';
 import '../experience/experience_list_screen.dart';
+import '../education/education_list_screen.dart';
 import '../resume/resume_analyzer_screen.dart';
 import 'social_media_screen.dart';
 import '../../core/constants/routes.dart';
@@ -94,6 +95,17 @@ class _ProfileContent extends StatelessWidget {
                     title: 'Experience',
                     onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ExperienceListScreen())),
                     child: _buildExperienceList(viewModel.experiences),
+                  ),
+                  const SizedBox(height: 24),
+                  _buildSectionCard(
+                    title: 'Education',
+                    onTap: () async {
+                      await Navigator.push(context, MaterialPageRoute(builder: (_) => const EducationListScreen()));
+                      if (context.mounted) {
+                        await viewModel.refresh();
+                      }
+                    },
+                    child: _buildEducationList(viewModel.education),
                   ),
                   const SizedBox(height: 24),
                   _buildSectionCard(
@@ -278,6 +290,61 @@ class _ProfileContent extends StatelessWidget {
                     Text(exp.organization, style: AppTextStyles.bodyMedium),
                     const SizedBox(height: 4),
                     Text('$startDate - $endDate', style: AppTextStyles.bodySmall),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildEducationList(List<Education> education) {
+    if (education.isEmpty) return const Text('No education added yet', style: TextStyle(color: AppColors.textSecondary));
+    return Column(
+      children: education.map((edu) {
+        final String startYearStr = edu.startYear != null ? edu.startYear.toString() : '';
+        final String endYearStr = edu.endYear != null ? edu.endYear.toString() : 'Present';
+        final String duration = startYearStr.isNotEmpty ? '$startYearStr - $endYearStr' : endYearStr;
+
+        String titleText = '';
+        if (edu.degree != null && edu.degree!.isNotEmpty) {
+          titleText += edu.degree!;
+        }
+        if (edu.fieldOfStudy != null && edu.fieldOfStudy!.isNotEmpty) {
+          if (titleText.isNotEmpty) titleText += ' in ';
+          titleText += edu.fieldOfStudy!;
+        }
+        if (titleText.isEmpty) {
+          titleText = 'Education';
+        }
+
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 16.0),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.background,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.school, color: AppColors.primary, size: 24),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(titleText, style: AppTextStyles.bodyLarge.copyWith(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 4),
+                    Text(edu.institution, style: AppTextStyles.bodyMedium),
+                    if (duration.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(duration, style: AppTextStyles.bodySmall),
+                    ],
                   ],
                 ),
               ),

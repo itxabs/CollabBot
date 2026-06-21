@@ -146,7 +146,7 @@ class QuestionService {
   Future<void> _vectorizeNewAnswer(String answerId, String content) async {
     try {
       final String baseUrl = (Platform.isAndroid || Platform.isIOS) 
-          ? 'http://192.168.100.8:8000' 
+          ? 'http://192.168.1.5:8000' 
           : 'http://127.0.0.1:8000';
 
       final response = await http.post(

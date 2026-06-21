@@ -7,10 +7,10 @@ class SwapService {
   /// Your PC's local Wi-Fi IP. Update if your IP changes.
   static String get baseUrl {
     if (Platform.isAndroid) {
-      return 'http://192.168.100.8:8000';
+      return 'http://192.168.1.5:8000';
     }
     if (Platform.isIOS) {
-      return 'http://192.168.100.8:8000';
+      return 'http://192.168.1.5:8000';
     }
     return 'http://127.0.0.1:8000';
   }
@@ -18,7 +18,7 @@ class SwapService {
   // ─── Recommendations ────────────────────────────────────────────────────────
 
   /// Fetches AI-recommended profiles for the current user.
-  /// Already-swiped profiles are excluded by the backend automatically.
+  /// Includes profile picture URLs in the response.
   static Future<List<Map<String, dynamic>>> getRecommendations({
     double? lat,
     double? lng,
@@ -56,10 +56,12 @@ class SwapService {
       print('SwapService: Status ${response.statusCode}');
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
+        print('SwapService: Response Data: $data'); // Log the response data
         return List<Map<String, dynamic>>.from(data);
       } else {
         throw Exception(
-            'Backend Error: ${response.statusCode} - ${response.body}');
+          'Backend Error: ${response.statusCode} - ${response.body}',
+        );
       }
     } catch (e) {
       print('SwapService Error: $e');
@@ -88,11 +90,11 @@ class SwapService {
 
   // ─── Swipe Action ────────────────────────────────────────────────────────────
 
-  /// Records a swipe action — action must be 'like' or 'reject'.
+  /// Records a swipe action — action must be 'like', 'reject', or 'restore'.
   /// Returns a map with keys: status, is_match, message.
   static Future<Map<String, dynamic>> swipeUser(
     String targetUserId, {
-    required String action, // 'like' or 'reject'
+    required String action, // 'like', 'reject', or 'restore'
   }) async {
     try {
       final user = Supabase.instance.client.auth.currentUser;
@@ -134,6 +136,11 @@ class SwapService {
     return swipeUser(targetUserId, action: 'reject');
   }
 
+  /// Convenience wrapper — records a "restore" swipe.
+  static Future<Map<String, dynamic>> restoreUser(String targetUserId) {
+    return swipeUser(targetUserId, action: 'restore');
+  }
+
   // ─── Location Update ─────────────────────────────────────────────────────────
 
   /// Saves the user's current latitude/longitude to Supabase so
@@ -143,10 +150,10 @@ class SwapService {
       final user = Supabase.instance.client.auth.currentUser;
       if (user == null) return;
 
-      await Supabase.instance.client.from('users').update({
-        'latitude': lat,
-        'longitude': lng,
-      }).eq('id', user.id);
+      await Supabase.instance.client
+          .from('users')
+          .update({'latitude': lat, 'longitude': lng})
+          .eq('id', user.id);
     } catch (e) {
       print('SwapService: Error updating location: $e');
     }
@@ -159,9 +166,12 @@ class SwapService {
           .from('events')
           .select()
           .eq('creator_id', userId)
-          .eq('status_id', 2) // Changed from 'approved' (string) to 2 (integer/smallint)
+          .eq(
+            'status_id',
+            2,
+          ) // Changed from 'approved' (string) to 2 (integer/smallint)
           .order('event_date', ascending: false);
-      
+
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
       print('SwapService: Error fetching user events: $e');
@@ -179,12 +189,9 @@ class SwapService {
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'viewer_id': user.id,
-          'target_id': targetUserId,
-        }),
+        body: json.encode({'viewer_id': user.id, 'target_id': targetUserId}),
       );
-      
+
       return response.statusCode == 200;
     } catch (e) {
       print('SwapService: Error recording view: $e');
@@ -197,20 +204,38 @@ class SwapService {
       final user = Supabase.instance.client.auth.currentUser;
       if (user == null) return false;
 
-      // We'll use swipe_actions with a "save" action if possible, 
+      // We'll use swipe_actions with a "save" action if possible,
       // or check if there's a dedicated table. For now, using as a specific swipe type.
-      await Supabase.instance.client
-          .from('swipe_actions')
-          .upsert({
-            'actor_id': user.id,
-            'target_id': targetUserId,
-            'action': 'like', // Map love to high-priority like for now
-          }, onConflict: 'actor_id,target_id');
-      
+      await Supabase.instance.client.from('swipe_actions').upsert({
+        'actor_id': user.id,
+        'target_id': targetUserId,
+        'action': 'like', // Map love to high-priority like for now
+      }, onConflict: 'actor_id,target_id');
+
       return true;
     } catch (e) {
       print('SwapService: Error saving profile: $e');
       return false;
     }
   }
+
+  static Future<List<Map<String, dynamic>>> getMatches() async {
+
+    try {
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user == null) return [];
+
+      final url = Uri.parse('$baseUrl/swap/matches?user_id=${user.id}');
+      final response = await http.get(url).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        return List<Map<String, dynamic>>.from(json.decode(response.body));
+      }
+      return [];
+    } catch (e) {
+      print('SwapService matches error: $e');
+      return [];
+    }
+  }
 }
+

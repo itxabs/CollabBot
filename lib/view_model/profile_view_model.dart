@@ -15,6 +15,7 @@ class ProfileViewModel extends ChangeNotifier {
   UserProfile? _user;
   List<UserSkill> _skills = [];
   List<Experience> _experiences = [];
+  List<Education> _education = [];
   List<UserSocialLink> _socialLinks = [];
 
   bool _isLoading = false;
@@ -25,6 +26,7 @@ class ProfileViewModel extends ChangeNotifier {
   UserProfile? get user => _user;
   List<UserSkill> get skills => _skills;
   List<Experience> get experiences => _experiences;
+  List<Education> get education => _education;
   List<UserSocialLink> get socialLinks => _socialLinks;
   bool get isLoading => _isLoading;
   bool get isUploading => _isUploading;
@@ -78,12 +80,14 @@ class ProfileViewModel extends ChangeNotifier {
         _profileRepository.getUserSkills(userId),
         _profileRepository.getUserExperiences(userId),
         _profileRepository.getUserSocialLinks(userId),
+        _profileRepository.getUserEducation(userId),
       ]);
 
       _user = results[0] as UserProfile;
       _skills = results[1] as List<UserSkill>;
       _experiences = results[2] as List<Experience>;
       _socialLinks = results[3] as List<UserSocialLink>;
+      _education = results[4] as List<Education>;
     } catch (e) {
       _errorMessage = e.toString();
     } finally {

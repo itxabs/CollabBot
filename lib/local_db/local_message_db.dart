@@ -1,9 +1,11 @@
 import 'package:hive_flutter/hive_flutter.dart';
 import '../data/models/message_model.dart';
+import '../data/models/chat_model.dart';
 
 class LocalMessageDb {
   static const String _messagesBox = 'local_messages';
   static const String _readBox = 'local_read';
+  static const String _chatsBox = 'local_chats';
 
   LocalMessageDb._();
   static final LocalMessageDb instance = LocalMessageDb._();
@@ -12,6 +14,7 @@ class LocalMessageDb {
     await Hive.initFlutter();
     await Hive.openBox<dynamic>(_messagesBox);
     await Hive.openBox<String>(_readBox);
+    await Hive.openBox<dynamic>(_chatsBox);
   }
 
   Future<void> saveMessage(LocalMessage message) async {
@@ -78,4 +81,20 @@ class LocalMessageDb {
 
   String _storageKeyForChat(String chatId) => 'chat_$chatId';
   String _readStorageKey(String chatId, String userId) => 'read_${chatId}_$userId';
+
+  Future<void> saveUserChats(String userId, List<ChatSummary> chats) async {
+    final box = Hive.box<dynamic>(_chatsBox);
+    final data = chats.map((chat) => chat.toJson()).toList();
+    await box.put(userId, data);
+  }
+
+  Future<List<ChatSummary>> getUserChats(String userId) async {
+    final box = Hive.box<dynamic>(_chatsBox);
+    final stored = box.get(userId);
+    if (stored == null) return [];
+    final list = List<dynamic>.from(stored as List);
+    return list
+        .map((item) => ChatSummary.fromJson(Map<String, dynamic>.from(item as Map)))
+        .toList();
+  }
 }

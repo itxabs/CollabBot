@@ -94,8 +94,13 @@ def _fetch_bulk_users(query_params: dict) -> List[Dict[str, Any]]:
     return []
 
 def fetch_already_swiped_ids(actor_id: str) -> List[str]:
+    print(f"DEBUG: Fetching swiped IDs for actor: {actor_id}")
     rows = _fetch_table_data("swipe_actions", {"actor_id": f"eq.{actor_id}"})
-    return [row['target_id'] for row in rows]
+    ids = [row['target_id'] for row in rows]
+    print(f"DEBUG: Found {len(ids)} swiped IDs: {ids}")
+    return ids
+
+
 
 def fetch_recommendations(
     current_user_id: str,
@@ -148,10 +153,16 @@ def fetch_recommendations(
 
     # 4. Fetch Candidates
     candidates = _fetch_bulk_users(query_params)
+    print(f"DEBUG: Fetched {len(candidates)} raw candidates")
     
-    # Exclude already swiped
+    # Exclude already swiped, self, and Admins
     excluded = set(exclude_ids or [])
-    candidates = [u for u in candidates if u.get('id') not in excluded]
+    excluded.add(current_user_id)
+    candidates = [u for u in candidates if u.get('id') not in excluded and u.get('role') != 'Admin']
+    print(f"DEBUG: {len(candidates)} candidates remaining after exclusion (Admins filtered out)")
+
+
+
 
     # 5. Scoring and Formatting
     scored_users = []
@@ -192,7 +203,25 @@ def fetch_recommendations(
             latest = exps[0]
             exp_summary = f"{latest.get('title', '')} at {latest.get('organization', '')}"
 
+        # Explicitly exclude current user just in case
+        if other.get('id') == current_user_id:
+            continue
+
         full_name = other.get('full_name') or 'User'
+        
+        # Check alternative DP fields
+        dp_url = other.get('profile_picture_url') or other.get('avatar_url')
+
+        # Calculate post count (events created by them)
+
+        posts_res = _fetch_table_data("events", {"creator_id": f"eq.{other.get('id')}"})
+        posts_count = len(posts_res)
+        
+        # Calculate connections count (mutual matches)
+        matches_res = _fetch_table_data("matches", {"user_id": f"eq.{other.get('id')}"})
+        matches_count = len(matches_res)
+        matches_res_rev = _fetch_table_data("matches", {"matched_user_id": f"eq.{other.get('id')}"})
+        matches_count += len(matches_res_rev)
 
         scored_users.append({
             "user_id": other.get('id'),
@@ -200,33 +229,71 @@ def fetch_recommendations(
             "title": other.get('role', 'Collaborator'),
             "description": exp_summary,
             "degree": degree_str,
+            "education": education,
             "skills": skills_formatted[:6],
             "distance": f"{round(dist_km, 1)} km" if dist_km is not None else "Location Hidden",
             "initials": ''.join([n[0] for n in full_name.split()[:2]]).upper() if full_name else 'U',
+            "profile_picture_url": dp_url,
+            "posts_count": posts_count,
+
+            "connections_count": matches_count,
             "reputation": other.get('reputation', 0),
             "match_score": round(final_score * 100),
             "match_score_raw": final_score
         })
 
+
+
     # Final Sort
     if filter_type == "Meet":
         scored_users.sort(key=lambda x: x['match_score_raw'], reverse=True)
     
+
+
     return scored_users[:20]
+
 
 def record_swipe(actor_id: str, target_id: str, action: str) -> tuple:
     if not SUPABASE_URL: return False, False
 
     try:
-        # 1. Record Swipe Action
+        # 1. Handle "restore" action (un-swipe)
+        if action == "restore":
+            url = f"{SUPABASE_URL}/rest/v1/swipe_actions"
+            params = {
+                "actor_id": f"eq.{actor_id}",
+                "target_id": f"eq.{target_id}"
+            }
+            response = requests.delete(url, headers=HEADERS, params=params)
+            return response.status_code in (200, 204), False
+
+        # 2. Record Swipe Action (like/reject)
         payload = {"actor_id": actor_id, "target_id": target_id, "action": action}
-        success = _upsert_table_data("swipe_actions", payload, "actor_id,target_id")
+        
+        # Check if exists
+        existing = _fetch_table_data("swipe_actions", {
+            "actor_id": f"eq.{actor_id}",
+            "target_id": f"eq.{target_id}"
+        })
+
+        if existing:
+            url = f"{SUPABASE_URL}/rest/v1/swipe_actions"
+            params = {
+                "actor_id": f"eq.{actor_id}",
+                "target_id": f"eq.{target_id}"
+            }
+            res = requests.patch(url, headers=HEADERS, json={"action": action}, params=params)
+            success = res.status_code in (200, 204)
+        else:
+            url = f"{SUPABASE_URL}/rest/v1/swipe_actions"
+            res = requests.post(url, headers=HEADERS, json=payload)
+            success = res.status_code in (200, 201)
         
         if not success: return False, False
 
         is_match = False
         if action == "like":
-            # 2. Check for reciprocal like
+            # 3. Check for reciprocal like
             reciprocal = _fetch_table_data("swipe_actions", {
                 "actor_id": f"eq.{target_id}",
                 "target_id": f"eq.{actor_id}",
@@ -241,6 +308,7 @@ def record_swipe(actor_id: str, target_id: str, action: str) -> tuple:
     except Exception as e:
         print(f"Error in record_swipe: {e}")
         return False, False
+
 
 def _create_match_and_chat(u1: str, u2: str):
     """Creates records in matches, chats, and chat_participants tables."""

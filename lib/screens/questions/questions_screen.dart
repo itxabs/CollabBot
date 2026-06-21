@@ -5,28 +5,105 @@ import '../../core/constants/text_styles.dart';
 import '../../view_model/questions/questions_view_model.dart';
 import '../../data/models/question_model.dart';
 import '../../widgets/user_role_icon.dart';
+import '../../widgets/custom_search_bar.dart';
 import 'question_detail_screen.dart';
 
-class QuestionsScreen extends StatelessWidget {
+class QuestionsScreen extends StatefulWidget {
   const QuestionsScreen({super.key});
+
+  @override
+  State<QuestionsScreen> createState() => _QuestionsScreenState();
+}
+
+class _QuestionsScreenState extends State<QuestionsScreen> {
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Questions Hub'),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        foregroundColor: AppColors.textPrimary,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.filter_list),
-            onPressed: () => _showFilterSheet(context),
-          ),
-        ],
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Custom Top Bar
+            Padding(
+              padding: const EdgeInsets.only(
+                left: 24.0,
+                right: 24.0,
+                top: 24.0,
+                bottom: 12.0,
+              ),
+              child: Row(
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Questions Hub', style: AppTextStyles.h2),
+                      Text(
+                        'Ask questions and share knowledge!',
+                        style: AppTextStyles.bodyMedium,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            // Search and Filter Bar
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: CustomSearchBar(
+                      hintText: 'Search questions...',
+                      controller: _searchController,
+                      onChanged: (value) {
+                        context.read<QuestionsViewModel>().setSearchQuery(value);
+                      },
+                      padding: EdgeInsets.zero,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: AppColors.primary.withValues(alpha: 0.1),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: IconButton(
+                      icon: const Icon(
+                        Icons.filter_list,
+                        color: AppColors.primary,
+                      ),
+                      onPressed: () => _showFilterSheet(context),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const Expanded(
+              child: _QuestionsContent(),
+            ),
+          ],
+        ),
       ),
-      body: const _QuestionsContent(),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => Navigator.pushNamed(context, '/ask_question'),
         backgroundColor: AppColors.primary,

@@ -116,6 +116,17 @@ class _ChatScreenContentState extends State<_ChatScreenContent> {
     }
   }
 
+  String _formatMessageTime(DateTime dt) {
+    final use24Hour = MediaQuery.of(context).alwaysUse24HourFormat;
+    if (use24Hour) {
+      return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+    } else {
+      final hour = dt.hour == 0 ? 12 : (dt.hour > 12 ? dt.hour - 12 : dt.hour);
+      final period = dt.hour >= 12 ? 'PM' : 'AM';
+      return '$hour:${dt.minute.toString().padLeft(2, '0')} $period';
+    }
+  }
+
   Future<void> _pickAttachments() async {
     final result = await FilePicker.platform.pickFiles(
       allowMultiple: true,
@@ -770,7 +781,7 @@ class _ChatScreenContentState extends State<_ChatScreenContent> {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Text(
-                                      '${message.createdAt.hour.toString().padLeft(2, '0')}:${message.createdAt.minute.toString().padLeft(2, '0')}',
+                                      _formatMessageTime(message.createdAt),
                                       style: TextStyle(
                                         color: isMine
                                             ? Colors.white.withValues(alpha: 0.7)

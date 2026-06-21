@@ -27,14 +27,20 @@ class ChatViewModel extends ChangeNotifier {
   final Set<String> _messageIds = {};
   StreamSubscription<List<Map<String, dynamic>>>? _realtimeSubscription;
 
+  bool _isDisposed = false;
+
   ChatViewModel({
     required this.chatId,
     required this.otherUserName,
     this.otherUserId,
   }) {
     _messageService = MessageService(_supabase);
+    _init();
+  }
+
+  Future<void> _init() async {
+    await loadMessages();
     subscribeRealtime();
-    loadMessages();
   }
 
   Future<void> loadMessages() async {
@@ -59,8 +65,10 @@ class ChatViewModel extends ChangeNotifier {
           
           print('💾 Saving to local DB...');
           await LocalMessageDb.instance.saveMessage(localMessage);
-          messages.add(localMessage);
-          _messageIds.add(localMessage.id);
+          if (!messages.any((m) => m.id == localMessage.id)) {
+            messages.add(localMessage);
+            _messageIds.add(localMessage.id);
+          }
           
           // Download all attachments BEFORE deleting from Supabase
           if (localMessage.attachments.isNotEmpty) {
@@ -298,7 +306,10 @@ class ChatViewModel extends ChangeNotifier {
           }
 
           await _messageService.deleteMessageFromSupabase(message.id);
-          messages.add(message);
+          if (!messages.any((m) => m.id == message.id)) {
+            messages.add(message);
+            _messageIds.add(message.id);
+          }
         } catch (itemError) {
           print('❌ Error processing realtime row: $itemError');
         }
@@ -439,7 +450,14 @@ class ChatViewModel extends ChangeNotifier {
   }
 
   @override
+  void notifyListeners() {
+    if (_isDisposed) return;
+    super.notifyListeners();
+  }
+
+  @override
   void dispose() {
+    _isDisposed = true;
     _realtimeSubscription?.cancel();
     super.dispose();
   }

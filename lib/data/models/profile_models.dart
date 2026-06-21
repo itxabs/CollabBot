@@ -131,3 +131,35 @@ class UserSocialLink {
     );
   }
 }
+
+class Education {
+  final String id;
+  final String userId;
+  final String institution;
+  final String? degree;
+  final String? fieldOfStudy;
+  final int? startYear;
+  final int? endYear;
+
+  Education({
+    required this.id,
+    required this.userId,
+    required this.institution,
+    this.degree,
+    this.fieldOfStudy,
+    this.startYear,
+    this.endYear,
+  });
+
+  factory Education.fromJson(Map<String, dynamic> json) {
+    return Education(
+      id: json['id'] as String,
+      userId: json['user_id'] as String,
+      institution: json['institution'] as String,
+      degree: json['degree'] as String?,
+      fieldOfStudy: json['field_of_study'] as String?,
+      startYear: json['start_year'] as int?,
+      endYear: json['end_year'] as int?,
+    );
+  }
+}

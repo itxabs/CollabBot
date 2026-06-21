@@ -6,6 +6,7 @@ abstract class ProfileRepository {
   Future<UserProfile> getUserProfile(String userId);
   Future<List<UserSkill>> getUserSkills(String userId);
   Future<List<Experience>> getUserExperiences(String userId);
+  Future<List<Education>> getUserEducation(String userId);
   
   Future<List<SkillLevel>> getSkillLevels();
   Future<void> addUserSkill(String userId, String skillName, String skillLevelId);
@@ -21,6 +22,16 @@ abstract class ProfileRepository {
     DateTime? endDate,
   });
   Future<void> deleteExperience(String userId, String experienceId);
+
+  Future<void> addEducation({
+    required String userId,
+    required String institution,
+    String? degree,
+    String? fieldOfStudy,
+    int? startYear,
+    int? endYear,
+  });
+  Future<void> deleteEducation(String userId, String educationId);
   
   Future<void> verifySkill(String userSkillId);
   Future<void> updateProfile(String userId, {String? name, String? email, DateTime? dob});
@@ -49,6 +60,11 @@ class ProfileRepositoryImpl implements ProfileRepository {
   @override
   Future<List<Experience>> getUserExperiences(String userId) async {
     return await _service.getExperiences(userId);
+  }
+
+  @override
+  Future<List<Education>> getUserEducation(String userId) async {
+    return await _service.getEducation(userId);
   }
 
   @override
@@ -93,6 +109,30 @@ class ProfileRepositoryImpl implements ProfileRepository {
   @override
   Future<void> deleteExperience(String userId, String experienceId) async {
     return await _service.deleteExperience(userId, experienceId);
+  }
+
+  @override
+  Future<void> addEducation({
+    required String userId,
+    required String institution,
+    String? degree,
+    String? fieldOfStudy,
+    int? startYear,
+    int? endYear,
+  }) async {
+    return await _service.addEducation(
+      userId: userId,
+      institution: institution,
+      degree: degree,
+      fieldOfStudy: fieldOfStudy,
+      startYear: startYear,
+      endYear: endYear,
+    );
+  }
+
+  @override
+  Future<void> deleteEducation(String userId, String educationId) async {
+    return await _service.deleteEducation(userId, educationId);
   }
 
   @override

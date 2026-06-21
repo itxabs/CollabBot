@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/constants/colors.dart';
+import '../../core/constants/text_styles.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/routes.dart';
 import '../../view_model/chat_list_view_model.dart';
@@ -28,29 +29,28 @@ class _ChatListContent extends StatelessWidget {
   Widget build(BuildContext context) {
     final vm = context.watch<ChatListViewModel>();
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FB),
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.only(
+                left: 24.0,
+                right: 24.0,
+                top: 24.0,
+                bottom: 12.0,
+              ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Messages',
-                        style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      Text('Messages', style: AppTextStyles.h2),
                       const SizedBox(height: 4),
                       Text(
                         '${vm.filteredChats.length} conversations',
-                        style: TextStyle(color: Colors.grey.shade600),
+                        style: AppTextStyles.bodyMedium,
                       ),
                     ],
                   ),
@@ -60,11 +60,11 @@ class _ChatListContent extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                     child: Container(
                       decoration: BoxDecoration(
-                        color: Colors.blue,
+                        color: AppColors.primary,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       padding: const EdgeInsets.all(10),
-                      child: const Icon(Icons.add, color: Colors.white),
+                      child: const Icon(Icons.add_rounded, color: Colors.white),
                     ),
                   ),
                 ],
@@ -79,7 +79,7 @@ class _ChatListContent extends StatelessWidget {
             Expanded(
               child: vm.isLoading
                   ? const Center(child: CircularProgressIndicator())
-                  : vm.errorMessage != null
+                  : vm.errorMessage != null && vm.chats.isEmpty
                   ? Center(child: Text(vm.errorMessage!))
                   : vm.filteredChats.isEmpty
                   ? const Center(
@@ -109,16 +109,22 @@ class ChatTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: () => Navigator.pushNamed(
-        context,
-        AppRoutes.chat,
-        arguments: {
-          'chatId': chat.chatId,
-          'otherName': chat.otherUserName,
-          'otherUserId': chat.otherUserId,
-          'otherUserRole': chat.otherUserRole,
-        },
-      ),
+      onTap: () async {
+        final vm = context.read<ChatListViewModel>();
+        await Navigator.pushNamed(
+          context,
+          AppRoutes.chat,
+          arguments: {
+            'chatId': chat.chatId,
+            'otherName': chat.otherUserName,
+            'otherUserId': chat.otherUserId,
+            'otherUserRole': chat.otherUserRole,
+          },
+        );
+        if (context.mounted) {
+          vm.loadChats();
+        }
+      },
       onLongPress: () async {
         final confirmed = await showDialog<bool>(
           context: context,
@@ -224,7 +230,7 @@ class ChatTile extends StatelessWidget {
               children: [
                 if (chat.lastMessageAt != null)
                   Text(
-                    _formatTime(chat.lastMessageAt!),
+                    _formatTime(context, chat.lastMessageAt!),
                     style: const TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                 const SizedBox(height: 8),
@@ -251,10 +257,17 @@ class ChatTile extends StatelessWidget {
     );
   }
 
-  String _formatTime(DateTime dt) {
+  String _formatTime(BuildContext context, DateTime dt) {
     final now = DateTime.now();
     if (now.difference(dt).inDays == 0) {
-      return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+      final use24Hour = MediaQuery.of(context).alwaysUse24HourFormat;
+      if (use24Hour) {
+        return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+      } else {
+        final hour = dt.hour == 0 ? 12 : (dt.hour > 12 ? dt.hour - 12 : dt.hour);
+        final period = dt.hour >= 12 ? 'PM' : 'AM';
+        return '$hour:${dt.minute.toString().padLeft(2, '0')} $period';
+      }
     }
     if (now.difference(dt).inDays < 7) {
       return '${dt.weekday == 1

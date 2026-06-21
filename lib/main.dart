@@ -12,7 +12,6 @@ import 'screens/auth/otp_screen.dart';
 import 'screens/auth/forget_pass_screen.dart';
 import 'screens/auth/signup_screen.dart';
 import 'screens/main_navigation.dart';
-import 'data/models/job_model.dart';
 import 'screens/chat/chat_list_screen.dart';
 import 'local_db/local_message_db.dart';
 import 'screens/chat/new_chat_screen.dart';
@@ -127,16 +126,7 @@ class MyApp extends StatelessWidget {
           AppRoutes.profileSetup: (context) => const ProfileSetupScreen(),
           AppRoutes.profileComplete: (context) => const ProfileCompleteScreen(),
           AppRoutes.jobListings: (context) => CareerOpportunitiesScreen(),
-          AppRoutes.jobDetail: (context) {
-            final job = ModalRoute.of(context)?.settings.arguments as JobModel;
-            return JobDetailScreen(job: job);
-          },
           AppRoutes.savedJobs: (context) => const SavedJobsScreen(),
-          AppRoutes.jobApplication: (context) {
-            final job = ModalRoute.of(context)?.settings.arguments as JobModel;
-            return JobApplicationScreen(job: job);
-          },
-          AppRoutes.myApplications: (context) => const MyApplicationsScreen(),
           AppRoutes.postJob: (context) => const PostJobScreen(),
           AppRoutes.settings: (context) => const SettingsScreen(),
           AppRoutes.editProfile: (context) => const EditProfileScreen(),

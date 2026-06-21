@@ -145,6 +145,59 @@ class ProfileService {
     }
   }
 
+  // Fetch User Education
+  Future<List<Education>> getEducation(String userId) async {
+    try {
+      final response = await _supabase
+          .from('education')
+          .select()
+          .eq('user_id', userId)
+          .order('start_year', ascending: false); // Most recent first
+
+      final List<dynamic> data = response as List<dynamic>;
+      return data.map((json) => Education.fromJson(json)).toList();
+    } catch (e) {
+      throw Exception('Failed to load education: $e');
+    }
+  }
+
+  // Add User Education
+  Future<void> addEducation({
+    required String userId,
+    required String institution,
+    String? degree,
+    String? fieldOfStudy,
+    int? startYear,
+    int? endYear,
+  }) async {
+    try {
+      await _supabase.from('education').insert({
+        'user_id': userId,
+        'institution': institution,
+        'degree': degree,
+        'field_of_study': fieldOfStudy,
+        'start_year': startYear,
+        'end_year': endYear,
+        'created_at': DateTime.now().toIso8601String(),
+      });
+    } catch (e) {
+      throw Exception('Failed to add education: $e');
+    }
+  }
+
+  // Delete User Education
+  Future<void> deleteEducation(String userId, String educationId) async {
+    try {
+      await _supabase
+          .from('education')
+          .delete()
+          .eq('id', educationId)
+          .eq('user_id', userId);
+    } catch (e) {
+      throw Exception('Failed to delete education: $e');
+    }
+  }
+
   // Verify Skill
   Future<void> verifySkill(String userSkillId) async {
     try {

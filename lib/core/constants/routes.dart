@@ -21,10 +21,7 @@ class AppRoutes {
   
   // Job Feature Routes
   static const String jobListings = '/job_listings';
-  static const String jobDetail = '/job_detail';
   static const String savedJobs = '/saved_jobs';
-  static const String jobApplication = '/job_application';
-  static const String myApplications = '/my_applications';
   static const String postJob = '/post_job';
   static const String changePassword = '/change_password';
   static const String privacyPolicy = '/privacy_policy';
