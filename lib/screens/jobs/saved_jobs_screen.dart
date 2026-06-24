@@ -1,12 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/routes.dart';
 import '../../view_model/jobs_view_model.dart';
 import '../../widgets/job_card.dart';
 
-class SavedJobsScreen extends StatelessWidget {
+class SavedJobsScreen extends StatefulWidget {
   const SavedJobsScreen({super.key});
+
+  @override
+  State<SavedJobsScreen> createState() => _SavedJobsScreenState();
+}
+
+class _SavedJobsScreenState extends State<SavedJobsScreen> {
+  Future<void> _launchUrl(String urlString) async {
+    final Uri url = Uri.parse(urlString);
+    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not launch URL')),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -44,7 +61,14 @@ class SavedJobsScreen extends StatelessWidget {
                 onDismissed: (direction) => vm.toggleSaveJob(job),
                 child: JobCard(
                   job: job,
-                  onTap: () => Navigator.pushNamed(context, AppRoutes.jobDetail, arguments: job),
+                  onApply: () {
+                    if (job.jobUrl.isNotEmpty) {
+                      _launchUrl(job.jobUrl);
+                    }
+                  },
+                  onSave: () {
+                    context.read<JobsViewModel>().toggleSaveJob(job);
+                  },
                   onReport: () {
                     // Reporting from saved list
                   },

@@ -12,11 +12,10 @@ import 'screens/auth/otp_screen.dart';
 import 'screens/auth/forget_pass_screen.dart';
 import 'screens/auth/signup_screen.dart';
 import 'screens/main_navigation.dart';
-import 'data/models/job_model.dart';
 import 'screens/chat/chat_list_screen.dart';
 import 'local_db/local_message_db.dart';
 import 'screens/chat/new_chat_screen.dart';
-import 'screens/chat/chat_screen.dart';
+// import 'screens/chat/chat_screen.dart';
 import 'screens/questions/questions_screen.dart';
 import 'screens/questions/question_detail_screen.dart';
 import 'screens/questions/ask_question_screen.dart';
@@ -24,10 +23,13 @@ import 'view_model/auth_view_model.dart';
 import 'view_model/events_view_model.dart';
 import 'view_model/questions/questions_view_model.dart';
 import 'view_model/profile_setup_view_model.dart';
+import 'view_model/education_view_model.dart';
 import 'view_model/experience_view_model.dart';
 import 'view_model/skills_view_model.dart';
 import 'view_model/message_notification_view_model.dart';
 import 'view_model/jobs_view_model.dart';
+import 'view_model/social_media_view_model.dart';
+import 'view_model/profile_view_model.dart';
 import 'screens/screens.dart'; // ✅ Use this to access all screens
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'core/services/call_signaling_service.dart';
@@ -59,10 +61,13 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => EventsViewModel()),
         ChangeNotifierProvider(create: (_) => QuestionsViewModel()),
         ChangeNotifierProvider(create: (_) => ProfileSetupViewModel()),
+        ChangeNotifierProvider(create: (_) => EducationViewModel()),
         ChangeNotifierProvider(create: (_) => ExperienceViewModel()),
         ChangeNotifierProvider(create: (_) => SkillsViewModel()),
         ChangeNotifierProvider(create: (_) => MessageNotificationViewModel()),
         ChangeNotifierProvider(create: (_) => JobsViewModel()),
+        ChangeNotifierProvider(create: (_) => SocialMediaViewModel()),
+        ChangeNotifierProvider(create: (_) => ProfileViewModel()),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
@@ -84,6 +89,7 @@ class MyApp extends StatelessWidget {
           AppRoutes.otp: (context) =>
               const OtpScreen(), // Note: OtpScreen is reused but navigation logic inside VM handles context.
           AppRoutes.home: (context) => MainNavigation(key: mainNavigationKey),
+          AppRoutes.leaderboard: (context) => const LeaderboardScreen(),
           AppRoutes.chatList: (context) => const ChatListScreen(),
           AppRoutes.newChat: (context) => const NewChatScreen(),
           AppRoutes.chat: (context) {
@@ -108,7 +114,7 @@ class MyApp extends StatelessWidget {
           },
           AppRoutes.questions: (context) => const QuestionsScreen(),
           AppRoutes.askQuestion: (context) => const AskQuestionScreen(),
-          AppRoutes.questions + '/detail': (context) {
+          '${AppRoutes.questions}/detail': (context) {
             final args = ModalRoute.of(context)?.settings.arguments;
             if (args != null &&
                 args is Map<String, dynamic> &&
@@ -122,17 +128,12 @@ class MyApp extends StatelessWidget {
           AppRoutes.profileSetup: (context) => const ProfileSetupScreen(),
           AppRoutes.profileComplete: (context) => const ProfileCompleteScreen(),
           AppRoutes.jobListings: (context) => CareerOpportunitiesScreen(),
-          AppRoutes.jobDetail: (context) {
-            final job = ModalRoute.of(context)?.settings.arguments as JobModel;
-            return JobDetailScreen(job: job);
-          },
           AppRoutes.savedJobs: (context) => const SavedJobsScreen(),
-          AppRoutes.jobApplication: (context) {
-            final job = ModalRoute.of(context)?.settings.arguments as JobModel;
-            return JobApplicationScreen(job: job);
-          },
-          AppRoutes.myApplications: (context) => const MyApplicationsScreen(),
           AppRoutes.postJob: (context) => const PostJobScreen(),
+          AppRoutes.settings: (context) => const SettingsScreen(),
+          AppRoutes.editProfile: (context) => const EditProfileScreen(),
+          AppRoutes.changePassword: (context) => const ChangePasswordScreen(),
+          AppRoutes.privacyPolicy: (context) => const PrivacyPolicyScreen(),
           AppRoutes.incomingCall: (context) {
             final args =
                 ModalRoute.of(context)?.settings.arguments

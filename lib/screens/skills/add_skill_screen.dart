@@ -73,15 +73,44 @@ class _AddSkillScreenState extends State<AddSkillScreen> {
                   initialValue: _selectedLevelId,
                   decoration: InputDecoration(
                     hintText: 'Select level',
+                    hintStyle: AppTextStyles.bodyMedium,
                     filled: true,
                     fillColor: Colors.white,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.border)),
-                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.border)),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: AppColors.border),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: AppColors.border),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                    ),
+                    errorBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: AppColors.error),
+                    ),
+                    focusedErrorBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: AppColors.error, width: 1.5),
+                    ),
                   ),
+                  icon: const Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    color: AppColors.textSecondary,
+                  ),
+                  iconEnabledColor: AppColors.primary,
+                  dropdownColor: Colors.white,
+                  style: AppTextStyles.bodyLarge.copyWith(color: AppColors.textPrimary),
                   items: viewModel.levels.map((SkillLevel level) {
                     return DropdownMenuItem<String>(
                       value: level.id,
-                      child: Text(level.name),
+                      child: Text(
+                        level.name,
+                        style: AppTextStyles.bodyLarge.copyWith(color: AppColors.textPrimary),
+                      ),
                     );
                   }).toList(),
                   onChanged: (String? newValue) {

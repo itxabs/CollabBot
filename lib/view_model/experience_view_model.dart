@@ -3,6 +3,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../data/models/profile_models.dart';
 import '../data/repositories/profile_repository.dart';
 import '../data/services/profile_service.dart';
+import '../core/constants/colors.dart';
+import '../core/constants/text_styles.dart';
 
 class ExperienceViewModel extends ChangeNotifier {
   final ProfileRepository _profileRepository;
@@ -66,15 +68,76 @@ class ExperienceViewModel extends ChangeNotifier {
         startDate: startDate,
         endDate: endDate,
       );
+      await _profileRepository.addLeaderboardPoints(
+        currentUser.id,
+        10,
+        'add_experience',
+      );
 
       // Refresh list
       await loadExperiences();
 
       if (context.mounted) {
         Navigator.pop(context); // Go back to list
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Experience added successfully')),
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(
+            SnackBar(
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: AppColors.primary,
+              margin: const EdgeInsets.all(16),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              content: Row(
+                children: [
+                   Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.16),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.celebration_outlined, color: Colors.white, size: 18),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      '+10 Points Earned 🎉 Experience Added Successfully',
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
         );
+      }
+    } catch (e) {
+      _errorMessage = e.toString();
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> deleteExperience(BuildContext context, String experienceId) async {
+    final currentUser = Supabase.instance.client.auth.currentUser;
+    if (currentUser == null) return;
+
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      await _profileRepository.deleteExperience(currentUser.id, experienceId);
+      await loadExperiences();
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(
+            const SnackBar(content: Text('Experience deleted successfully')),
+          );
       }
     } catch (e) {
       _errorMessage = e.toString();

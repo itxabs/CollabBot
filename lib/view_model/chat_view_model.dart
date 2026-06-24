@@ -27,30 +27,54 @@ class ChatViewModel extends ChangeNotifier {
   final Set<String> _messageIds = {};
   StreamSubscription<List<Map<String, dynamic>>>? _realtimeSubscription;
 
+  bool _isDisposed = false;
+
   ChatViewModel({
     required this.chatId,
     required this.otherUserName,
     this.otherUserId,
   }) {
     _messageService = MessageService(_supabase);
+    _init();
+  }
+
+  Future<void> _init() async {
+    await loadMessages();
     subscribeRealtime();
-    loadMessages();
   }
 
   Future<void> loadMessages() async {
     isLoading = true;
+    errorMessage = null;
     notifyListeners();
     try {
       final localMessages = await LocalMessageDb.instance.getMessagesForChat(chatId);
       messages = localMessages;
+      _messageIds.clear();
       _messageIds.addAll(messages.map((m) => m.id));
+    } catch (e) {
+      debugPrint('Error loading local messages: $e');
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
 
+    // Try to sync with Supabase in the background
+    _syncWithSupabase();
+  }
+
+  Future<void> _syncWithSupabase() async {
+    try {
       final currentUser = _supabase.auth.currentUser;
+      if (currentUser == null) return;
+
       final remoteMessages = await _messageService.fetchLastMessages(chatId, limit: 100);
       print('📡 Remote fetch loaded ${remoteMessages.length} messages for chat $chatId');
+      
+      bool updated = false;
       for (final remote in remoteMessages) {
         final exists = messages.any((m) => m.id == remote.id);
-        if (!exists && remote.senderId != currentUser?.id) {
+        if (!exists && remote.senderId != currentUser.id) {
           print('📥 Loading remote message ${remote.id} from ${remote.senderId}');
           
           // Fetch attachments for this message
@@ -59,8 +83,11 @@ class ChatViewModel extends ChangeNotifier {
           
           print('💾 Saving to local DB...');
           await LocalMessageDb.instance.saveMessage(localMessage);
-          messages.add(localMessage);
-          _messageIds.add(localMessage.id);
+          if (!messages.any((m) => m.id == localMessage.id)) {
+            messages.add(localMessage);
+            _messageIds.add(localMessage.id);
+            updated = true;
+          }
           
           // Download all attachments BEFORE deleting from Supabase
           if (localMessage.attachments.isNotEmpty) {
@@ -80,14 +107,16 @@ class ChatViewModel extends ChangeNotifier {
           print('✅ Deleted from Supabase');
         }
       }
-      messages.sort((a, b) => a.createdAt.compareTo(b.createdAt));
-      _messageIds
-        ..clear()
-        ..addAll(messages.map((m) => m.id));
+      if (updated || remoteMessages.isNotEmpty) {
+        messages.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+        _messageIds
+          ..clear()
+          ..addAll(messages.map((m) => m.id));
+        notifyListeners();
+      }
     } catch (e) {
-      errorMessage = 'Failed to read messages: $e';
-    } finally {
-      isLoading = false;
+      print('Failed to sync messages with Supabase: $e');
+      errorMessage = 'Failed to sync messages: $e';
       notifyListeners();
     }
   }
@@ -298,7 +327,10 @@ class ChatViewModel extends ChangeNotifier {
           }
 
           await _messageService.deleteMessageFromSupabase(message.id);
-          messages.add(message);
+          if (!messages.any((m) => m.id == message.id)) {
+            messages.add(message);
+            _messageIds.add(message.id);
+          }
         } catch (itemError) {
           print('❌ Error processing realtime row: $itemError');
         }
@@ -439,7 +471,14 @@ class ChatViewModel extends ChangeNotifier {
   }
 
   @override
+  void notifyListeners() {
+    if (_isDisposed) return;
+    super.notifyListeners();
+  }
+
+  @override
   void dispose() {
+    _isDisposed = true;
     _realtimeSubscription?.cancel();
     super.dispose();
   }

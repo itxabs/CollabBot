@@ -1,5 +1,6 @@
 import 'package:collab_bot/data/models/user_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../data/repositories/auth_repository.dart';
 import '../data/services/auth_service.dart';
 import 'package:flutter/material.dart';
@@ -34,6 +35,7 @@ class AuthViewModel extends ChangeNotifier {
       final userData = await _repository.getUserProfile(userId);
       if (userData != null) {
         currentUser = UserModel.fromMap(userData);
+        notifyListeners();
       }
     } catch (e) {
       debugPrint('Error fetching user profile: $e');
@@ -116,6 +118,37 @@ class AuthViewModel extends ChangeNotifier {
 
     isLoading = false;
     notifyListeners();
+  }
+
+  Future<bool> reauthenticateAndChangePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    if (currentUser == null) return false;
+
+    isLoading = true;
+    errorMessage = null;
+    notifyListeners();
+
+    try {
+      // 1. Verify current password by signing in again
+      await _repository.signIn(
+        email: currentUser!.userEmail,
+        password: currentPassword,
+      );
+
+      // 2. If successful, update the password
+      await _repository.updatePassword(newPassword);
+      
+      isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      errorMessage = "Incorrect current password or update failed.";
+      isLoading = false;
+      notifyListeners();
+      return false;
+    }
   }
 
   Future<void> logout() async {

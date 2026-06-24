@@ -8,7 +8,10 @@ import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 import '../../core/services/call_helper.dart';
+import '../../core/constants/colors.dart';
+import '../../core/constants/text_styles.dart';
 
 import '../../data/models/message_model.dart';
 import '../../core/services/chat_presence_service.dart';
@@ -67,8 +70,10 @@ class _ChatScreenContent extends StatefulWidget {
 class _ChatScreenContentState extends State<_ChatScreenContent> {
   final _controller = TextEditingController();
   final _scrollController = ScrollController();
+  final _focusNode = FocusNode();
   Future<Position?>? _currentPositionFuture;
   List<PlatformFile> _selectedFiles = [];
+  bool _showEmoji = false;
 
   @override
   void initState() {
@@ -82,6 +87,7 @@ class _ChatScreenContentState extends State<_ChatScreenContent> {
     ChatPresenceService.instance.clearActiveChat(widget.chatId);
     _controller.dispose();
     _scrollController.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
@@ -107,6 +113,17 @@ class _ChatScreenContentState extends State<_ChatScreenContent> {
       );
     } catch (_) {
       return null;
+    }
+  }
+
+  String _formatMessageTime(DateTime dt) {
+    final use24Hour = MediaQuery.of(context).alwaysUse24HourFormat;
+    if (use24Hour) {
+      return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+    } else {
+      final hour = dt.hour == 0 ? 12 : (dt.hour > 12 ? dt.hour - 12 : dt.hour);
+      final period = dt.hour >= 12 ? 'PM' : 'AM';
+      return '$hour:${dt.minute.toString().padLeft(2, '0')} $period';
     }
   }
 
@@ -190,22 +207,13 @@ class _ChatScreenContentState extends State<_ChatScreenContent> {
   }
 
   void _insertEmoji() {
-    const emoji = '😊';
-    final selection = _controller.selection;
-    final text = _controller.text;
-    if (selection.isValid) {
-      final newText = text.replaceRange(selection.start, selection.end, emoji);
-      _controller.value = TextEditingValue(
-        text: newText,
-        selection: TextSelection.collapsed(
-          offset: selection.start + emoji.length,
-        ),
-      );
+    setState(() {
+      _showEmoji = !_showEmoji;
+    });
+    if (_showEmoji) {
+      _focusNode.unfocus();
     } else {
-      _controller.text = '$text$emoji';
-      _controller.selection = TextSelection.collapsed(
-        offset: _controller.text.length,
-      );
+      _focusNode.requestFocus();
     }
   }
 
@@ -555,14 +563,24 @@ class _ChatScreenContentState extends State<_ChatScreenContent> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back_rounded, color: AppColors.textPrimary),
+          onPressed: () => Navigator.pop(context),
+        ),
+        titleSpacing: 0,
         title: Row(
           children: [
             CircleAvatar(
-              radius: 16,
-              backgroundColor: Colors.blue.shade100,
+              radius: 18,
+              backgroundColor: AppColors.primaryLight,
               child: Text(
                 widget.otherUserName.isNotEmpty ? widget.otherUserName[0] : 'U',
+                style: TextStyle(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
               ),
             ),
             const SizedBox(width: 12),
@@ -576,9 +594,9 @@ class _ChatScreenContentState extends State<_ChatScreenContent> {
                         child: Text(
                           widget.otherUserName,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
+                          style: AppTextStyles.h3.copyWith(
                             fontSize: 16,
-                            fontWeight: FontWeight.w600,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
                       ),
@@ -588,11 +606,6 @@ class _ChatScreenContentState extends State<_ChatScreenContent> {
                       ],
                     ],
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Online',
-                    style: TextStyle(fontSize: 12, color: Colors.green.shade200),
-                  ),
                 ],
               ),
             ),
@@ -601,16 +614,29 @@ class _ChatScreenContentState extends State<_ChatScreenContent> {
         actions: [
           IconButton(
             tooltip: 'Audio call',
-            icon: const Icon(Icons.call, color: Colors.black),
-            onPressed: () => CallHelper.startCall(context, widget.chatId, widget.otherUserName, widget.otherUserRole, widget.otherUserId, false),
+            icon: Icon(Icons.call_outlined, color: AppColors.textPrimary, size: 22),
+            onPressed: () => CallHelper.startCall(
+                context,
+                widget.chatId,
+                widget.otherUserName,
+                widget.otherUserRole,
+                widget.otherUserId,
+                false),
           ),
           IconButton(
             tooltip: 'Video call',
-            icon: const Icon(Icons.videocam, color: Colors.black),
-            onPressed: () => CallHelper.startCall(context, widget.chatId, widget.otherUserName, widget.otherUserRole, widget.otherUserId, true),
+            icon: Icon(Icons.videocam_outlined, color: AppColors.textPrimary, size: 22),
+            onPressed: () => CallHelper.startCall(
+                context,
+                widget.chatId,
+                widget.otherUserName,
+                widget.otherUserRole,
+                widget.otherUserId,
+                true),
           ),
           PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert),
+            icon: Icon(Icons.more_vert_rounded, color: AppColors.textPrimary),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             onSelected: (value) {
               if (value == 'report') {
                 showModalBottomSheet(
@@ -625,33 +651,41 @@ class _ChatScreenContentState extends State<_ChatScreenContent> {
               }
             },
             itemBuilder: (BuildContext context) => [
-              const PopupMenuItem<String>(
+              PopupMenuItem<String>(
                 value: 'report',
                 child: Row(
                   children: [
-                    Icon(Icons.flag_outlined, color: Colors.red, size: 20),
+                    Icon(Icons.flag_outlined, color: AppColors.error, size: 20),
                     SizedBox(width: 12),
-                    Text('Report User', style: TextStyle(color: Colors.red)),
+                    Text('Report User', style: TextStyle(color: AppColors.error)),
                   ],
                 ),
               ),
             ],
           ),
         ],
-        centerTitle: false,
-        elevation: 1,
       ),
       resizeToAvoidBottomInset: true,
-      backgroundColor: const Color(0xFFEFF4FF),
-      body: SafeArea(
-        top: false,
-        bottom: true,
-        child: Column(
-          children: [
-            if (vm.isLoading)
-              const Expanded(child: Center(child: CircularProgressIndicator()))
-            else
-              Expanded(
+      backgroundColor: AppColors.background,
+      body: PopScope(
+        canPop: !_showEmoji,
+        onPopInvokedWithResult: (didPop, result) {
+          if (didPop) return;
+          if (_showEmoji) {
+            setState(() {
+              _showEmoji = false;
+            });
+          }
+        },
+        child: SafeArea(
+          top: false,
+          bottom: true,
+          child: Column(
+            children: [
+              if (vm.isLoading)
+                const Expanded(child: Center(child: CircularProgressIndicator()))
+              else
+                Expanded(
                 child: ListView.builder(
                   controller: _scrollController,
                   reverse: false,
@@ -696,27 +730,26 @@ class _ChatScreenContentState extends State<_ChatScreenContent> {
                               vertical: 10,
                             ),
                             decoration: BoxDecoration(
-                              color: isMine
-                                  ? const Color(0xFF4B7CFD)
-                                  : Colors.white,
+                              color: isMine ? AppColors.primary : Colors.white,
                               borderRadius: BorderRadius.only(
-                                topLeft: const Radius.circular(16),
-                                topRight: const Radius.circular(16),
-                                bottomLeft: Radius.circular(isMine ? 16 : 4),
-                                bottomRight: Radius.circular(isMine ? 4 : 16),
+                                topLeft: const Radius.circular(20),
+                                topRight: const Radius.circular(20),
+                                bottomLeft: Radius.circular(isMine ? 20 : 4),
+                                bottomRight: Radius.circular(isMine ? 4 : 20),
                               ),
                               boxShadow: [
-                                const BoxShadow(
-                                  color: Color(0x05000000),
-                                  blurRadius: 4,
-                                  offset: Offset(0, 2),
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: isMine ? 0.1 : 0.05),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
                                 ),
                               ],
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                if (message.latitude != null && message.longitude != null)
+                                if (message.latitude != null &&
+                                    message.longitude != null)
                                   _buildLocationMessageCard(message, isMine)
                                 else ...[
                                   if (message.attachments.isNotEmpty)
@@ -736,49 +769,50 @@ class _ChatScreenContentState extends State<_ChatScreenContent> {
                                       style: TextStyle(
                                         color: isMine
                                             ? Colors.white
-                                            : Colors.black87,
-                                        fontSize: 14,
+                                            : AppColors.textPrimary,
+                                        fontSize: 15,
                                         fontWeight: FontWeight.w400,
-                                        height: 1.4,
+                                        height: 1.5,
                                       ),
                                     ),
                                 ],
-                                const SizedBox(height: 4),
+                                const SizedBox(height: 6),
                                 Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Text(
-                                      '${message.createdAt.hour.toString().padLeft(2, '0')}:${message.createdAt.minute.toString().padLeft(2, '0')}',
+                                      _formatMessageTime(message.createdAt),
                                       style: TextStyle(
                                         color: isMine
-                                            ? Colors.white70
-                                            : Colors.black45,
+                                            ? Colors.white.withValues(alpha: 0.7)
+                                            : AppColors.textSecondary,
                                         fontSize: 10,
+                                        fontWeight: FontWeight.w500,
                                       ),
                                     ),
                                     if (isMine) ...[
                                       const SizedBox(width: 4),
                                       if (message.status == 'sending')
                                         SizedBox(
-                                          width: 14,
-                                          height: 14,
+                                          width: 12,
+                                          height: 12,
                                           child: CircularProgressIndicator(
                                             strokeWidth: 1.5,
                                             valueColor:
                                                 AlwaysStoppedAnimation<Color>(
-                                                  Colors.white54,
-                                                ),
+                                              Colors.white54,
+                                            ),
                                           ),
                                         )
                                       else if (message.status == 'sent')
-                                        Icon(
-                                          Icons.check,
+                                        const Icon(
+                                          Icons.done_all_rounded,
                                           size: 14,
                                           color: Colors.white70,
                                         )
                                       else if (message.status == 'failed')
-                                        Icon(
-                                          Icons.error_outline,
+                                        const Icon(
+                                          Icons.error_outline_rounded,
                                           size: 14,
                                           color: Colors.redAccent,
                                         ),
@@ -855,8 +889,8 @@ class _ChatScreenContentState extends State<_ChatScreenContent> {
                     width: 36,
                     height: 36,
                     child: IconButton(
-                      icon: const Icon(Icons.attach_file_outlined),
-                      color: Colors.grey.shade700,
+                      icon: Icon(Icons.attach_file_outlined, size: 22),
+                      color: AppColors.textSecondary,
                       onPressed: _pickAttachments,
                       padding: EdgeInsets.zero,
                       tooltip: 'Attach file',
@@ -867,8 +901,8 @@ class _ChatScreenContentState extends State<_ChatScreenContent> {
                     width: 36,
                     height: 36,
                     child: IconButton(
-                      icon: const Icon(Icons.image_outlined),
-                      color: Colors.grey.shade700,
+                      icon: Icon(Icons.image_outlined, size: 22),
+                      color: AppColors.textSecondary,
                       onPressed: _pickImage,
                       padding: EdgeInsets.zero,
                       tooltip: 'Add image',
@@ -879,8 +913,8 @@ class _ChatScreenContentState extends State<_ChatScreenContent> {
                     width: 36,
                     height: 36,
                     child: IconButton(
-                      icon: const Icon(Icons.location_on_outlined),
-                      color: Colors.grey.shade700,
+                      icon: Icon(Icons.location_on_outlined, size: 22),
+                      color: AppColors.textSecondary,
                       onPressed: _shareLocation,
                       padding: EdgeInsets.zero,
                       tooltip: 'Share location',
@@ -890,51 +924,59 @@ class _ChatScreenContentState extends State<_ChatScreenContent> {
                   // Message input field
                   Expanded(
                     child: Container(
-                      constraints: BoxConstraints(
-                        minHeight: 34,
-                        maxHeight: 100,
+                      constraints: const BoxConstraints(
+                        minHeight: 44,
+                        maxHeight: 120,
                       ),
                       decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey.shade300),
+                        color: Colors.grey.shade100,
                         borderRadius: BorderRadius.circular(24),
-                        color: Colors.white,
+                        border: Border.all(color: AppColors.border),
                       ),
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 2,
+                        horizontal: 16,
+                        vertical: 4,
                       ),
                       child: TextField(
                         controller: _controller,
+                        focusNode: _focusNode,
+                        onTap: () {
+                          if (_showEmoji) {
+                            setState(() {
+                              _showEmoji = false;
+                            });
+                          }
+                        },
                         maxLines: null,
                         minLines: 1,
                         textAlignVertical: TextAlignVertical.center,
                         decoration: InputDecoration(
                           hintText: 'Type a message...',
                           hintMaxLines: 1,
+                          hintStyle: AppTextStyles.bodyMedium.copyWith(
+                            color: AppColors.textSecondary.withValues(alpha: 0.6),
+                          ),
                           border: InputBorder.none,
                           contentPadding: EdgeInsets.zero,
                           isDense: true,
                           suffixIcon: IconButton(
                             icon: const Icon(Icons.emoji_emotions_outlined),
-                            color: Colors.grey.shade700,
+                            color: AppColors.textSecondary,
                             onPressed: _insertEmoji,
                             tooltip: 'Insert emoji',
-                            splashRadius: 20,
-                          ),
-                          suffixIconConstraints: const BoxConstraints(
-                            minWidth: 32,
-                            minHeight: 32,
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
                           ),
                         ),
-                        style: const TextStyle(fontSize: 15),
+                        style: AppTextStyles.bodyMedium,
                       ),
                     ),
                   ),
                   const SizedBox(width: 4),
                   // Send button
                   SizedBox(
-                    width: 40,
-                    height: 40,
+                    width: 44,
+                    height: 44,
                     child: Material(
                       color: Colors.transparent,
                       child: InkWell(
@@ -960,12 +1002,19 @@ class _ChatScreenContentState extends State<_ChatScreenContent> {
                         child: Container(
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: Colors.blue.shade600,
+                            color: AppColors.primary,
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.primary.withValues(alpha: 0.3),
+                                blurRadius: 8,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
                           ),
                           child: const Icon(
-                            Icons.send,
+                            Icons.send_rounded,
                             color: Colors.white,
-                            size: 16,
+                            size: 18,
                           ),
                         ),
                       ),
@@ -974,9 +1023,24 @@ class _ChatScreenContentState extends State<_ChatScreenContent> {
                 ],
               ),
             ),
+            if (_showEmoji)
+              SizedBox(
+                height: 250,
+                child: EmojiPicker(
+                  onEmojiSelected: (category, emoji) {
+                    _controller.text = _controller.text + emoji.emoji;
+                  },
+                  config: Config(
+                    categoryViewConfig: const CategoryViewConfig(),
+                    bottomActionBarConfig: const BottomActionBarConfig(
+                      enabled: false,
+                    ),
+                  ),
+                ),
+              ),
           ],
         ),
-      ),
+      ),)
     );
   }
 }
@@ -1074,7 +1138,7 @@ class _DotWidget extends StatelessWidget {
         height: 8,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: Colors.blue.shade600,
+          color: AppColors.primary,
         ),
       ),
     );

@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/routes.dart';
-import '../../view_model/skills_view_model.dart';
-import '../../view_model/jobs_view_model.dart';
 
 class ProfileCompleteScreen extends StatelessWidget {
   const ProfileCompleteScreen({super.key});
@@ -22,7 +19,7 @@ class ProfileCompleteScreen extends StatelessWidget {
               Container(
                 width: 120,
                 height: 120,
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   color: AppColors.tealLight,
                   shape: BoxShape.circle,
                 ),
@@ -43,7 +40,7 @@ class ProfileCompleteScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               const Text(
-                'Congratulations! Your profile is now set up and ready to discover new opportunities.',
+                'Congratulations! Your profile is now set up and ready.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 16,
@@ -54,14 +51,7 @@ class ProfileCompleteScreen extends StatelessWidget {
               const Spacer(),
               ElevatedButton(
                 onPressed: () {
-                  final skillsVm = context.read<SkillsViewModel>();
-                  final jobsVm = context.read<JobsViewModel>();
-                  
-                  // Filter jobs by user skills before navigating
-                  final userSkills = skillsVm.skills.map((s) => s.skillName).toList();
-                  jobsVm.filterJobs(userSkills: userSkills);
-                  
-                  Navigator.pushReplacementNamed(context, AppRoutes.jobListings);
+                  Navigator.pushReplacementNamed(context, AppRoutes.home);
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
@@ -72,24 +62,9 @@ class ProfileCompleteScreen extends StatelessWidget {
                     borderRadius: BorderRadius.circular(16),
                   ),
                 ),
-                child: const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      'Find Jobs Matching My Profile',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                    ),
-                    SizedBox(width: 8),
-                    Icon(Icons.arrow_forward),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextButton(
-                onPressed: () => Navigator.pushReplacementNamed(context, AppRoutes.home),
                 child: const Text(
                   'Go to Home',
-                  style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.w500),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
               ),
               const SizedBox(height: 32),

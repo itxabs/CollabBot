@@ -15,9 +15,19 @@ class QuestionsViewModel extends ChangeNotifier {
   bool _isLoading = false;
   bool _isLoadingAnswers = false;
   QuestionFilter _currentFilter = QuestionFilter.newest;
+  String _searchQuery = '';
 
   List<QuestionModel> get questions {
     List<QuestionModel> filtered = List.from(_questions);
+
+    if (_searchQuery.isNotEmpty) {
+      final query = _searchQuery.toLowerCase();
+      filtered = filtered.where((q) {
+        return q.title.toLowerCase().contains(query) ||
+            q.content.toLowerCase().contains(query) ||
+            q.tags.any((tag) => tag.toLowerCase().contains(query));
+      }).toList();
+    }
 
     switch (_currentFilter) {
       case QuestionFilter.newest:
@@ -43,6 +53,7 @@ class QuestionsViewModel extends ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get isLoadingAnswers => _isLoadingAnswers;
   QuestionFilter get currentFilter => _currentFilter;
+  String get searchQuery => _searchQuery;
 
   String? get currentUserId => _client.auth.currentUser?.id;
 
@@ -52,6 +63,11 @@ class QuestionsViewModel extends ChangeNotifier {
 
   void setFilter(QuestionFilter filter) {
     _currentFilter = filter;
+    notifyListeners();
+  }
+
+  void setSearchQuery(String query) {
+    _searchQuery = query;
     notifyListeners();
   }
 

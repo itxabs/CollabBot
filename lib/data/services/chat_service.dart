@@ -1,5 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
+import 'package:flutter/foundation.dart';
+import '../../local_db/local_message_db.dart';
 import '../models/chat_model.dart';
 
 class ChatService {
@@ -70,16 +72,18 @@ class ChatService {
 
         final lastMessageRows = await _supabase
             .from('messages')
-            .select('content, created_at')
+            .select('content, created_at, sender_id')
             .eq('chat_id', chatId)
             .order('created_at', ascending: false)
             .limit(1);
 
         String? lastMessage;
         DateTime? lastMessageAt;
+        String? lastMessageSenderId;
         if (lastMessageRows is List && lastMessageRows.isNotEmpty) {
           final msgMap = lastMessageRows.first as Map<String, dynamic>;
           lastMessage = msgMap['content'] as String?;
+          lastMessageSenderId = msgMap['sender_id'] as String?;
           if (msgMap['created_at'] != null) {
             lastMessageAt = DateTime.parse(msgMap['created_at'] as String);
           }
@@ -94,6 +98,7 @@ class ChatService {
             otherUserRole: otherRole,
             lastMessage: lastMessage,
             lastMessageAt: lastMessageAt,
+            lastMessageSenderId: lastMessageSenderId,
             hasUnread: false,
           ),
         );
@@ -117,9 +122,10 @@ class ChatService {
     try {
       final response = await _supabase
           .from('users')
-          .select('id, full_name, email, role')
+          .select('id, full_name, email, role, avatar_url')
           .ilike('full_name', '%$query%')
           .neq('id', currentUserId)
+          .neq('role', 'Admin')
           .limit(50);
 
       return List<Map<String, dynamic>>.from(response as List<dynamic>);
@@ -175,6 +181,14 @@ class ChatService {
 
   Future<bool> isParticipant(String chatId, String userId) async {
     try {
+      final localChats = await LocalMessageDb.instance.getUserChats(userId);
+      final existsLocally = localChats.any((chat) => chat.chatId == chatId);
+      if (existsLocally) return true;
+    } catch (e) {
+      debugPrint('Error checking participant in local DB: $e');
+    }
+
+    try {
       final response = await _supabase
           .from('chat_participants')
           .select('user_id')
@@ -204,6 +218,19 @@ class ChatService {
   }
 
   Future<String?> findChatByUsers(String userA, String userB) async {
+    try {
+      final localChats = await LocalMessageDb.instance.getUserChats(userA);
+      final match = localChats.firstWhere(
+        (chat) => chat.otherUserId == userB,
+        orElse: () => null as dynamic,
+      );
+      if (match != null) {
+        return match.chatId;
+      }
+    } catch (e) {
+      debugPrint('Error finding chat in local DB: $e');
+    }
+
     try {
       final firstResponse = await _supabase
           .from('chat_participants')

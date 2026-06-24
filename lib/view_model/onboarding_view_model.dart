@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../core/constants/routes.dart';
 
 class OnboardingItem {
@@ -68,8 +69,16 @@ class OnboardingViewModel extends ChangeNotifier {
     _finishOnboarding(context);
   }
 
-  void _finishOnboarding(BuildContext context) {
-    // Navigate to Login/Auth
-    Navigator.pushReplacementNamed(context, AppRoutes.login);
+  Future<void> _finishOnboarding(BuildContext context) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('seen_onboarding', true);
+    } catch (e) {
+      debugPrint('Error saving onboarding preference: $e');
+    }
+    if (context.mounted) {
+      // Navigate to Login/Auth
+      Navigator.pushReplacementNamed(context, AppRoutes.login);
+    }
   }
 }

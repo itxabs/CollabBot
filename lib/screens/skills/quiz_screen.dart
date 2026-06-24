@@ -29,8 +29,15 @@ class QuizScreen extends StatelessWidget {
   }
 }
 
-class _QuizContent extends StatelessWidget {
+class _QuizContent extends StatefulWidget {
   const _QuizContent();
+
+  @override
+  State<_QuizContent> createState() => _QuizContentState();
+}
+
+class _QuizContentState extends State<_QuizContent> {
+  bool _didOpenResult = false;
 
   @override
   Widget build(BuildContext context) {
@@ -94,23 +101,30 @@ class _QuizContent extends StatelessWidget {
       );
     }
 
-     // Listen for submission completion to navigate
-    if (viewModel.isSubmitted && !viewModel.isLoading) {
-       // Use addPostFrameCallback to avoid navigation during build
-       WidgetsBinding.instance.addPostFrameCallback((_) {
-         Navigator.pushReplacement(
+    // Listen for submission completion to navigate
+    if (viewModel.isSubmitted && !viewModel.isLoading && !_didOpenResult) {
+      _didOpenResult = true;
+      // Use addPostFrameCallback to avoid navigation during build
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => QuizResultScreen(
+            builder: (resultContext) => QuizResultScreen(
               viewModel: viewModel,
               onBackToSkills: () {
-                Navigator.pop(context); // Close result
-                // Navigator.pop(context); // Close quiz (handled by replacement)
+                Navigator.pop(resultContext);
+                Navigator.pop(context);
+              },
+              onTryAgain: () {
+                Navigator.pop(resultContext);
+                _didOpenResult = false;
+                viewModel.retryQuiz();
               },
             ),
           ),
         );
-       });
+      });
     }
 
     final question = viewModel.questions[viewModel.currentQuestionIndex];
@@ -118,7 +132,10 @@ class _QuizContent extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text('Quiz: ${viewModel.currentSkill?.skillName}', style: AppTextStyles.h3.copyWith(fontSize: 18)),
+        title: Text(
+          'Quiz: ${viewModel.currentSkill?.skillName}',
+          style: AppTextStyles.h3.copyWith(fontSize: 18),
+        ),
         backgroundColor: Colors.white,
         centerTitle: true,
         elevation: 0,
@@ -131,8 +148,14 @@ class _QuizContent extends StatelessWidget {
                 title: const Text('Quit Quiz?'),
                 content: const Text('Progress will be lost.'),
                 actions: [
-                  TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-                  TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Quit')),
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx, false),
+                    child: const Text('Cancel'),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx, true),
+                    child: const Text('Quit'),
+                  ),
                 ],
               ),
             );
@@ -161,10 +184,12 @@ class _QuizContent extends StatelessWidget {
               const SizedBox(height: 12),
               Text(
                 'Question ${viewModel.currentQuestionIndex + 1} / ${viewModel.totalQuestions}',
-                style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
+                style: AppTextStyles.bodySmall.copyWith(
+                  color: AppColors.textSecondary,
+                ),
               ),
               const SizedBox(height: 24),
-              
+
               // Question
               Text(
                 question['question'],
@@ -176,7 +201,8 @@ class _QuizContent extends StatelessWidget {
               Expanded(
                 child: ListView.separated(
                   itemCount: (question['options'] as List).length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 16),
+                  separatorBuilder: (context, index) =>
+                      const SizedBox(height: 16),
                   itemBuilder: (ctx, index) {
                     final option = question['options'][index] as String;
                     final isSelected = viewModel.selectedOption == option;
@@ -187,10 +213,14 @@ class _QuizContent extends StatelessWidget {
                       child: Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: isSelected ? AppColors.primary.withOpacity(0.1) : Colors.white,
+                          color: isSelected
+                              ? AppColors.primary.withValues(alpha: 0.1)
+                              : Colors.white,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: isSelected ? AppColors.primary : AppColors.border,
+                            color: isSelected
+                                ? AppColors.primary
+                                : AppColors.border,
                             width: 2,
                           ),
                         ),
@@ -202,20 +232,34 @@ class _QuizContent extends StatelessWidget {
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 border: Border.all(
-                                  color: isSelected ? AppColors.primary : AppColors.textSecondary,
+                                  color: isSelected
+                                      ? AppColors.primary
+                                      : AppColors.textSecondary,
                                   width: 2,
                                 ),
-                                color: isSelected ? AppColors.primary : Colors.transparent,
+                                color: isSelected
+                                    ? AppColors.primary
+                                    : Colors.transparent,
                               ),
-                              child: isSelected ? const Icon(Icons.check, size: 16, color: Colors.white) : null,
+                              child: isSelected
+                                  ? const Icon(
+                                      Icons.check,
+                                      size: 16,
+                                      color: Colors.white,
+                                    )
+                                  : null,
                             ),
                             const SizedBox(width: 16),
                             Expanded(
                               child: Text(
                                 option,
                                 style: AppTextStyles.bodyMedium.copyWith(
-                                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                                  color: isSelected ? AppColors.primary : AppColors.textPrimary,
+                                  fontWeight: isSelected
+                                      ? FontWeight.w600
+                                      : FontWeight.normal,
+                                  color: isSelected
+                                      ? AppColors.primary
+                                      : AppColors.textPrimary,
                                 ),
                               ),
                             ),
@@ -226,14 +270,14 @@ class _QuizContent extends StatelessWidget {
                   },
                 ),
               ),
-              
+
               // Next Button
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: viewModel.selectedOption == null 
-                    ? null 
-                    : () => viewModel.nextQuestion(),
+                  onPressed: viewModel.selectedOption == null
+                      ? null
+                      : () => viewModel.nextQuestion(),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     disabledBackgroundColor: AppColors.border,
@@ -244,7 +288,9 @@ class _QuizContent extends StatelessWidget {
                   ),
                   child: Text(
                     viewModel.isLastQuestion ? 'Submit' : 'Next',
-                    style: AppTextStyles.bodyLarge.copyWith(color: Colors.white),
+                    style: AppTextStyles.bodyLarge.copyWith(
+                      color: Colors.white,
+                    ),
                   ),
                 ),
               ),

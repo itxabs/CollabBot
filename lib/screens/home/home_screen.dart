@@ -5,8 +5,10 @@ import '../../core/constants/text_styles.dart';
 import '../../view_model/home_view_model.dart';
 import '../../view_model/auth_view_model.dart';
 import '../../data/models/question_model.dart';
+import '../../core/constants/routes.dart';
 import '../questions/question_detail_screen.dart';
 import '../main_navigation.dart';
+import '../jobs/job_listings_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -186,10 +188,10 @@ class _HomeContent extends StatelessWidget {
                   ),
                   _buildQuickAction(
                     context,
-                    Icons.auto_awesome,
-                    'CollabAI',
-                    Colors.orange,
-                    () {},
+                    Icons.leaderboard_outlined,
+                    'Leaderboard',
+                    AppColors.primary,
+                    () => Navigator.pushNamed(context, AppRoutes.leaderboard),
                   ),
                   _buildQuickAction(
                     context,
@@ -200,11 +202,14 @@ class _HomeContent extends StatelessWidget {
                   ),
                   _buildQuickAction(
                     context,
-                    Icons.event,
-                    'Events',
+                    Icons.work_outline,
+                    'Career',
                     Colors.green,
                     () {
-                      mainNavigationKey.currentState?.switchToTab(3);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const CareerOpportunitiesScreen()),
+                      );
                     },
                   ),
                 ],

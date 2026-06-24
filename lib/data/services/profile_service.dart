@@ -68,6 +68,31 @@ class ProfileService {
     }
   }
 
+  Future<void> deleteUserSkill(String userId, String userSkillId) async {
+    try {
+      await _supabase
+          .from('user_skills')
+          .delete()
+          .eq('id', userSkillId)
+          .eq('user_id', userId);
+    } catch (e) {
+      throw Exception('Failed to delete skill: $e');
+    }
+  }
+
+  Future<void> addLeaderboardPoints(String userId, int points, String actionType) async {
+    try {
+      await _supabase.from('leaderboard_scores_log').insert({
+        'user_id': userId,
+        'points': points,
+        'action_type': actionType,
+        'created_at': DateTime.now().toIso8601String(),
+      });
+    } catch (e) {
+      throw Exception('Failed to add leaderboard points: $e');
+    }
+  }
+
   // Add User Experience
   Future<void> addExperience({
     required String userId,
@@ -107,6 +132,72 @@ class ProfileService {
       throw Exception('Failed to load experiences: $e');
     }
   }
+
+  Future<void> deleteExperience(String userId, String experienceId) async {
+    try {
+      await _supabase
+          .from('experiences')
+          .delete()
+          .eq('id', experienceId)
+          .eq('user_id', userId);
+    } catch (e) {
+      throw Exception('Failed to delete experience: $e');
+    }
+  }
+
+  // Fetch User Education
+  Future<List<Education>> getEducation(String userId) async {
+    try {
+      final response = await _supabase
+          .from('education')
+          .select()
+          .eq('user_id', userId)
+          .order('start_year', ascending: false); // Most recent first
+
+      final List<dynamic> data = response as List<dynamic>;
+      return data.map((json) => Education.fromJson(json)).toList();
+    } catch (e) {
+      throw Exception('Failed to load education: $e');
+    }
+  }
+
+  // Add User Education
+  Future<void> addEducation({
+    required String userId,
+    required String institution,
+    String? degree,
+    String? fieldOfStudy,
+    int? startYear,
+    int? endYear,
+  }) async {
+    try {
+      await _supabase.from('education').insert({
+        'user_id': userId,
+        'institution': institution,
+        'degree': degree,
+        'field_of_study': fieldOfStudy,
+        'start_year': startYear,
+        'end_year': endYear,
+        'created_at': DateTime.now().toIso8601String(),
+      });
+    } catch (e) {
+      throw Exception('Failed to add education: $e');
+    }
+  }
+
+  // Delete User Education
+  Future<void> deleteEducation(String userId, String educationId) async {
+    try {
+      await _supabase
+          .from('education')
+          .delete()
+          .eq('id', educationId)
+          .eq('user_id', userId);
+    } catch (e) {
+      throw Exception('Failed to delete education: $e');
+    }
+  }
+
   // Verify Skill
   Future<void> verifySkill(String userSkillId) async {
     try {
@@ -132,6 +223,18 @@ class ProfileService {
       return publicUrl;
     } catch (e) {
       throw Exception('Failed to upload image: $e');
+    }
+  }
+
+  // Update User Profile
+  Future<void> updateProfile(String userId, Map<String, dynamic> data) async {
+    try {
+      await _supabase
+          .from('users')
+          .update(data)
+          .eq('id', userId);
+    } catch (e) {
+      throw Exception('Failed to update profile: $e');
     }
   }
 

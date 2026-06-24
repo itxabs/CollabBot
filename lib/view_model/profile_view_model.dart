@@ -15,6 +15,7 @@ class ProfileViewModel extends ChangeNotifier {
   UserProfile? _user;
   List<UserSkill> _skills = [];
   List<Experience> _experiences = [];
+  List<Education> _education = [];
   List<UserSocialLink> _socialLinks = [];
 
   bool _isLoading = false;
@@ -25,6 +26,7 @@ class ProfileViewModel extends ChangeNotifier {
   UserProfile? get user => _user;
   List<UserSkill> get skills => _skills;
   List<Experience> get experiences => _experiences;
+  List<Education> get education => _education;
   List<UserSocialLink> get socialLinks => _socialLinks;
   bool get isLoading => _isLoading;
   bool get isUploading => _isUploading;
@@ -78,12 +80,14 @@ class ProfileViewModel extends ChangeNotifier {
         _profileRepository.getUserSkills(userId),
         _profileRepository.getUserExperiences(userId),
         _profileRepository.getUserSocialLinks(userId),
+        _profileRepository.getUserEducation(userId),
       ]);
 
       _user = results[0] as UserProfile;
       _skills = results[1] as List<UserSkill>;
       _experiences = results[2] as List<Experience>;
       _socialLinks = results[3] as List<UserSocialLink>;
+      _education = results[4] as List<Education>;
     } catch (e) {
       _errorMessage = e.toString();
     } finally {
@@ -129,6 +133,43 @@ class ProfileViewModel extends ChangeNotifier {
       _errorMessage = 'Failed to upload profile picture: $e';
     } finally {
       _isUploading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> updateProfile({
+    required String name,
+    required String email,
+    DateTime? dob,
+    AuthViewModel? authViewModel,
+  }) async {
+    final currentUser = Supabase.instance.client.auth.currentUser;
+    if (currentUser == null) return;
+
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      await _profileRepository.updateProfile(
+        currentUser.id,
+        name: name,
+        email: email,
+        dob: dob,
+      );
+      
+      // Refresh local data
+      await _loadData();
+
+      // Refresh AuthViewModel to sync across app
+      if (authViewModel != null) {
+        await authViewModel.fetchUserProfile(currentUser.id);
+      }
+    } catch (e) {
+      _errorMessage = e.toString();
+      rethrow;
+    } finally {
+      _isLoading = false;
       notifyListeners();
     }
   }

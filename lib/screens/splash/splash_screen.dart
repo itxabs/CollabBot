@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/text_styles.dart';
 import '../../view_model/splash_view_model.dart';
+import '../../view_model/auth_view_model.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -22,8 +23,9 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   void _navigate() async {
+    final authViewModel = Provider.of<AuthViewModel>(context, listen: false);
     final viewModel = Provider.of<SplashViewModel>(context, listen: false);
-    final route = await viewModel.init();
+    final route = await viewModel.init(authViewModel);
     if (mounted) {
       Navigator.pushReplacementNamed(context, route);
     }

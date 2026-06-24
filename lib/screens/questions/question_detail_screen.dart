@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/colors.dart';
@@ -179,12 +180,13 @@ class _QuestionDetailScreenState extends State<QuestionDetailScreen> {
   }
 
   Widget _buildAnswerInput() {
+    final bottomPadding = max(MediaQuery.of(context).viewInsets.bottom, MediaQuery.of(context).padding.bottom);
     return Container(
       padding: EdgeInsets.only(
         left: 16,
         right: 16,
         top: 12,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 12,
+        bottom: bottomPadding + 12,
       ),
       decoration: BoxDecoration(
         color: Colors.white,

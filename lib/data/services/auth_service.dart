@@ -79,7 +79,7 @@ class AuthService {
   Future<Map<String, dynamic>?> getUserProfile(String userId) async {
     final response = await _supabase
         .from('users')
-        .select()
+        .select('id, email, full_name, role, avatar_url, dob, created_at, status, reputation')
         .eq('id', userId)
         .maybeSingle();
     return response;

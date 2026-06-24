@@ -4,6 +4,7 @@ class UserProfile {
   final String email;
   final String role;
   final String? avatarUrl;
+  final DateTime? dob;
   final DateTime createdAt;
 
   UserProfile({
@@ -12,9 +13,10 @@ class UserProfile {
     required this.email,
     required this.role,
     this.avatarUrl,
+    this.dob,
     required this.createdAt,
   });
-
+ 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
     return UserProfile(
       id: json['id'] as String,
@@ -22,6 +24,7 @@ class UserProfile {
       email: json['email'] as String,
       role: json['role'] as String,
       avatarUrl: json['avatar_url'] as String?,
+      dob: json['dob'] != null ? DateTime.parse(json['dob'] as String) : null,
       createdAt: DateTime.parse(json['created_at'] as String),
     );
   }
@@ -125,6 +128,38 @@ class UserSocialLink {
       platform: json['platform'] as String,
       url: json['url'] as String,
       createdAt: DateTime.parse(json['created_at'] as String),
+    );
+  }
+}
+
+class Education {
+  final String id;
+  final String userId;
+  final String institution;
+  final String? degree;
+  final String? fieldOfStudy;
+  final int? startYear;
+  final int? endYear;
+
+  Education({
+    required this.id,
+    required this.userId,
+    required this.institution,
+    this.degree,
+    this.fieldOfStudy,
+    this.startYear,
+    this.endYear,
+  });
+
+  factory Education.fromJson(Map<String, dynamic> json) {
+    return Education(
+      id: json['id'] as String,
+      userId: json['user_id'] as String,
+      institution: json['institution'] as String,
+      degree: json['degree'] as String?,
+      fieldOfStudy: json['field_of_study'] as String?,
+      startYear: json['start_year'] as int?,
+      endYear: json['end_year'] as int?,
     );
   }
 }

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../core/constants/routes.dart';
 import '../data/repositories/auth_repository.dart';
 import '../data/services/auth_service.dart';
 import 'auth_view_model.dart';
+import '../core/utils/error_handler.dart';
 
 class LoginViewModel extends ChangeNotifier {
   final AuthRepository _authRepository = AuthRepositoryImpl(
@@ -56,10 +58,7 @@ class LoginViewModel extends ChangeNotifier {
       }
     } catch (e) {
       _isLoading = false;
-      _errorMessage = e
-          .toString()
-          .replaceAll('Exception: ', '')
-          .replaceAll('AuthException: ', '');
+      _errorMessage = ErrorHandler.getFriendlyMessage(e);
       notifyListeners();
 
       if (context.mounted) {

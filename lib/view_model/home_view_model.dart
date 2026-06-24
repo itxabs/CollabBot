@@ -66,8 +66,7 @@ class HomeViewModel extends ChangeNotifier {
     }
 
     try {
-      final user = await _userRepository.getUserById(userId);
-      _points = user?.reputation ?? 0;
+      _points = await _userRepository.getUserLifetimePoints(userId);
     } catch (_) {
       _points = 0;
     }

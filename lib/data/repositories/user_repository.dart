@@ -8,4 +8,8 @@ class UserRepository {
   Future<UserModel?> getUserById(String userId) {
     return _service.fetchUser(userId);
   }
+
+  Future<int> getUserLifetimePoints(String userId) {
+    return _service.fetchUserLifetimePoints(userId);
+  }
 }
