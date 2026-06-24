@@ -23,11 +23,10 @@ class SplashViewModel extends ChangeNotifier {
       return AppRoutes.onboarding;
     }
     
-    // Check if user is logged in
-    final bool isLoggedIn = prefs.getBool('is_logged_in') ?? false;
+    // Check if user has an active session in Supabase
     final session = Supabase.instance.client.auth.currentSession;
     
-    if (isLoggedIn && session != null) {
+    if (session != null) {
       try {
         await authViewModel.initializeCurrentUser();
         if (authViewModel.currentUser != null) {
@@ -36,11 +35,6 @@ class SplashViewModel extends ChangeNotifier {
       } catch (e) {
         debugPrint('Error initializing user profile on startup: $e');
       }
-    }
-    
-    // If not logged in, or session is expired/missing, reset flag to be safe
-    if (isLoggedIn) {
-      await prefs.setBool('is_logged_in', false);
     }
     
     return AppRoutes.login;

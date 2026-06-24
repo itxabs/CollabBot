@@ -361,7 +361,7 @@ class _LeaderboardTab extends StatelessWidget {
       },
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+        padding: const EdgeInsets.fromLTRB(20, 4, 20, 100),
         children: [
           if (entries.isEmpty)
             const _EmptyLeaderboardState()

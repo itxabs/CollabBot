@@ -45,18 +45,36 @@ class ChatViewModel extends ChangeNotifier {
 
   Future<void> loadMessages() async {
     isLoading = true;
+    errorMessage = null;
     notifyListeners();
     try {
       final localMessages = await LocalMessageDb.instance.getMessagesForChat(chatId);
       messages = localMessages;
+      _messageIds.clear();
       _messageIds.addAll(messages.map((m) => m.id));
+    } catch (e) {
+      debugPrint('Error loading local messages: $e');
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
 
+    // Try to sync with Supabase in the background
+    _syncWithSupabase();
+  }
+
+  Future<void> _syncWithSupabase() async {
+    try {
       final currentUser = _supabase.auth.currentUser;
+      if (currentUser == null) return;
+
       final remoteMessages = await _messageService.fetchLastMessages(chatId, limit: 100);
       print('📡 Remote fetch loaded ${remoteMessages.length} messages for chat $chatId');
+      
+      bool updated = false;
       for (final remote in remoteMessages) {
         final exists = messages.any((m) => m.id == remote.id);
-        if (!exists && remote.senderId != currentUser?.id) {
+        if (!exists && remote.senderId != currentUser.id) {
           print('📥 Loading remote message ${remote.id} from ${remote.senderId}');
           
           // Fetch attachments for this message
@@ -68,6 +86,7 @@ class ChatViewModel extends ChangeNotifier {
           if (!messages.any((m) => m.id == localMessage.id)) {
             messages.add(localMessage);
             _messageIds.add(localMessage.id);
+            updated = true;
           }
           
           // Download all attachments BEFORE deleting from Supabase
@@ -88,14 +107,16 @@ class ChatViewModel extends ChangeNotifier {
           print('✅ Deleted from Supabase');
         }
       }
-      messages.sort((a, b) => a.createdAt.compareTo(b.createdAt));
-      _messageIds
-        ..clear()
-        ..addAll(messages.map((m) => m.id));
+      if (updated || remoteMessages.isNotEmpty) {
+        messages.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+        _messageIds
+          ..clear()
+          ..addAll(messages.map((m) => m.id));
+        notifyListeners();
+      }
     } catch (e) {
-      errorMessage = 'Failed to read messages: $e';
-    } finally {
-      isLoading = false;
+      print('Failed to sync messages with Supabase: $e');
+      errorMessage = 'Failed to sync messages: $e';
       notifyListeners();
     }
   }

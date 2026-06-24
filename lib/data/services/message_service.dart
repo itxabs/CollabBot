@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:io';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
+import 'package:flutter/foundation.dart';
+import '../../local_db/local_message_db.dart';
 import '../models/attachment_model.dart';
 import '../models/message_model.dart';
 import 'attachment_service.dart';
@@ -139,6 +141,14 @@ class MessageService {
   }
 
   Future<bool> isParticipant(String chatId, String userId) async {
+    try {
+      final localChats = await LocalMessageDb.instance.getUserChats(userId);
+      final existsLocally = localChats.any((chat) => chat.chatId == chatId);
+      if (existsLocally) return true;
+    } catch (e) {
+      debugPrint('Error checking participant in local DB: $e');
+    }
+
     final response = await _supabase
         .from('chat_participants')
         .select('user_id')

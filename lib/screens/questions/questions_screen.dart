@@ -238,7 +238,7 @@ class _QuestionsContent extends StatelessWidget {
           : viewModel.questions.isEmpty
           ? _buildEmptyState()
           : ListView.builder(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 100),
               itemCount: viewModel.questions.length,
               itemBuilder: (context, index) =>
                   _QuestionCard(question: viewModel.questions[index]),

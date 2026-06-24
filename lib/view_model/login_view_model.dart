@@ -46,8 +46,6 @@ class LoginViewModel extends ChangeNotifier {
       final session = Supabase.instance.client.auth.currentSession;
       if (session != null) {
         await authViewModel.fetchUserProfile(session.user.id);
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setBool('is_logged_in', true);
       }
 
       _isLoading = false;

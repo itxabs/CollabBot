@@ -1,5 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
+import 'package:flutter/foundation.dart';
+import '../../local_db/local_message_db.dart';
 import '../models/chat_model.dart';
 
 class ChatService {
@@ -179,6 +181,14 @@ class ChatService {
 
   Future<bool> isParticipant(String chatId, String userId) async {
     try {
+      final localChats = await LocalMessageDb.instance.getUserChats(userId);
+      final existsLocally = localChats.any((chat) => chat.chatId == chatId);
+      if (existsLocally) return true;
+    } catch (e) {
+      debugPrint('Error checking participant in local DB: $e');
+    }
+
+    try {
       final response = await _supabase
           .from('chat_participants')
           .select('user_id')
@@ -208,6 +218,19 @@ class ChatService {
   }
 
   Future<String?> findChatByUsers(String userA, String userB) async {
+    try {
+      final localChats = await LocalMessageDb.instance.getUserChats(userA);
+      final match = localChats.firstWhere(
+        (chat) => chat.otherUserId == userB,
+        orElse: () => null as dynamic,
+      );
+      if (match != null) {
+        return match.chatId;
+      }
+    } catch (e) {
+      debugPrint('Error finding chat in local DB: $e');
+    }
+
     try {
       final firstResponse = await _supabase
           .from('chat_participants')

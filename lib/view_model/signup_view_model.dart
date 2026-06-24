@@ -93,14 +93,6 @@ class SignupViewModel extends ChangeNotifier {
       final authViewModel = Provider.of<AuthViewModel>(context, listen: false);
       await authViewModel.initializeCurrentUser();
 
-      // Save logged-in state to SharedPreferences
-      try {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setBool('is_logged_in', true);
-      } catch (e) {
-        debugPrint('Error setting signup login preference: $e');
-      }
-
       // Success
       if (context.mounted) {
         _isLoading = false;
